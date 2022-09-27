@@ -1,0 +1,36 @@
+classDiagram
+    Events <|-- Abi
+    Abi <|-- Inputs
+    Events <|-- Data
+    
+    class Events {
+        + id: string [PK]
+        + address: string
+        + latest_block_number: number
+    }
+    
+    class Abi {
+        + id: string [PK]
+        + event_id: string [FK]
+        + name: string
+        + type: string
+        + anonymous: bool
+    }
+    
+    class Inputs {
+        + id: string [PK]
+        + abi_id: string [FK]
+        + indexed: boolean
+        + internal_type: string
+        + name: string
+        + type: string
+    }
+
+    class Data {
+        + id: string [PK]
+        + event_id: string [FK]
+        + tx: string
+        + block_number: number
+        + data: map[string]any
+    }
+            
