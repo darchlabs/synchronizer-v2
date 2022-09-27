@@ -1,0 +1,203 @@
+{
+	"info": {
+		"_postman_id": "c597098b-61fe-45d0-b2e5-3d4670acfc72",
+		"name": "Darch Labs",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Synchronizer-v2",
+			"item": [
+				{
+					"name": "Events",
+					"item": [
+						{
+							"name": "List events",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{api_url}}/api/v1/events/{{address}}",
+									"host": [
+										"{{api_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"events",
+										"{{address}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get event",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "default"
+									}
+								],
+								"url": {
+									"raw": "{{api_url}}/api/v1/events/{{address}}/{{event_name}}",
+									"host": [
+										"{{api_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"events",
+										"{{address}}",
+										"{{event_name}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create event",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"event\": {\n        \"abi\": {\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"userAddr\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount1\",\n                    \"type\": \"uint256\"\n                }\n            ],\n            \"name\": \"{{event_name}}\",\n            \"type\": \"event\"\n        }\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{api_url}}/api/v1/events/{{address}}",
+									"host": [
+										"{{api_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"events",
+										"{{address}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete event",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{api_url}}/api/v1/events/{{address}}/{{event_name}}",
+									"host": [
+										"{{api_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"events",
+										"{{address}}",
+										"{{event_name}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get event data",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{api_url}}/api/v1/events/{{address}}/{{event_name}}/data",
+									"host": [
+										"{{api_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"events",
+										"{{address}}",
+										"{{event_name}}",
+										"data"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Cronjob",
+					"item": [
+						{
+							"name": "Start cronjob",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{api_url}}/api/v1/cronjob/start",
+									"host": [
+										"{{api_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"cronjob",
+										"start"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Stop cronjob",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{api_url}}/api/v1/cronjob/stop",
+									"host": [
+										"{{api_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"cronjob",
+										"stop"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Restart cronjob",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{api_url}}/api/v1/cronjob/restart",
+									"host": [
+										"{{api_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"cronjob",
+										"restart"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		}
+	]
+}
