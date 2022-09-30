@@ -20,7 +20,7 @@ func New(s *storage.S) *Storage {
 	}
 }
 
-func (s *Storage) CreateEvent(e *event.Event) error {
+func (s *Storage) InsertEvent(e *event.Event) error {
 	// format the composed key used in db
 	key := fmt.Sprintf("event:%s:%s", e.Address, e.Abi.Name)
 
