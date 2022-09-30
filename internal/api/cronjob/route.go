@@ -12,7 +12,7 @@ type Context struct {
 	Cronjob Cronjob
 }
 
-func Router(app *fiber.App, ctx Context) {
+func Route(app *fiber.App, ctx Context) {
 	app.Post("/api/v1/cronjob/start", startCronjobHandler(ctx))
 	app.Post("/api/v1/cronjob/stop", stopCronjobHandler(ctx))
 	app.Post("/api/v1/cronjob/restart", restartCronjobHandler(ctx))

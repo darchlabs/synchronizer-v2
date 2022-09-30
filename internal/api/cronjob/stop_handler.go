@@ -10,7 +10,7 @@ func stopCronjobHandler(ctx Context) func(c *fiber.Ctx) error {
 		// stop cronjob
 		err := ctx.Cronjob.Stop()
 		if err != nil {
-			c.Status(fiber.StatusUnprocessableEntity).JSON(api.Response{
+			c.Status(fiber.StatusInternalServerError).JSON(api.Response{
 				Error: err.Error(),
 			})
 		}

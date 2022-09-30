@@ -8,7 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func createEventHandler(ctx Context) func(c *fiber.Ctx) error {
+func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		c.Accepts("application/json")
 
@@ -20,7 +20,7 @@ func createEventHandler(ctx Context) func(c *fiber.Ctx) error {
 		// parse body to event struct
 		err := json.Unmarshal(c.Body(), &body)
 		if err != nil {
-			return c.Status(fiber.StatusConflict).JSON(api.Response{
+			return c.Status(fiber.StatusBadRequest).JSON(api.Response{
 				Error: err.Error(),
 			})
 		}
@@ -37,9 +37,9 @@ func createEventHandler(ctx Context) func(c *fiber.Ctx) error {
 		// TODO(ca): validate event stuct
 
 		// save event struct on database
-		err = ctx.Storage.CreateEvent(body.Event)
+		err = ctx.Storage.InsertEvent(body.Event)
 		if err != nil {
-			return c.Status(fiber.StatusForbidden).JSON(
+			return c.Status(fiber.StatusInternalServerError).JSON(
 				api.Response{
 					Error: err.Error(),
 				},

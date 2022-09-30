@@ -6,7 +6,7 @@ import (
 )
 
 type ContextStorage interface {
-	CreateEvent(e *event.Event) error
+	InsertEvent(e *event.Event) error
 	ListEvents() ([]*event.Event, error)
 	ListEventsByAddress(address string) ([]*event.Event, error)
 	GetEvent(address string, eventName string) (*event.Event, error)
@@ -19,8 +19,8 @@ type Context struct {
 	Storage ContextStorage
 }
 
-func Router(app *fiber.App, ctx Context) {
-	app.Post("/api/v1/events/:address", createEventHandler(ctx))
+func Route(app *fiber.App, ctx Context) {
+	app.Post("/api/v1/events/:address", insertEventHandler(ctx))
 	app.Get("/api/v1/events/:address", listEventsByAddressHandler(ctx))
 	app.Get("/api/v1/events/:address/:event_name", getEventHandler(ctx))
 	app.Get("/api/v1/events/:address/:event_name/data", listEventDataHandler(ctx))
