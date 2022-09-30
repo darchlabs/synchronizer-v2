@@ -28,7 +28,7 @@ type Storage interface {
 	UpdateEvent(e *event.Event) error
 }
 
-func NewCronJob(seconds int64, storage Storage, client *ethclient.Client) *cronjob {
+func New(seconds int64, storage Storage, client *ethclient.Client) *cronjob {
 	return &cronjob{
 		isRunning: false,
 		seconds: seconds,
