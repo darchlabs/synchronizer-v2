@@ -8,9 +8,13 @@ import (
 	"strconv"
 	"syscall"
 
+	CronjobAPI "github.com/darchlabs/synchronizer-v2/internal/api/cronjob"
+	EventAPI "github.com/darchlabs/synchronizer-v2/internal/api/event"
 	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
 	"github.com/darchlabs/synchronizer-v2/internal/cronjob"
 	"github.com/darchlabs/synchronizer-v2/internal/event"
+	"github.com/darchlabs/synchronizer-v2/internal/storage"
+	EventStorage "github.com/darchlabs/synchronizer-v2/internal/storage/event"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -37,7 +41,7 @@ type Cronjob interface {
 
 
 var (
-	storageSvc Stopper
+	eventStorage Stopper
 	cronjobSvc Cronjob
 )
 
@@ -62,11 +66,18 @@ func main() {
 		log.Fatal("invalid DATABASE_FILEPATH environment value")
 	}
 
-	// initialize the storage
-	storageSvc, err = event.NewStorage(databaseFilepath)
+	// initialize storage
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	s, err := storage.New(databaseFilepath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// initialize event storage
+	eventStorage = EventStorage.New(s)
 
 	// parse seconds from string to int64
 	seconds, err := strconv.ParseInt(intervalSeconds, 10, 64)
@@ -81,7 +92,7 @@ func main() {
 	}
 
 	// initialize the cronjob
-	cronjobSvc = cronjob.NewCronJob(seconds, storageSvc, client)
+	cronjobSvc = cronjob.New(seconds, eventStorage, client)
 
 	// initialize fiber
 	api := fiber.New()
@@ -91,8 +102,8 @@ func main() {
 	}))
 
 	// configure routers
-	event.Router(api, event.Context{Storage: storageSvc})
-	cronjob.Router(api, cronjob.Context{
+	EventAPI.Router(api, EventAPI.Context{Storage: eventStorage})
+	CronjobAPI.Router(api, CronjobAPI.Context{
 		Cronjob: cronjobSvc,
 	})
 
@@ -134,7 +145,7 @@ func gracefullShutdown() {
 	}
 
 	// close databanse connection
-	err = storageSvc.Stop()
+	err = eventStorage.Stop()
 	if err != nil {
 		log.Println(err)
 	}
