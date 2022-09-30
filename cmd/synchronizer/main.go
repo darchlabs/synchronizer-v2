@@ -24,7 +24,7 @@ type Stopper interface {
 	ListEventsByAddress(address string) ([]*event.Event, error)
 	ListEvents() ([]*event.Event, error)
 	GetEvent(address string, eventName string) (*event.Event, error)
-	CreateEvent(e *event.Event) error
+	InsertEvent(e *event.Event) error
 	UpdateEvent(e *event.Event) error
 	DeleteEvent(address string, eventName string) error
 	DeleteEventData(address string, eventName string) error
@@ -102,8 +102,8 @@ func main() {
 	}))
 
 	// configure routers
-	EventAPI.Router(api, EventAPI.Context{Storage: eventStorage})
-	CronjobAPI.Router(api, CronjobAPI.Context{
+	EventAPI.Route(api, EventAPI.Context{Storage: eventStorage})
+	CronjobAPI.Route(api, CronjobAPI.Context{
 		Cronjob: cronjobSvc,
 	})
 
