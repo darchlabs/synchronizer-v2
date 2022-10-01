@@ -8,41 +8,20 @@ import (
 	"strconv"
 	"syscall"
 
+	"github.com/darchlabs/synchronizer-v2"
 	CronjobAPI "github.com/darchlabs/synchronizer-v2/internal/api/cronjob"
 	EventAPI "github.com/darchlabs/synchronizer-v2/internal/api/event"
-	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
 	"github.com/darchlabs/synchronizer-v2/internal/cronjob"
-	"github.com/darchlabs/synchronizer-v2/internal/event"
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
-	EventStorage "github.com/darchlabs/synchronizer-v2/internal/storage/event"
+	eventstorage "github.com/darchlabs/synchronizer-v2/internal/storage/event"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 )
 
-type Stopper interface {
-	ListEventsByAddress(address string) ([]*event.Event, error)
-	ListEvents() ([]*event.Event, error)
-	GetEvent(address string, eventName string) (*event.Event, error)
-	InsertEvent(e *event.Event) error
-	UpdateEvent(e *event.Event) error
-	DeleteEvent(address string, eventName string) error
-	DeleteEventData(address string, eventName string) error
-	ListEventData(address string, eventName string) ([]interface{}, error)
-	InsertEventData(e *event.Event, data []blockchain.LogData) (int64, error)
-	Stop() error
-}
-
-type Cronjob interface {
-	Stop() error
-	Restart() error
-	Start() error
-}
-
-
 var (
-	eventStorage Stopper
-	cronjobSvc Cronjob
+	eventStorage synchronizer.EventStorage
+	cronjobSvc synchronizer.Cronjob
 )
 
 func main() {
@@ -77,7 +56,7 @@ func main() {
 	}
 
 	// initialize event storage
-	eventStorage = EventStorage.New(s)
+	eventStorage = eventstorage.New(s)
 
 	// parse seconds from string to int64
 	seconds, err := strconv.ParseInt(intervalSeconds, 10, 64)
