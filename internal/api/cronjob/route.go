@@ -1,15 +1,12 @@
 package cronjob
 
-import "github.com/gofiber/fiber/v2"
-
-type Cronjob interface {
-	Start() error
-	Restart() error
-	Stop() error
-}
+import (
+	"github.com/darchlabs/synchronizer-v2"
+	"github.com/gofiber/fiber/v2"
+)
 
 type Context struct {
-	Cronjob Cronjob
+	Cronjob synchronizer.Cronjob
 }
 
 func Route(app *fiber.App, ctx Context) {
