@@ -83,7 +83,7 @@ func GetLogs(c Config) ([]LogData, int64, error) {
 		}
 
 		// filter only indexed elements from events inputs
-		indexedInputs := []abi.Argument{}
+		indexedInputs := make([]abi.Argument, 0)
 		for _, e := range contractWithAbi.Events[c.EventName].Inputs {
 			if e.Indexed {
 				indexedInputs = append(indexedInputs, e)

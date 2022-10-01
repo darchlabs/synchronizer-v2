@@ -4,7 +4,7 @@ import (
 	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
 )
 
-type EventStorage interface {
+type EventDataStorage interface {
 	InsertEventData(e *Event, data []blockchain.LogData) (int64, error)
 	UpdateEvent(e *Event) error
 }
@@ -15,7 +15,7 @@ type Event struct {
 	Abi *Abi `json:"abi"`
 }
 
-func (e *Event) UpdateLatestBlock(lbn int64, storage EventStorage) error {
+func (e *Event) UpdateLatestBlock(lbn int64, storage EventDataStorage) error {
 	// change latest block number value
 	e.LatestBlockNumber = lbn;
 
@@ -28,7 +28,7 @@ func (e *Event) UpdateLatestBlock(lbn int64, storage EventStorage) error {
 	return nil
 }
 
-func (e *Event) InsertData(data []blockchain.LogData, storage EventStorage) (int64, error) {
+func (e *Event) InsertData(data []blockchain.LogData, storage EventDataStorage) (int64, error) {
 	// insert event data to event
 	count, err := storage.InsertEventData(e, data)
 	if err != nil {

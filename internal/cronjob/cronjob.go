@@ -12,23 +12,23 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
+type EventDataStorage interface {
+	ListEvents() ([]*event.Event, error)
+	InsertEventData(e *event.Event, data []blockchain.LogData) (int64, error)
+	UpdateEvent(e *event.Event) error
+}
+
 type cronjob struct {
 	ticker *time.Ticker
 	quit chan struct{}
 	isRunning bool
 	seconds int64
 	
-	storage Storage
+	storage EventDataStorage
 	client *ethclient.Client
 }
 
-type Storage interface {
-	ListEvents() ([]*event.Event, error)
-	InsertEventData(e *event.Event, data []blockchain.LogData) (int64, error)
-	UpdateEvent(e *event.Event) error
-}
-
-func New(seconds int64, storage Storage, client *ethclient.Client) *cronjob {
+func New(seconds int64, storage EventDataStorage, client *ethclient.Client) *cronjob {
 	return &cronjob{
 		isRunning: false,
 		seconds: seconds,
