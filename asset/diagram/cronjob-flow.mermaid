@@ -1,0 +1,19 @@
+sequenceDiagram
+    Synchronizer->>+Cronjob: NewCronJob(seconds,eventStorage,ethClient)
+    Cronjob-->>-Synchronizer: 
+    Synchronizer->>+Cronjob: Start()
+    Cronjob-->>-Synchronizer: 
+    loop iterate each T seconds
+        Cronjob->>+Event: ListEvents()
+        Event-->>-Cronjob: 
+        loop iterate events
+            Cronjob->>+Blockchain: GetLogs()
+            Blockchain-->>-Cronjob: 
+            Cronjob->>+Event: InsertData(data)
+            Event-->>-Cronjob: 
+            Cronjob->>+Event: UpdateLatestBlock(latestBlockNumber)
+            Event-->>-Cronjob: 
+        end
+    end
+    Synchronizer-)+Cronjob: Stop() for interrupt async cronjob
+    Cronjob--)-Synchronizer: 
