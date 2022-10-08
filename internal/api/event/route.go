@@ -7,10 +7,12 @@ import (
 
 type Context struct {
 	Storage synchronizer.EventStorage
+	Cronjob synchronizer.Cronjob
 }
 
 func Route(app *fiber.App, ctx Context) {
 	app.Post("/api/v1/events/:address", insertEventHandler(ctx))
+	app.Get("/api/v1/events", listEvents(ctx))
 	app.Get("/api/v1/events/:address", listEventsByAddressHandler(ctx))
 	app.Get("/api/v1/events/:address/:event_name", getEventHandler(ctx))
 	app.Get("/api/v1/events/:address/:event_name/data", listEventDataHandler(ctx))

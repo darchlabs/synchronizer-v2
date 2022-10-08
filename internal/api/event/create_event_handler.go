@@ -25,15 +25,17 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 			})
 		}
 
+		
 		// get, valid and set address to event struct
 		address := c.Params("address")
 		if address == "" {
 			return c.Status(fiber.StatusUnprocessableEntity).JSON(api.Response{
 				Error: "invalid param",
 			})
-		}	
-		body.Event.Address = address
-
+			}	
+			body.Event.Address = address
+			
+		// TODO(ca): check if event network is valid
 		// TODO(ca): validate event stuct
 
 		// save event struct on database
