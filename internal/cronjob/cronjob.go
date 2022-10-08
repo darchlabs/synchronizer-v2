@@ -18,11 +18,22 @@ type EventDataStorage interface {
 	UpdateEvent(e *event.Event) error
 }
 
+type CronjobStatus string
+const (
+	StatusIdle CronjobStatus = "idle"
+	StatusRunning CronjobStatus = "running"
+	StatusStopping CronjobStatus = "stopping"
+	StatusStopped CronjobStatus = "stopped"
+	StatusSync CronjobStatus = "sync"
+	StatusError CronjobStatus = "error"
+)
+
 type cronjob struct {
 	ticker *time.Ticker
 	quit chan struct{}
 	isRunning bool
 	seconds int64
+	Status CronjobStatus `json:"status"` 
 	
 	storage EventDataStorage
 	client *ethclient.Client
@@ -32,6 +43,7 @@ func New(seconds int64, storage EventDataStorage, client *ethclient.Client) *cro
 	return &cronjob{
 		isRunning: false,
 		seconds: seconds,
+		Status: StatusIdle,
 		
 		storage: storage,
 		client: client,
@@ -48,6 +60,9 @@ func (c *cronjob) Start() error {
 	// initialize ticker
 	c.ticker = time.NewTicker(time.Duration(time.Duration(c.seconds) * time.Second))
 	c.quit = make(chan struct{})
+	c.Status = StatusRunning
+
+	// TODO(ca): should manage status by EACH synchronizer 
 
 	// run gourutine associated to the ticker
 	go func() {
@@ -55,12 +70,18 @@ func (c *cronjob) Start() error {
        select {
         case <- c.ticker.C:
 					// call job method to run de ticker process
+					c.Status = StatusSync
 					err := c.job()
 					if err != nil {
-						log.Fatal(err)
-					}
+						c.Status = StatusError
+						log.Printf("WARNING: %s", err.Error())
+						return
+					} 
+						
+					c.Status = StatusRunning
         case <- c.quit:
             c.ticker.Stop()
+						c.Status = StatusStopped
             return
         }
     }
@@ -92,6 +113,7 @@ func (c *cronjob) Stop() error {
 
 	log.Println("Stoping ticker")
 
+	c.Status = StatusStopping
 	c.quit <- struct{}{}
 	c.ticker = nil
 
@@ -144,4 +166,12 @@ func (c *cronjob) job() error {
 	}
 
 	return nil
+}
+
+func (c *cronjob) GetStatus() string {
+	return string(c.Status)
+}
+
+func (c *cronjob) GetSeconds() int64 {
+	return c.seconds
 }
