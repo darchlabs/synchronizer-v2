@@ -45,6 +45,12 @@ func main() {
 		log.Fatal("invalid DATABASE_FILEPATH environment value")
 	}
 
+	// get PORT environment value
+	port := os.Getenv("PORT")
+	if port == "" {
+		log.Fatal("invalid PORT environment value")
+	}
+
 	// initialize storage
 	if err != nil {
 		log.Fatal(err)
@@ -81,7 +87,7 @@ func main() {
 	}))
 
 	// configure routers
-	EventAPI.Route(api, EventAPI.Context{Storage: eventStorage})
+	EventAPI.Route(api, EventAPI.Context{Storage: eventStorage, Cronjob: cronjobSvc})
 	CronjobAPI.Route(api, CronjobAPI.Context{
 		Cronjob: cronjobSvc,
 	})
@@ -92,7 +98,7 @@ func main() {
 		log.Fatal(err)
 	}
 	go func () {
-		api.Listen(":3000")
+		api.Listen(fmt.Sprintf(":%s", port))
 	}()
 
 	// listen interrupt
