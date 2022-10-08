@@ -3,6 +3,7 @@ package eventstorage
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
 	"github.com/darchlabs/synchronizer-v2/internal/event"
@@ -32,6 +33,7 @@ func (s *Storage) InsertEvent(e *event.Event) error {
 
 	// set defalut values to event
 	e.LatestBlockNumber = 0
+	e.CreatedAt = time.Now()
 
 	// parse struct to bytes
 	b, err := json.Marshal(e)
