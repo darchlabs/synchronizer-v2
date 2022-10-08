@@ -66,7 +66,7 @@ func NewAuth(client *ethclient.Client, pk string, value *int64, gasPrice *int64,
 	}
 
 	// prepare auth 
-	// TODO(ca): see how to use NewKeyedTransactorWithChainID method
+	// TODO(ca): must be use darchlabs network pkg??
 	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(5)))
 	if err != nil {
 		return nil, err
