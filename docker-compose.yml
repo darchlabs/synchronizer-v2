@@ -1,0 +1,31 @@
+version: "3.9"
+
+volumes:
+  data-postgres:
+    driver: local
+  data-redis:
+    driver: local
+
+services:
+  # synchronizer:
+  #   image: synchronizer
+  #   ports:
+  #     - 3500:3500
+  #   env_file:
+  #     - .env
+
+  redis:
+    image: redis:latest
+    ports:
+      - 6379:6379
+    volumes:
+      - data-redis:/data-redis
+
+  postgres:
+    image: postgres:latest
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - data-postgres:/data-postgres
