@@ -13,4 +13,5 @@ func Route(app *fiber.App, ctx Context) {
 	app.Post("/api/v1/cronjob/start", startCronjobHandler(ctx))
 	app.Post("/api/v1/cronjob/stop", stopCronjobHandler(ctx))
 	app.Post("/api/v1/cronjob/restart", restartCronjobHandler(ctx))
+	app.Post("/api/v1/cronjob/status", statusCronjobHandler(ctx))
 }
