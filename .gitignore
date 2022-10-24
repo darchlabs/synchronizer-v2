@@ -1,4 +1,3 @@
 storage.db
-.sample-env
-bin
 .env
+bin
