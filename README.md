@@ -101,23 +101,23 @@ classDiagram
 ```mermaid
 sequenceDiagram
   Synchronizer->>+Event: NewStorage(path)
-  Event-->>-Synchronizer:
+  Event-->>-Synchronizer: ""
   Synchronizer->>+EthClient: Dial(url)
-  EthClient-->>-Synchronizer:
+  EthClient-->>-Synchronizer: ""
   Synchronizer->>+Cronjob: NewCronJob(seconds,storage,client)
-  Cronjob-->>-Synchronizer:
+  Cronjob-->>-Synchronizer: ""
   Synchronizer->>+API: Initialize API
-  API-->>-Synchronizer:
+  API-->>-Synchronizer: ""
   Synchronizer->>+Event: Initialize router with EventStorage
-  Event-->>-Synchronizer:
+  Event-->>-Synchronizer: ""
   Synchronizer->>+Cronjob: Initialize router
-  Cronjob-->>-Synchronizer:
+  Cronjob-->>-Synchronizer: ""
   Synchronizer->>+Cronjob: Start()
-  Cronjob-->>-Synchronizer:
+  Cronjob-->>-Synchronizer: ""
   Synchronizer->>+API: Listen(port)
-  API-->>-Synchronizer:
+  API-->>-Synchronizer: ""
   Synchronizer->>+OS: Listen SIGNTERM signal
-  OS-->>-Synchronizer:
+  OS-->>-Synchronizer: ""
 ```
 
 ### Cronjob Flow
@@ -125,21 +125,21 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   Synchronizer->>+Cronjob: NewCronJob(seconds,eventStorage,ethClient)
-  Cronjob-->>-Synchronizer:
+  Cronjob-->>-Synchronizer: ""
   Synchronizer->>+Cronjob: Start()
-  Cronjob-->>-Synchronizer:
+  Cronjob-->>-Synchronizer: ""
   loop iterate each T seconds
     Cronjob->>+Event: ListEvents()
-    Event-->>-Cronjob:
+    Event-->>-Cronjob: ""
     loop iterate events
       Cronjob->>+Blockchain: GetLogs()
-      Blockchain-->>-Cronjob:
+      Blockchain-->>-Cronjob: ""
       Cronjob->>+Event: InsertData(data)
-      Event-->>-Cronjob:
+      Event-->>-Cronjob: ""
       Cronjob->>+Event: UpdateLatestBlock(latestBlockNumber)
-      Event-->>-Cronjob:
+      Event-->>-Cronjob: ""
     end
   end
   Synchronizer-)+Cronjob: Stop() for interrupt async cronjob
-  Cronjob--)-Synchronizer:
+  Cronjob--)-Synchronizer: ""
 ```
