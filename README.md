@@ -27,7 +27,7 @@ https://app.diagrams.net/?src=about#G1PxvFkkQKAgMXKkp0dnIGnzweYV3uBXMT
 
 ### Proposal solution v1 (DFP)
 
-The first solution was designed for the product `DeFi for People`. This solution was implemented using TypeScript as the main programming language. While I work as a first solution, its has a lot of limitations or restriction because we were using a relational database, whatever implement customs models in the repository code, for this reason, the solution is specific to the project `DFP`
+The first solution was designed for the product `Defi for People`. This solution was implemented using TypeScript as the main programming language. While we worked as a first solution, we noticed that it had a lot of limitations or restriction because we were using a relational database with specific models in the repository code, for this reason, the solution is specific to the project `DFP`
 
 This implementation is a base for thinking of a better way to implement this, it's not easy, but it's necessary a solution can be used for different users and contexts, independently of the smart contract that is using.
 
