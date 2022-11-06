@@ -1,7 +1,7 @@
 package cronjob
 
 import (
-	"github.com/darchlabs/synchronizer-v2/internal/api"
+	"github.com/darchlabs/synchronizer-v2/pkg/api"
 	"github.com/gofiber/fiber/v2"
 )
 

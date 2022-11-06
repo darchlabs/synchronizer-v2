@@ -1,15 +1,15 @@
 package event
 
 import (
-	"github.com/darchlabs/synchronizer-v2/internal/api"
+	"github.com/darchlabs/synchronizer-v2/pkg/api"
 	"github.com/gofiber/fiber/v2"
 )
 
-func getEventHandler(ctx Context) func(c *fiber.Ctx) error {
+func listEventDataHandler(ctx Context) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		c.Accepts("application/json")
 
-		// get and vald params
+		// get and valid params
 		address := c.Params("address")
 		eventName := c.Params("event_name")
 		if address == "" || eventName == "" {
@@ -17,9 +17,17 @@ func getEventHandler(ctx Context) func(c *fiber.Ctx) error {
 				Error: "invalid params",
 			})
 		}	
-		
+
 		// get event from storage
 		event, err  := ctx.Storage.GetEvent(address, eventName)
+		if err != nil {
+			return c.Status(fiber.StatusConflict).JSON(api.Response{
+				Error: err.Error(),
+			})
+		}
+		
+		// get event data from storage
+		data, err := ctx.Storage.ListEventData(address, eventName)
 		if err != nil {
 			return c.Status(fiber.StatusConflict).JSON(api.Response{
 				Error: err.Error(),
@@ -28,7 +36,8 @@ func getEventHandler(ctx Context) func(c *fiber.Ctx) error {
 
 		// prepare response
 		return c.Status(fiber.StatusOK).JSON(api.Response{
-			Data: event,
+			Data: data,
+			Meta: event,
 		})
 	}
 }

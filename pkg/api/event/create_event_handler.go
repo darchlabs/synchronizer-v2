@@ -3,8 +3,8 @@ package event
 import (
 	"encoding/json"
 
-	"github.com/darchlabs/synchronizer-v2/internal/api"
-	"github.com/darchlabs/synchronizer-v2/internal/event"
+	"github.com/darchlabs/synchronizer-v2/pkg/api"
+	"github.com/darchlabs/synchronizer-v2/pkg/event"
 	"github.com/gofiber/fiber/v2"
 )
 
