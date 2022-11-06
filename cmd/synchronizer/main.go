@@ -9,11 +9,11 @@ import (
 	"syscall"
 
 	"github.com/darchlabs/synchronizer-v2"
-	CronjobAPI "github.com/darchlabs/synchronizer-v2/internal/api/cronjob"
-	EventAPI "github.com/darchlabs/synchronizer-v2/internal/api/event"
 	"github.com/darchlabs/synchronizer-v2/internal/cronjob"
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
 	eventstorage "github.com/darchlabs/synchronizer-v2/internal/storage/event"
+	CronjobAPI "github.com/darchlabs/synchronizer-v2/pkg/api/cronjob"
+	EventAPI "github.com/darchlabs/synchronizer-v2/pkg/api/event"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -52,10 +52,6 @@ func main() {
 	}
 
 	// initialize storage
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	s, err := storage.New(databaseFilepath)
 	if err != nil {
 		log.Fatal(err)
