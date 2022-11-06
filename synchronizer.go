@@ -2,7 +2,7 @@ package synchronizer
 
 import (
 	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
-	"github.com/darchlabs/synchronizer-v2/internal/event"
+	"github.com/darchlabs/synchronizer-v2/pkg/event"
 )
 
 type EventStorage interface {

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
-	"github.com/darchlabs/synchronizer-v2/internal/event"
+	"github.com/darchlabs/synchronizer-v2/pkg/event"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
@@ -24,7 +24,6 @@ const (
 	StatusRunning CronjobStatus = "running"
 	StatusStopping CronjobStatus = "stopping"
 	StatusStopped CronjobStatus = "stopped"
-	StatusSync CronjobStatus = "sync"
 	StatusError CronjobStatus = "error"
 )
 
@@ -70,7 +69,7 @@ func (c *cronjob) Start() error {
        select {
         case <- c.ticker.C:
 					// call job method to run de ticker process
-					c.Status = StatusSync
+					c.Status = StatusRunning
 					err := c.job()
 					if err != nil {
 						c.Status = StatusError
@@ -78,7 +77,6 @@ func (c *cronjob) Start() error {
 						return
 					} 
 						
-					c.Status = StatusRunning
         case <- c.quit:
             c.ticker.Stop()
 						c.Status = StatusStopped

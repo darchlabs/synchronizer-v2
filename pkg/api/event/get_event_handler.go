@@ -1,11 +1,11 @@
 package event
 
 import (
-	"github.com/darchlabs/synchronizer-v2/internal/api"
+	"github.com/darchlabs/synchronizer-v2/pkg/api"
 	"github.com/gofiber/fiber/v2"
 )
 
-func deleteEventHandler(ctx Context) func (c *fiber.Ctx) error {
+func getEventHandler(ctx Context) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		c.Accepts("application/json")
 
@@ -17,17 +17,9 @@ func deleteEventHandler(ctx Context) func (c *fiber.Ctx) error {
 				Error: "invalid params",
 			})
 		}	
-
-		// delete event data from storage
-		err := ctx.Storage.DeleteEventData(address, eventName)
-		if err != nil {
-			return c.Status(fiber.StatusConflict).JSON(api.Response{
-				Error: err.Error(),
-			})
-		}
-
-		// delete event from storage
-		err = ctx.Storage.DeleteEvent(address, eventName)
+		
+		// get event from storage
+		event, err  := ctx.Storage.GetEvent(address, eventName)
 		if err != nil {
 			return c.Status(fiber.StatusConflict).JSON(api.Response{
 				Error: err.Error(),
@@ -35,6 +27,8 @@ func deleteEventHandler(ctx Context) func (c *fiber.Ctx) error {
 		}
 
 		// prepare response
-		return c.Status(fiber.StatusOK).JSON(api.Response{})
+		return c.Status(fiber.StatusOK).JSON(api.Response{
+			Data: event,
+		})
 	}
 }

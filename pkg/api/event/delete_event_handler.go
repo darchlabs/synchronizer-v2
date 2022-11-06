@@ -1,15 +1,15 @@
 package event
 
 import (
-	"github.com/darchlabs/synchronizer-v2/internal/api"
+	"github.com/darchlabs/synchronizer-v2/pkg/api"
 	"github.com/gofiber/fiber/v2"
 )
 
-func listEventDataHandler(ctx Context) func(c *fiber.Ctx) error {
+func deleteEventHandler(ctx Context) func (c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		c.Accepts("application/json")
 
-		// get and valid params
+		// get and vald params
 		address := c.Params("address")
 		eventName := c.Params("event_name")
 		if address == "" || eventName == "" {
@@ -18,16 +18,16 @@ func listEventDataHandler(ctx Context) func(c *fiber.Ctx) error {
 			})
 		}	
 
-		// get event from storage
-		event, err  := ctx.Storage.GetEvent(address, eventName)
+		// delete event data from storage
+		err := ctx.Storage.DeleteEventData(address, eventName)
 		if err != nil {
 			return c.Status(fiber.StatusConflict).JSON(api.Response{
 				Error: err.Error(),
 			})
 		}
-		
-		// get event data from storage
-		data, err := ctx.Storage.ListEventData(address, eventName)
+
+		// delete event from storage
+		err = ctx.Storage.DeleteEvent(address, eventName)
 		if err != nil {
 			return c.Status(fiber.StatusConflict).JSON(api.Response{
 				Error: err.Error(),
@@ -35,9 +35,6 @@ func listEventDataHandler(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// prepare response
-		return c.Status(fiber.StatusOK).JSON(api.Response{
-			Data: data,
-			Meta: event,
-		})
+		return c.Status(fiber.StatusOK).JSON(api.Response{})
 	}
 }

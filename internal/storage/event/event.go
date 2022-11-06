@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
-	"github.com/darchlabs/synchronizer-v2/internal/event"
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
+	"github.com/darchlabs/synchronizer-v2/pkg/event"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
@@ -32,6 +32,7 @@ func (s *Storage) InsertEvent(e *event.Event) error {
 	}
 
 	// set defalut values to event
+	e.ID = key
 	e.LatestBlockNumber = 0
 	e.CreatedAt = time.Now()
 
@@ -76,7 +77,7 @@ func (s *Storage) ListEvents() ([]*event.Event, error) {
 	// prepare slice of events
 	events := make([]*event.Event, 0)
 
-	// iterate over dbn elementas and push in slice
+	// iterate over db elements and push in slice
 	iter := s.storage.DB.NewIterator(util.BytesPrefix([]byte(prefix)), nil)
 	for iter.Next() {
 		// parse bytes to event struct

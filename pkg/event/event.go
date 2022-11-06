@@ -19,6 +19,7 @@ type EventDataStorage interface {
 }
 
 type Event struct {
+	ID string `json:"id"`
 	Network EventNetwork `json:"network"`
 	Address string `json:"address"`
 	LatestBlockNumber int64 `json:"latestBlockNumber"`

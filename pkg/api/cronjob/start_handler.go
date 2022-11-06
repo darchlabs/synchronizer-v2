@@ -1,14 +1,14 @@
 package cronjob
 
 import (
-	"github.com/darchlabs/synchronizer-v2/internal/api"
+	"github.com/darchlabs/synchronizer-v2/pkg/api"
 	"github.com/gofiber/fiber/v2"
 )
 
-func restartCronjobHandler(ctx Context) func(c *fiber.Ctx) error {
+func startCronjobHandler(ctx Context) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
-		// restart cronjob
-		err := ctx.Cronjob.Restart()
+		// start cronjob
+		err := ctx.Cronjob.Start()
 		if err != nil {
 			c.Status(fiber.StatusUnprocessableEntity).JSON(api.Response{
 				Error: err.Error(),
