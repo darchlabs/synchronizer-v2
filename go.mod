@@ -9,12 +9,19 @@ require (
 )
 
 require (
+	github.com/go-playground/locales v0.14.1 // indirect
+	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/leodido/go-urn v1.2.1 // indirect
+)
+
+require (
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
 	github.com/deckarep/golang-set v1.8.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
 	github.com/go-ole/go-ole v1.2.1 // indirect
+	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.2.0 // indirect

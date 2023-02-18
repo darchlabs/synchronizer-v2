@@ -83,7 +83,7 @@ func (s *Storage) ListEvents() ([]*event.Event, error) {
 		// parse bytes to event struct
 		var event *event.Event
 		err := json.Unmarshal(iter.Value(), &event)
-		if err!= nil {
+		if err != nil {
 			return nil, err
 		}
 
@@ -135,20 +135,20 @@ func (s *Storage) ListEventsByAddress(address string) ([]*event.Event, error) {
 func (s *Storage) GetEvent(address string, eventName string) (*event.Event, error) {
 	// format the composed key used in db
 	key := fmt.Sprintf("event:%s:%s", address, eventName)
-	
+
 	// get bytes by composed key to db
 	b, err := s.storage.DB.Get([]byte(key), nil)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// parse bytes to Event struct
 	var event *event.Event
 	err = json.Unmarshal(b, &event)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return event, nil
 }
 
@@ -169,7 +169,7 @@ func (s *Storage) Stop() error {
 	return s.storage.DB.Close()
 }
 
-func (s *Storage) ListEventData(address string, eventName string) ([]interface{}, error) {	
+func (s *Storage) ListEventData(address string, eventName string) ([]interface{}, error) {
 	// format the composed prefix used in db
 	prefix := fmt.Sprintf("data:%s:%s:", address, eventName)
 
@@ -187,7 +187,7 @@ func (s *Storage) ListEventData(address string, eventName string) ([]interface{}
 		}
 
 		// append new elemento to data slice
-		data = append(data,	logData)
+		data = append(data, logData)
 	}
 	iter.Release()
 
@@ -232,9 +232,9 @@ func (s *Storage) InsertEventData(e *event.Event, data []blockchain.LogData) (in
 		}
 
 		// increase in one the counter
-		count++;
+		count++
 	}
-	
+
 	return count, nil
 }
 
@@ -246,12 +246,11 @@ func (s *Storage) DeleteEventData(address string, eventName string) error {
 	iter := s.storage.DB.NewIterator(util.BytesPrefix([]byte(prefix)), nil)
 	for iter.Next() {
 		// delete data on db using composed key
-		err := s.storage.DB.Delete([]byte(iter.Key()), nil) 
+		err := s.storage.DB.Delete([]byte(iter.Key()), nil)
 		if err != nil {
 			return err
-		} 
+		}
 	}
 
 	return nil
 }
-
