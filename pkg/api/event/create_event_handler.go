@@ -2,7 +2,6 @@ package event
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/darchlabs/synchronizer-v2/pkg/api"
 	"github.com/darchlabs/synchronizer-v2/pkg/event"
@@ -29,13 +28,13 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 
 		// get, valid and set address to event struct
 		address := c.Params("address")
-		fmt.Println("c.address: ", address)
 		if address == "" {
 			return c.Status(fiber.StatusUnprocessableEntity).JSON(api.Response{
 				Error: "invalid param",
 			})
 		}
 
+		// Validate body
 		validate := validator.New()
 		err = validate.Struct(body.Event)
 		if err != nil {
@@ -44,10 +43,24 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 			})
 		}
 
+		// Update address
 		body.Event.Address = address
 
-		// TODO(ca): check if event network is valid
-		// check that it is one of the supported networks by darchlabs
+		// Validate abi is not nil
+		if body.Event.Abi == nil {
+			return c.Status(fiber.StatusUnprocessableEntity).JSON(api.Response{
+				Error: "abi cannot be nil",
+			})
+		}
+
+		// Validate network is one of the supported
+		network := body.Event.Network
+		if network != event.Ethereum && network != event.Polygon {
+			return c.Status(fiber.StatusUnprocessableEntity).JSON(api.Response{
+				Error: "invalid network",
+			})
+
+		}
 
 		// save event struct on database
 		err = ctx.Storage.InsertEvent(body.Event)
