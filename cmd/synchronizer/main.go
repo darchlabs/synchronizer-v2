@@ -14,24 +14,17 @@ import (
 	eventstorage "github.com/darchlabs/synchronizer-v2/internal/storage/event"
 	CronjobAPI "github.com/darchlabs/synchronizer-v2/pkg/api/cronjob"
 	EventAPI "github.com/darchlabs/synchronizer-v2/pkg/api/event"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 )
 
 var (
 	eventStorage synchronizer.EventStorage
-	cronjobSvc synchronizer.Cronjob
+	cronjobSvc   synchronizer.Cronjob
 )
 
 func main() {
 	var err error
-	
-	// get NODE_URL environment value
-	nodeUrl := os.Getenv("NODE_URL")
-	if nodeUrl == "" {
-		log.Fatal("invalid NODE_URL environment value")
-	}
 
 	// get INTERVAL_SECONDS environment value
 	intervalSeconds := os.Getenv("INTERVAL_SECONDS")
@@ -66,14 +59,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// initialize eth client
-	client, err := ethclient.Dial(nodeUrl)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// initialize the cronjob
-	cronjobSvc = cronjob.New(seconds, eventStorage, client)
+	cronjobSvc = cronjob.New(seconds, eventStorage)
 
 	// initialize fiber
 	api := fiber.New()
@@ -93,7 +80,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	go func () {
+	go func() {
 		api.Listen(fmt.Sprintf(":%s", port))
 	}()
 
