@@ -1,6 +1,7 @@
 package event
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
@@ -37,8 +38,10 @@ func (e *Event) UpdateLatestBlock(lbn int64, storage EventDataStorage) error {
 	// chanche updated at value
 	e.UpdatedAt = time.Now()
 
+	fmt.Print(1)
 	// update event in database
 	err := storage.UpdateEvent(e)
+	fmt.Print("here in update block err -->")
 	if err != nil {
 		return err
 	}
