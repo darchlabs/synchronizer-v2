@@ -33,6 +33,7 @@ func (s *Storage) InsertEvent(e *event.Event) error {
 
 	// set defalut values to event
 	e.ID = key
+	// TODO(ca): should use the creation block number of the contract
 	e.LatestBlockNumber = 0
 	e.CreatedAt = time.Now()
 
@@ -52,10 +53,8 @@ func (s *Storage) InsertEvent(e *event.Event) error {
 }
 
 func (s *Storage) UpdateEvent(e *event.Event) error {
-	fmt.Println("update event -----> :")
 	// format the composed key used in db
 	key := fmt.Sprintf("event:%s:%s", e.Address, e.Abi.Name)
-	fmt.Println("1")
 
 	// parse struct to bytes
 	b, err := json.Marshal(e)
@@ -63,7 +62,6 @@ func (s *Storage) UpdateEvent(e *event.Event) error {
 		return err
 	}
 
-	fmt.Println("2")
 	// save in database
 	err = s.storage.DB.Put([]byte(key), b, nil)
 	if err != nil {
