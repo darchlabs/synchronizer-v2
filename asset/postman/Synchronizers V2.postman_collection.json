@@ -14,9 +14,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{api_url}}/api/v1/events",
+							"raw": "{{api_url}}{{base_url}}/api/v1/events",
 							"host": [
-								"{{api_url}}"
+								"{{api_url}}{{base_url}}"
 							],
 							"path": [
 								"api",
@@ -33,9 +33,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{api_url}}/api/v1/events/0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264",
+							"raw": "{{api_url}}{{base_url}}/api/v1/events/0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264",
 							"host": [
-								"{{api_url}}"
+								"{{api_url}}{{base_url}}"
 							],
 							"path": [
 								"api",
@@ -59,9 +59,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{api_url}}/api/v1/events/0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264/Withdraw",
+							"raw": "{{api_url}}{{base_url}}/api/v1/events/0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264/Withdraw",
 							"host": [
-								"{{api_url}}"
+								"{{api_url}}{{base_url}}"
 							],
 							"path": [
 								"api",
@@ -89,9 +89,9 @@
 							}
 						},
 						"url": {
-							"raw": "{{api_url}}/api/v1/events/0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264",
+							"raw": "{{api_url}}{{base_url}}/api/v1/events/0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264",
 							"host": [
-								"{{api_url}}"
+								"{{api_url}}{{base_url}}"
 							],
 							"path": [
 								"api",
@@ -109,9 +109,9 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{api_url}}/api/v1/events/0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264/Delete",
+							"raw": "{{api_url}}{{base_url}}/api/v1/events/0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264/Delete",
 							"host": [
-								"{{api_url}}"
+								"{{api_url}}{{base_url}}"
 							],
 							"path": [
 								"api",
@@ -130,9 +130,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{api_url}}/api/v1/events/0x580aD6Df3AC48d5223386DbbD4042818e66606D3/Example/data",
+							"raw": "{{api_url}}{{base_url}}/api/v1/events/0x580aD6Df3AC48d5223386DbbD4042818e66606D3/Example/data",
 							"host": [
-								"{{api_url}}"
+								"{{api_url}}{{base_url}}"
 							],
 							"path": [
 								"api",
@@ -152,9 +152,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{api_url}}/api/v1/events/0xc13530546feA5fC787A2d126bB39bDeC20C4cc9e/Example/data",
+							"raw": "{{api_url}}{{base_url}}/api/v1/events/0xc13530546feA5fC787A2d126bB39bDeC20C4cc9e/Example/data",
 							"host": [
-								"{{api_url}}"
+								"{{api_url}}{{base_url}}"
 							],
 							"path": [
 								"api",
@@ -183,9 +183,9 @@
 							}
 						},
 						"url": {
-							"raw": "{{api_url}}/api/v1/events/0x580aD6Df3AC48d5223386DbbD4042818e66606D3",
+							"raw": "{{api_url}}{{base_url}}/api/v1/events/0x580aD6Df3AC48d5223386DbbD4042818e66606D3",
 							"host": [
-								"{{api_url}}"
+								"{{api_url}}{{base_url}}"
 							],
 							"path": [
 								"api",
@@ -212,9 +212,9 @@
 							}
 						},
 						"url": {
-							"raw": "{{api_url}}/api/v1/events/0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264",
+							"raw": "{{api_url}}{{base_url}}/api/v1/events/0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264",
 							"host": [
-								"{{api_url}}"
+								"{{api_url}}{{base_url}}"
 							],
 							"path": [
 								"api",
@@ -232,9 +232,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{api_url}}/api/v1/events/0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264/Delete/data",
+							"raw": "{{api_url}}{{base_url}}/api/v1/events/0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264/Delete/data",
 							"host": [
-								"{{api_url}}"
+								"{{api_url}}{{base_url}}"
 							],
 							"path": [
 								"api",
