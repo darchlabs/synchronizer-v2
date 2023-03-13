@@ -28,7 +28,6 @@ type LogData struct {
 }
 
 func GetLogs(c Config) ([]LogData, int64, error) {
-	fmt.Println(1)
 	// check config params
 	if c.Client == nil {
 		return nil, 0, errors.New("invalid Client config param")
@@ -43,7 +42,6 @@ func GetLogs(c Config) ([]LogData, int64, error) {
 		return nil, 0, errors.New("invalid Address config param")
 	}
 
-	fmt.Println(2)
 	// prepare form block number params
 	var from *big.Int
 	if c.FromBlockNumber != nil {
@@ -52,7 +50,18 @@ func GetLogs(c Config) ([]LogData, int64, error) {
 		from = nil
 	}
 
-	fmt.Println(3)
+	// prepare contract instance using ABI definition
+	contractWithAbi, err := abi.JSON(strings.NewReader(c.ABI))
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// get event definition for getting event id
+	event, ok := contractWithAbi.Events[c.EventName]
+	if !ok {
+		return nil, 0, fmt.Errorf("event_name=%s is not defined in abi", c.EventName)
+	}
+
 	// prepare query params
 	query := ethereum.FilterQuery{
 		FromBlock: from,
@@ -60,49 +69,33 @@ func GetLogs(c Config) ([]LogData, int64, error) {
 		Addresses: []common.Address{
 			common.HexToAddress(c.Address),
 		},
+		Topics: [][]common.Hash{{event.ID}},
 	}
 
-	fmt.Println(3.5)
-
-	// code, err := c.Client.CodeAt(context.Background(),
-	// 	common.HexToAddress(c.Address),
-	// 	nil)
-	// if err != nil {
-	// 	fmt.Println("error in code at ---> :", err)
-	// }
-
-	fmt.Println(4)
 	// get logs from contract
 	logs, err := c.Client.FilterLogs(context.Background(), query)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	fmt.Println(5)
-	// prepare contract instance using ABI definition
-	contractWithAbi, err := abi.JSON(strings.NewReader(c.ABI))
-	if err != nil {
-		return nil, 0, err
-	}
-	fmt.Println(6)
-
-	// prepare data slice
+	// Prepare data slice
 	data := make([]LogData, 0)
 
-	fmt.Println(7)
 	// iterate over logs
 	latestBlockNumber := int64(0)
 	for _, vLog := range logs {
+		// continue if event data are empty
+		if len(vLog.Data) == 0 {
+			continue
+		}
+
 		// get event from contract log
 		eventData := make(map[string]interface{})
-
 		err := contractWithAbi.UnpackIntoMap(eventData, c.EventName, vLog.Data)
-		// err := contractWithAbi.UnpackIntoMap(eventData, c.EventName, []byte(c.ABI))
 		if err != nil {
 			return nil, 0, err
 		}
 
-		fmt.Println(8)
 		// filter only indexed elements from events inputs
 		indexedInputs := make([]abi.Argument, 0)
 		for _, e := range contractWithAbi.Events[c.EventName].Inputs {
@@ -111,7 +104,6 @@ func GetLogs(c Config) ([]LogData, int64, error) {
 			}
 		}
 
-		fmt.Println(9)
 		// get indexed topics from log and parse to map
 		topics := make(map[string]interface{})
 		err = abi.ParseTopicsIntoMap(topics, indexedInputs, vLog.Topics[1:])
@@ -119,14 +111,11 @@ func GetLogs(c Config) ([]LogData, int64, error) {
 			return nil, 0, err
 		}
 
-		fmt.Printf("Logs: %+v", logs)
-		fmt.Println(10)
 		// iterate indexed topics and add to eventData map
 		for key, t := range topics {
 			eventData[key] = t
 		}
 
-		fmt.Println(11)
 		// prepare event data
 		d := LogData{
 			Tx:          vLog.TxHash,
@@ -134,11 +123,9 @@ func GetLogs(c Config) ([]LogData, int64, error) {
 			Data:        eventData,
 		}
 
-		fmt.Println(12)
 		// append event data to slice
 		data = append(data, d)
 
-		fmt.Println(13)
 		// check if current block number is greater than global counter
 		if int64(vLog.BlockNumber) > latestBlockNumber {
 			latestBlockNumber = int64(vLog.BlockNumber)
