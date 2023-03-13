@@ -72,6 +72,7 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 			})
 		}
 
+		// get or create eth client in client
 		client, ok := (*ctx.Clients)[nodeURL]
 		if !ok {
 			// Validate client works

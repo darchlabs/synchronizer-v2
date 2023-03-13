@@ -139,7 +139,6 @@ func (c *cronjob) job() error {
 		client, ok := (*c.clients)[event.NodeURL]
 		if !ok {
 			// Validate client works
-			log.Println("geetting client ...")
 			client, err = ethclient.Dial(event.NodeURL)
 			if err != nil {
 				return fmt.Errorf("can't getting ethclient error=%s", err)
