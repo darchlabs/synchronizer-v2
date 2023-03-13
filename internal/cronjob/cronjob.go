@@ -35,17 +35,19 @@ type cronjob struct {
 	isRunning bool
 	seconds   int64
 	Status    CronjobStatus `json:"status"`
+	clients   *map[string]*ethclient.Client
 
 	storage EventDataStorage
 }
 
-func New(seconds int64, storage EventDataStorage) *cronjob {
+func New(seconds int64, storage EventDataStorage, clients *map[string]*ethclient.Client) *cronjob {
 	return &cronjob{
 		isRunning: false,
 		seconds:   seconds,
 		Status:    StatusIdle,
 
 		storage: storage,
+		clients: clients,
 	}
 }
 
@@ -128,29 +130,33 @@ func (c *cronjob) job() error {
 	// iterate over events
 	for _, event := range events {
 		// parse abi to string
-		fmt.Println(1)
 		b, err := json.Marshal(event.Abi)
 		if err != nil {
 			return err
 		}
 
-		fmt.Println(2)
-		fmt.Println("Getting client ...")
-		// Get client
-		client, err := ethclient.Dial(event.NodeURL)
-		if err != nil {
-			return fmt.Errorf("%s", "ErrorInvalidClient")
+		// get client from map or create and save
+		client, ok := (*c.clients)[event.NodeURL]
+		if !ok {
+			// Validate client works
+			log.Println("geetting client ...")
+			client, err = ethclient.Dial(event.NodeURL)
+			if err != nil {
+				return fmt.Errorf("can't getting ethclient error=%s", err)
+			}
+
+			// Validate client is working correctly
+			_, err = client.ChainID(context.Background())
+			if err != nil {
+				return fmt.Errorf("can't valid ethclient error=%s", err)
+			}
+
+			// TODO: Validate it matches the given body network
+
+			// Save client in map
+			(*c.clients)[event.NodeURL] = client
 		}
 
-		fmt.Println(3)
-		// Validate client is working correctly
-		_, err = client.ChainID(context.Background())
-		if err != nil {
-			return fmt.Errorf("%s", "ErrorInvalidClient")
-		}
-		fmt.Println("Client obtained!")
-
-		fmt.Println(4)
 		// get event logs from contract
 		data, latestBlockNumber, err := blockchain.GetLogs(blockchain.Config{
 			Client:          client,
@@ -163,20 +169,19 @@ func (c *cronjob) job() error {
 			return err
 		}
 
-		fmt.Println(5)
 		// insert data to event
 		count, err := event.InsertData(data, c.storage)
 		if err != nil {
 			return err
 		}
-		fmt.Println(6)
 
-		// show logger when counter is greather than 0
-		if count > 0 {
-			log.Printf("%d new events have been inserted into the database with %d latest block number \n", count, latestBlockNumber)
+		// finish when the contract dont have new events
+		if count == 0 {
+			continue
 		}
 
-		fmt.Println(7)
+		log.Printf("%d new events have been inserted into the database with %d latest block number \n", count, latestBlockNumber)
+
 		// update latest block number in event
 		err = event.UpdateLatestBlock(latestBlockNumber, c.storage)
 		if err != nil {
