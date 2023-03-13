@@ -1,0 +1,319 @@
+{
+	"info": {
+		"_postman_id": "36244bfc-c6df-4588-8e0d-c93ed4dcd628",
+		"name": "Synchronizers V2",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Events",
+			"item": [
+				{
+					"name": "List events",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}/api/v1/events",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List events by address",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}/api/v1/events/0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events",
+								"0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get event",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "{{api_url}}/api/v1/events/0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264/Withdraw",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events",
+								"0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264",
+								"Withdraw"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Insert event [mumbai]",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"event\": {\n        \"nodeURL\": \"https://polygon-mainnet.g.alchemy.com/v2/2hi88g7IcSsxOiUZXV5FEyq1i9egUQvo\",\n        \"network\": \"polygon\",\n        \"abi\": {\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"address\",\n                    \"name\": \"userAddr\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount1\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"num\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"string\",\n                    \"name\": \"lala\",\n                    \"type\": \"string\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"string\",\n                    \"name\": \"lala2\",\n                    \"type\": \"string\"\n                }\n            ],\n            \"name\": \"{{event_name}}\",\n            \"type\": \"event\"\n        }\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_url}}/api/v1/events/0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events",
+								"0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete event",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}/api/v1/events/0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264/Delete",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events",
+								"0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264",
+								"Delete"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get event data [goerli]",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}/api/v1/events/0x580aD6Df3AC48d5223386DbbD4042818e66606D3/Example/data",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events",
+								"0x580aD6Df3AC48d5223386DbbD4042818e66606D3",
+								"Example",
+								"data"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get event data [mumbai]",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}/api/v1/events/0xc13530546feA5fC787A2d126bB39bDeC20C4cc9e/Example/data",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events",
+								"0xc13530546feA5fC787A2d126bB39bDeC20C4cc9e",
+								"Example",
+								"data"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Insert event [goerli]",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"event\": {\n        \"network\": \"ethereum\",\n        \"nodeURL\": \"https://eth-goerli.g.alchemy.com/v2/_o8WvawmHs_z0KarPNWswwJntEMHdvKF\",\n        \"abi\": {\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"address\",\n                    \"name\": \"userAddr\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount1\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"num\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"string\",\n                    \"name\": \"lala\",\n                    \"type\": \"string\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"string\",\n                    \"name\": \"lala2\",\n                    \"type\": \"string\"\n                }\n            ],\n            \"name\": \"{{event_name}}\",\n            \"type\": \"event\"\n        }\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_url}}/api/v1/events/0x580aD6Df3AC48d5223386DbbD4042818e66606D3",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events",
+								"0x580aD6Df3AC48d5223386DbbD4042818e66606D3"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Insert event [polygon]",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"event\": {\n        \"nodeURL\": \"https://polygon-mainnet.g.alchemy.com/v2/2hi88g7IcSsxOiUZXV5FEyq1i9egUQvo\",\n        \"network\": \"polygon\",\n        \"abi\": {\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"address\",\n                    \"name\": \"sender\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"poolId\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"token0\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"token1\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount0\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount1\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint24\",\n                    \"name\": \"poolFee\",\n                    \"type\": \"uint24\"\n                }\n            ],\n            \"name\": \"Delete\",\n            \"type\": \"event\"\n        }\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_url}}/api/v1/events/0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events",
+								"0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get event data [polygon]",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}/api/v1/events/0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264/Delete/data",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events",
+								"0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264",
+								"Delete",
+								"data"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Cronjob",
+			"item": [
+				{
+					"name": "Start cronjob",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}/api/v1/cronjob/start",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"cronjob",
+								"start"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Stop cronjob",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}/api/v1/cronjob/stop",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"cronjob",
+								"stop"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Restart cronjob",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}/api/v1/cronjob/restart",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"cronjob",
+								"restart"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
