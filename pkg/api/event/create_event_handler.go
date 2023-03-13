@@ -72,19 +72,25 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 			})
 		}
 
-		// Validate client works
-		fmt.Println("Getting client ...")
-		client, err := ethclient.Dial(nodeURL)
-		if err != nil {
-			return fmt.Errorf("%s", "ErrorInvalidClient")
+		client, ok := (*ctx.Clients)[nodeURL]
+		if !ok {
+			// Validate client works
+			client, err = ethclient.Dial(nodeURL)
+			if err != nil {
+				return fmt.Errorf("can't getting ethclient error=%s", err)
+			}
+
+			// Validate client is working correctly
+			_, err = client.ChainID(context.Background())
+			if err != nil {
+				return fmt.Errorf("can't valid ethclient error=%s", err)
+			}
+
+			// TODO: Validate it matches the given body network
+
+			// Save client in map
+			(*ctx.Clients)[nodeURL] = client
 		}
-		// Validate client is working correctly
-		_, err = client.ChainID(context.Background())
-		if err != nil {
-			return fmt.Errorf("%s", "ErrorInvalidClient")
-		}
-		// TODO: Validate it matches the given body network
-		fmt.Println("Client obtained!")
 
 		// save event struct on database
 		err = ctx.Storage.InsertEvent(body.Event)
