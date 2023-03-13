@@ -5,11 +5,11 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 
 	"github.com/darchlabs/synchronizer-v2"
 	"github.com/darchlabs/synchronizer-v2/internal/cronjob"
+	"github.com/darchlabs/synchronizer-v2/internal/env"
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
 	eventstorage "github.com/darchlabs/synchronizer-v2/internal/storage/event"
 	CronjobAPI "github.com/darchlabs/synchronizer-v2/pkg/api/cronjob"
@@ -17,6 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/kelseyhightower/envconfig"
 )
 
 var (
@@ -25,40 +26,21 @@ var (
 )
 
 func main() {
-	var err error
-
-	// get INTERVAL_SECONDS environment value
-	intervalSeconds := os.Getenv("INTERVAL_SECONDS")
-	if intervalSeconds == "" {
-		log.Fatal("invalid INTERVAL_SECONDS environment value")
-	}
-
-	// get DATABASE_FILEPATH environment value
-	databaseFilepath := os.Getenv("DATABASE_FILEPATH")
-	if databaseFilepath == "" {
-		log.Fatal("invalid DATABASE_FILEPATH environment value")
-	}
-
-	// get PORT environment value
-	port := os.Getenv("PORT")
-	if port == "" {
-		log.Fatal("invalid PORT environment value")
+	// load env values
+	var env env.Env
+	err := envconfig.Process("", &env)
+	if err != nil {
+		log.Fatal("invalid env values, error: ", err)
 	}
 
 	// initialize storage
-	s, err := storage.New(databaseFilepath)
+	s, err := storage.New(env.DatabaseFilepath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// initialize event storage
 	eventStorage = eventstorage.New(s)
-
-	// parse seconds from string to int64
-	seconds, err := strconv.ParseInt(intervalSeconds, 10, 64)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	// initialize fiber
 	api := fiber.New()
@@ -71,12 +53,18 @@ func main() {
 	clients := make(map[string]*ethclient.Client)
 
 	// initialize the cronjob
-	cronjobSvc = cronjob.New(seconds, eventStorage, &clients)
+	cronjobSvc = cronjob.New(env.IntervalSeconds, eventStorage, &clients)
 
 	// configure routers
-	EventAPI.Route(api, EventAPI.Context{Storage: eventStorage, Cronjob: cronjobSvc, Clients: &clients})
+	EventAPI.Route(api, EventAPI.Context{
+		Storage: eventStorage,
+		Cronjob: cronjobSvc,
+		Clients: &clients,
+		BaseURL: env.BaseURL,
+	})
 	CronjobAPI.Route(api, CronjobAPI.Context{
 		Cronjob: cronjobSvc,
+		BaseURL: env.BaseURL,
 	})
 
 	// run process
@@ -85,7 +73,7 @@ func main() {
 		log.Fatal(err)
 	}
 	go func() {
-		api.Listen(fmt.Sprintf(":%s", port))
+		api.Listen(fmt.Sprintf(":%s", env.Port))
 	}()
 
 	// listen interrupt
