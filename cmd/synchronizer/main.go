@@ -14,6 +14,7 @@ import (
 	eventstorage "github.com/darchlabs/synchronizer-v2/internal/storage/event"
 	CronjobAPI "github.com/darchlabs/synchronizer-v2/pkg/api/cronjob"
 	EventAPI "github.com/darchlabs/synchronizer-v2/pkg/api/event"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 )
@@ -59,9 +60,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// initialize the cronjob
-	cronjobSvc = cronjob.New(seconds, eventStorage)
-
 	// initialize fiber
 	api := fiber.New()
 	api.Use(logger.New())
@@ -69,8 +67,14 @@ func main() {
 		Format: "[${ip}]:${port} ${status} - ${method} ${path}\n",
 	}))
 
+	// create clients map
+	clients := make(map[string]*ethclient.Client)
+
+	// initialize the cronjob
+	cronjobSvc = cronjob.New(seconds, eventStorage, &clients)
+
 	// configure routers
-	EventAPI.Route(api, EventAPI.Context{Storage: eventStorage, Cronjob: cronjobSvc})
+	EventAPI.Route(api, EventAPI.Context{Storage: eventStorage, Cronjob: cronjobSvc, Clients: &clients})
 	CronjobAPI.Route(api, CronjobAPI.Context{
 		Cronjob: cronjobSvc,
 	})
@@ -97,7 +101,7 @@ func listenInterrupt(quit chan struct{}) {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		s := <-c
-		fmt.Println("Signal received", s.String())
+		log.Println("Signal received", s.String())
 		quit <- struct{}{}
 	}()
 }
