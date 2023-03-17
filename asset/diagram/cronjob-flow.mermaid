@@ -7,6 +7,8 @@ sequenceDiagram
         Cronjob->>+Event: ListEvents()
         Event-->>-Cronjob: 
         loop iterate events
+            Cronjob->>+Blockchain: Dial(url)
+            Blockchain-->>-Cronjob: 
             Cronjob->>+Blockchain: GetLogs()
             Blockchain-->>-Cronjob: 
             Cronjob->>+Event: InsertData(data)

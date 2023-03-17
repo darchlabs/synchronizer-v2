@@ -1,6 +1,7 @@
 package cronjob
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,33 +20,34 @@ type EventDataStorage interface {
 }
 
 type CronjobStatus string
+
 const (
-	StatusIdle CronjobStatus = "idle"
-	StatusRunning CronjobStatus = "running"
+	StatusIdle     CronjobStatus = "idle"
+	StatusRunning  CronjobStatus = "running"
 	StatusStopping CronjobStatus = "stopping"
-	StatusStopped CronjobStatus = "stopped"
-	StatusError CronjobStatus = "error"
+	StatusStopped  CronjobStatus = "stopped"
+	StatusError    CronjobStatus = "error"
 )
 
 type cronjob struct {
-	ticker *time.Ticker
-	quit chan struct{}
+	ticker    *time.Ticker
+	quit      chan struct{}
 	isRunning bool
-	seconds int64
-	Status CronjobStatus `json:"status"` 
-	
+	seconds   int64
+	Status    CronjobStatus `json:"status"`
+	clients   *map[string]*ethclient.Client
+
 	storage EventDataStorage
-	client *ethclient.Client
 }
 
-func New(seconds int64, storage EventDataStorage, client *ethclient.Client) *cronjob {
+func New(seconds int64, storage EventDataStorage, clients *map[string]*ethclient.Client) *cronjob {
 	return &cronjob{
 		isRunning: false,
-		seconds: seconds,
-		Status: StatusIdle,
-		
+		seconds:   seconds,
+		Status:    StatusIdle,
+
 		storage: storage,
-		client: client,
+		clients: clients,
 	}
 }
 
@@ -61,32 +63,32 @@ func (c *cronjob) Start() error {
 	c.quit = make(chan struct{})
 	c.Status = StatusRunning
 
-	// TODO(ca): should manage status by EACH synchronizer 
+	// TODO(ca): should manage status by EACH synchronizer
 
 	// run gourutine associated to the ticker
 	go func() {
-    for {
-       select {
-        case <- c.ticker.C:
-					// call job method to run de ticker process
-					c.Status = StatusRunning
-					err := c.job()
-					if err != nil {
-						c.Status = StatusError
-						log.Printf("WARNING: %s", err.Error())
-						return
-					} 
-						
-        case <- c.quit:
-            c.ticker.Stop()
-						c.Status = StatusStopped
-            return
-        }
-    }
- }()
+		for {
+			select {
+			case <-c.ticker.C:
+				// call job method to run de ticker process
+				c.Status = StatusRunning
+				err := c.job()
+				if err != nil {
+					c.Status = StatusError
+					log.Printf("WARNING: %s", err.Error())
+					return
+				}
 
- return nil
-} 
+			case <-c.quit:
+				c.ticker.Stop()
+				c.Status = StatusStopped
+				return
+			}
+		}
+	}()
+
+	return nil
+}
 
 func (c *cronjob) Restart() error {
 	log.Println("Restarting ticker")
@@ -133,14 +135,35 @@ func (c *cronjob) job() error {
 			return err
 		}
 
+		// get client from map or create and save
+		client, ok := (*c.clients)[event.NodeURL]
+		if !ok {
+			// Validate client works
+			client, err = ethclient.Dial(event.NodeURL)
+			if err != nil {
+				return fmt.Errorf("can't getting ethclient error=%s", err)
+			}
+
+			// Validate client is working correctly
+			_, err = client.ChainID(context.Background())
+			if err != nil {
+				return fmt.Errorf("can't valid ethclient error=%s", err)
+			}
+
+			// TODO: Validate it matches the given body network
+
+			// Save client in map
+			(*c.clients)[event.NodeURL] = client
+		}
+
 		// get event logs from contract
 		data, latestBlockNumber, err := blockchain.GetLogs(blockchain.Config{
-			Client: c.client,
-			ABI: fmt.Sprintf("[%s]", string(b)),
-			EventName: event.Abi.Name,
-			Address: event.Address,
+			Client:          client,
+			ABI:             fmt.Sprintf("[%s]", string(b)),
+			EventName:       event.Abi.Name,
+			Address:         event.Address,
 			FromBlockNumber: &event.LatestBlockNumber,
-		})	
+		})
 		if err != nil {
 			return err
 		}
@@ -150,11 +173,13 @@ func (c *cronjob) job() error {
 		if err != nil {
 			return err
 		}
-		
-		// show logger when counter is greather than 0
-		if count > 0 {
-			log.Printf("%d new events have been inserted into the database with %d latest block number \n", count, latestBlockNumber)
+
+		// finish when the contract dont have new events
+		if count == 0 {
+			continue
 		}
+
+		log.Printf("%d new events have been inserted into the database with %d latest block number \n", count, latestBlockNumber)
 
 		// update latest block number in event
 		err = event.UpdateLatestBlock(latestBlockNumber, c.storage)

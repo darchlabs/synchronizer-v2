@@ -5,6 +5,8 @@ classDiagram
     
     class Events {
         + id: string [PK]
+        + network: string
+        + node_url: string
         + address: string
         + latest_block_number: number
     }

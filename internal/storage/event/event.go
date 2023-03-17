@@ -33,6 +33,7 @@ func (s *Storage) InsertEvent(e *event.Event) error {
 
 	// set defalut values to event
 	e.ID = key
+	// TODO(ca): should use the creation block number of the contract
 	e.LatestBlockNumber = 0
 	e.CreatedAt = time.Now()
 

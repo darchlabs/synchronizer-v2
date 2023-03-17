@@ -21,17 +21,11 @@ import (
 
 var (
 	eventStorage synchronizer.EventStorage
-	cronjobSvc synchronizer.Cronjob
+	cronjobSvc   synchronizer.Cronjob
 )
 
 func main() {
 	var err error
-	
-	// get NODE_URL environment value
-	nodeUrl := os.Getenv("NODE_URL")
-	if nodeUrl == "" {
-		log.Fatal("invalid NODE_URL environment value")
-	}
 
 	// get INTERVAL_SECONDS environment value
 	intervalSeconds := os.Getenv("INTERVAL_SECONDS")
@@ -66,15 +60,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// initialize eth client
-	client, err := ethclient.Dial(nodeUrl)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// initialize the cronjob
-	cronjobSvc = cronjob.New(seconds, eventStorage, client)
-
 	// initialize fiber
 	api := fiber.New()
 	api.Use(logger.New())
@@ -82,8 +67,14 @@ func main() {
 		Format: "[${ip}]:${port} ${status} - ${method} ${path}\n",
 	}))
 
+	// create clients map
+	clients := make(map[string]*ethclient.Client)
+
+	// initialize the cronjob
+	cronjobSvc = cronjob.New(seconds, eventStorage, &clients)
+
 	// configure routers
-	EventAPI.Route(api, EventAPI.Context{Storage: eventStorage, Cronjob: cronjobSvc})
+	EventAPI.Route(api, EventAPI.Context{Storage: eventStorage, Cronjob: cronjobSvc, Clients: &clients})
 	CronjobAPI.Route(api, CronjobAPI.Context{
 		Cronjob: cronjobSvc,
 	})
@@ -93,7 +84,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	go func () {
+	go func() {
 		api.Listen(fmt.Sprintf(":%s", port))
 	}()
 
@@ -110,7 +101,7 @@ func listenInterrupt(quit chan struct{}) {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		s := <-c
-		fmt.Println("Signal received", s.String())
+		log.Println("Signal received", s.String())
 		quit <- struct{}{}
 	}()
 }

@@ -1,8 +1,6 @@
 sequenceDiagram
     Synchronizer->>+Event: NewStorage(path)
     Event-->>-Synchronizer: 
-    Synchronizer->>+EthClient: Dial(url)
-    EthClient-->>-Synchronizer: 
     Synchronizer->>+Cronjob: NewCronJob(seconds,storage,client)
     Cronjob-->>-Synchronizer: 
     Synchronizer->>+API: Initialize API

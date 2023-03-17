@@ -7,11 +7,11 @@ import (
 )
 
 type EventNetwork string
+
 const (
 	Ethereum EventNetwork = "ethereum"
-	Polygon EventNetwork = "polygon"
+	Polygon  EventNetwork = "polygon"
 )
-
 
 type EventDataStorage interface {
 	InsertEventData(e *Event, data []blockchain.LogData) (int64, error)
@@ -19,11 +19,12 @@ type EventDataStorage interface {
 }
 
 type Event struct {
-	ID string `json:"id"`
-	Network EventNetwork `json:"network"`
-	Address string `json:"address"`
-	LatestBlockNumber int64 `json:"latestBlockNumber"`
-	Abi *Abi `json:"abi"`
+	ID                string       `json:"id"`
+	Network           EventNetwork `json:"network"`
+	NodeURL           string       `json:"nodeURL"`
+	Address           string       `json:"address"`
+	LatestBlockNumber int64        `json:"latestBlockNumber"`
+	Abi               *Abi         `json:"abi"`
 
 	CreatedAt time.Time `json:"createdAt,omitempty"`
 	UpdatedAt time.Time `json:"updatedAt,omitempty"`
@@ -31,7 +32,7 @@ type Event struct {
 
 func (e *Event) UpdateLatestBlock(lbn int64, storage EventDataStorage) error {
 	// change latest block number value
-	e.LatestBlockNumber = lbn;
+	e.LatestBlockNumber = lbn
 
 	// chanche updated at value
 	e.UpdatedAt = time.Now()
