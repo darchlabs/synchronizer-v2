@@ -7,19 +7,19 @@ import (
 )
 
 type MetaCronjob struct {
-	Status string `json:"status"`
-	Seconds int64 `json:"seconds"`
-} 
+	Status  string `json:"status"`
+	Seconds int64  `json:"seconds"`
+	Error   string `json:"error"`
+}
 
 type Meta struct {
 	Cronjob *MetaCronjob `json:"cronjob"`
-} 
+}
 
 type ListEventResponse struct {
 	Data []*event.Event `json:"data"`
-	Meta *Meta `json:"meta"`
+	Meta *Meta          `json:"meta"`
 }
-
 
 func listEvents(ctx Context) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
@@ -34,8 +34,9 @@ func listEvents(ctx Context) func(c *fiber.Ctx) error {
 		// define meta response
 		meta := &Meta{
 			Cronjob: &MetaCronjob{
-				Status: ctx.Cronjob.GetStatus(),
+				Status:  ctx.Cronjob.GetStatus(),
 				Seconds: ctx.Cronjob.GetSeconds(),
+				Error:   ctx.Cronjob.GetError(),
 			},
 		}
 
