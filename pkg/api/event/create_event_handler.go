@@ -87,7 +87,7 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 				return fmt.Errorf("can't valid ethclient error=%s", err)
 			}
 
-			// TODO: Validate it matches the given body network
+			// TODO(nb): validate it matches the given body network
 
 			// Save client in map
 			(*ctx.Clients)[nodeURL] = client
