@@ -19,4 +19,5 @@ func Route(app *fiber.App, ctx Context) {
 	app.Get("/api/v1/events/:address/:event_name", getEventHandler(ctx))
 	app.Get("/api/v1/events/:address/:event_name/data", listEventDataHandler(ctx))
 	app.Delete("/api/v1/events/:address/:event_name", deleteEventHandler(ctx))
+	app.Post("/api/v1/events/:address/:event_name/restart", restartEventHandler(ctx))
 }

@@ -31,7 +31,7 @@ func (s *Storage) InsertEvent(e *event.Event) error {
 		return fmt.Errorf("key=%s already exists in db", key)
 	}
 
-	// set defalut values to event
+	// set default values to event
 	e.ID = key
 	// TODO(ca): should use the creation block number of the contract
 	e.LatestBlockNumber = 0

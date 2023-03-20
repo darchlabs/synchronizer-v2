@@ -30,21 +30,20 @@ const (
 )
 
 type cronjob struct {
-	ticker    *time.Ticker
-	quit      chan struct{}
-	isRunning bool
-	seconds   int64
-	Status    CronjobStatus `json:"status"`
-	clients   *map[string]*ethclient.Client
+	ticker  *time.Ticker
+	quit    chan struct{}
+	seconds int64
+	Status  CronjobStatus `json:"status"`
+	clients *map[string]*ethclient.Client
+	error   error
 
 	storage EventDataStorage
 }
 
 func New(seconds int64, storage EventDataStorage, clients *map[string]*ethclient.Client) *cronjob {
 	return &cronjob{
-		isRunning: false,
-		seconds:   seconds,
-		Status:    StatusIdle,
+		seconds: seconds,
+		Status:  StatusIdle,
 
 		storage: storage,
 		clients: clients,
@@ -52,8 +51,12 @@ func New(seconds int64, storage EventDataStorage, clients *map[string]*ethclient
 }
 
 func (c *cronjob) Start() error {
-	if c.isRunning {
+	if c.Status == StatusRunning {
 		return errors.New("cronjob its already running")
+	}
+
+	if c.Status == StatusStopping {
+		return errors.New("cronjob is stopping now, wait few seconds")
 	}
 
 	log.Printf("Running ticker each %d seconds \n", c.seconds)
@@ -62,8 +65,7 @@ func (c *cronjob) Start() error {
 	c.ticker = time.NewTicker(time.Duration(time.Duration(c.seconds) * time.Second))
 	c.quit = make(chan struct{})
 	c.Status = StatusRunning
-
-	// TODO(ca): should manage status by EACH synchronizer
+	c.error = nil
 
 	// run gourutine associated to the ticker
 	go func() {
@@ -71,17 +73,19 @@ func (c *cronjob) Start() error {
 			select {
 			case <-c.ticker.C:
 				// call job method to run de ticker process
-				c.Status = StatusRunning
 				err := c.job()
 				if err != nil {
 					c.Status = StatusError
-					log.Printf("WARNING: %s", err.Error())
+					c.error = err
+
+					log.Printf("Cronjob has error: %s", err.Error())
 					return
 				}
 
 			case <-c.quit:
 				c.ticker.Stop()
 				c.Status = StatusStopped
+				c.ticker = nil
 				return
 			}
 		}
@@ -93,12 +97,27 @@ func (c *cronjob) Start() error {
 func (c *cronjob) Restart() error {
 	log.Println("Restarting ticker")
 
-	err := c.Stop()
-	if err != nil {
-		return err
+	if c.Status == StatusIdle {
+		return errors.New("cronjob isn't ready yet, wait few seconds")
 	}
 
-	err = c.Start()
+	if c.Status == StatusStopping {
+		return errors.New("cronjob is stopping now, wait few seconds")
+	}
+
+	if c.Status == StatusRunning {
+		err := c.Stop()
+		if err != nil {
+			return err
+		}
+	}
+
+	// wait c.Seconds for restart, always the neccesary time is < c.Seconds when the cronjob are stopping
+	if c.Status == StatusStopping {
+		time.Sleep(time.Duration(c.seconds) * time.Second)
+	}
+
+	err := c.Start()
 	if err != nil {
 		return err
 	}
@@ -107,15 +126,20 @@ func (c *cronjob) Restart() error {
 }
 
 func (c *cronjob) Stop() error {
-	if !c.isRunning {
-		return errors.New("cronjob its already stopped")
+	if c.Status == StatusIdle {
+		return errors.New("cronjob isn't ready yet, wait few seconds")
 	}
 
-	log.Println("Stoping ticker")
+	if c.Status == StatusStopping {
+		return errors.New("cronjob is stopping now, wait few seconds")
+	}
+
+	if c.Status == StatusStopped {
+		return errors.New("cronjob is already stopped")
+	}
 
 	c.Status = StatusStopping
 	c.quit <- struct{}{}
-	c.ticker = nil
 
 	return nil
 }
@@ -129,10 +153,17 @@ func (c *cronjob) job() error {
 
 	// iterate over events
 	for _, event := range events {
+		// if event has error, continue
+		if event.Error != "" {
+			continue
+		}
+
 		// parse abi to string
 		b, err := json.Marshal(event.Abi)
 		if err != nil {
-			return err
+			// update event error
+			_ = event.UpdateError(err, c.storage)
+			continue
 		}
 
 		// get client from map or create and save
@@ -141,16 +172,20 @@ func (c *cronjob) job() error {
 			// Validate client works
 			client, err = ethclient.Dial(event.NodeURL)
 			if err != nil {
-				return fmt.Errorf("can't getting ethclient error=%s", err)
+				// update event error
+				_ = event.UpdateError(err, c.storage)
+				continue
 			}
 
 			// Validate client is working correctly
 			_, err = client.ChainID(context.Background())
 			if err != nil {
-				return fmt.Errorf("can't valid ethclient error=%s", err)
+				// update event error
+				_ = event.UpdateError(err, c.storage)
+				continue
 			}
 
-			// TODO: Validate it matches the given body network
+			// TODO(nb): validate it matches the given body network
 
 			// Save client in map
 			(*c.clients)[event.NodeURL] = client
@@ -165,13 +200,17 @@ func (c *cronjob) job() error {
 			FromBlockNumber: &event.LatestBlockNumber,
 		})
 		if err != nil {
-			return err
+			// update event error
+			_ = event.UpdateError(err, c.storage)
+			continue
 		}
 
 		// insert data to event
 		count, err := event.InsertData(data, c.storage)
 		if err != nil {
-			return err
+			// update event error
+			_ = event.UpdateError(err, c.storage)
+			continue
 		}
 
 		// finish when the contract dont have new events
@@ -184,7 +223,9 @@ func (c *cronjob) job() error {
 		// update latest block number in event
 		err = event.UpdateLatestBlock(latestBlockNumber, c.storage)
 		if err != nil {
-			return err
+			// update event error
+			_ = event.UpdateError(err, c.storage)
+			continue
 		}
 	}
 
@@ -197,4 +238,12 @@ func (c *cronjob) GetStatus() string {
 
 func (c *cronjob) GetSeconds() int64 {
 	return c.seconds
+}
+
+func (c *cronjob) GetError() string {
+	if c.error != nil {
+		return c.error.Error()
+	}
+
+	return ""
 }

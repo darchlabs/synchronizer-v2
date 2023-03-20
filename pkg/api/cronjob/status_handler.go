@@ -9,12 +9,18 @@ func statusCronjobHandler(ctx Context) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		// get cronjob status
 		status := ctx.Cronjob.GetStatus()
+		seconds := ctx.Cronjob.GetSeconds()
+		error := ctx.Cronjob.GetError()
 
 		// prepare response
-		response := struct{
-			status string
+		response := struct {
+			Status  string `json:"status"`
+			Seconds int64  `json:"seconds"`
+			Error   string `json:"error"`
 		}{
-			status: status,
+			Status:  status,
+			Seconds: seconds,
+			Error:   error,
 		}
 
 		return c.Status(fiber.StatusOK).JSON(api.Response{
