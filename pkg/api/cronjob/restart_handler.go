@@ -10,7 +10,7 @@ func restartCronjobHandler(ctx Context) func(c *fiber.Ctx) error {
 		// restart cronjob
 		err := ctx.Cronjob.Restart()
 		if err != nil {
-			c.Status(fiber.StatusUnprocessableEntity).JSON(api.Response{
+			return c.Status(fiber.StatusUnprocessableEntity).JSON(api.Response{
 				Error: err.Error(),
 			})
 		}
