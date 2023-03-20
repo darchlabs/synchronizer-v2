@@ -23,5 +23,6 @@ type Cronjob interface {
 	Restart() error
 	Start() error
 	GetStatus() string
-	GetSeconds() int64 
+	GetSeconds() int64
+	GetError() string
 }
