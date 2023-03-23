@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 
+	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
 	"github.com/darchlabs/synchronizer-v2/pkg/api"
 	"github.com/darchlabs/synchronizer-v2/pkg/event"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -48,6 +50,7 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 
 		// Update address
 		body.Event.Address = address
+		body.Event.Status = event.StatusSynching
 
 		// Validate abi is not nil
 		if body.Event.Abi == nil {
@@ -75,21 +78,19 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 		// get or create eth client in client
 		client, ok := (*ctx.Clients)[nodeURL]
 		if !ok {
-			// Validate client works
+			// validate client works
 			client, err = ethclient.Dial(nodeURL)
 			if err != nil {
 				return fmt.Errorf("can't getting ethclient error=%s", err)
 			}
 
-			// Validate client is working correctly
+			// validate client is working correctly
 			_, err = client.ChainID(context.Background())
 			if err != nil {
 				return fmt.Errorf("can't valid ethclient error=%s", err)
 			}
 
-			// TODO(nb): validate it matches the given body network
-
-			// Save client in map
+			// save client in map
 			(*ctx.Clients)[nodeURL] = client
 		}
 
@@ -102,6 +103,71 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 				},
 			)
 		}
+
+		// get initial logs in background
+		go func() {
+			ev := body.Event
+
+			// parse abi to string
+			b, err := json.Marshal(ev.Abi)
+			if err != nil {
+				// update event error
+				_ = ev.UpdateStatus(event.StatusError, err, ctx.Storage)
+				return
+			}
+
+			// define and read channel with log data in go routine
+			logsChannel := make(chan []blockchain.LogData)
+			go func() {
+				for logs := range logsChannel {
+					log.Printf("received logs data=%+v \n", logs)
+
+					// insert logs data to event
+					_, err := ev.InsertData(logs, ctx.Storage)
+					if err != nil {
+						// update event error
+						_ = ev.UpdateStatus(event.StatusError, err, ctx.Storage)
+						return
+					}
+				}
+			}()
+
+			// get event logs from contract
+			count, latestBlockNumber, err := blockchain.GetLogs(blockchain.Config{
+				Client:          client,
+				ABI:             fmt.Sprintf("[%s]", string(b)),
+				EventName:       ev.Abi.Name,
+				Address:         ev.Address,
+				FromBlockNumber: &ev.LatestBlockNumber,
+				LogsChannel:     logsChannel,
+			})
+			if err != nil {
+				// update event error
+				_ = ev.UpdateStatus(event.StatusError, err, ctx.Storage)
+				return
+			}
+
+			// finish when the contract dont have new events
+			if count > 0 {
+				log.Printf("%d new events have been inserted into the database with %d latest block number \n", count, latestBlockNumber)
+			}
+
+			// update latest block number in event
+			err = ev.UpdateLatestBlock(latestBlockNumber, ctx.Storage)
+			if err != nil {
+				// update event error
+				_ = ev.UpdateStatus(event.StatusError, err, ctx.Storage)
+				return
+			}
+
+			// update event status to running
+			err = ev.UpdateStatus(event.StatusRunning, err, ctx.Storage)
+			if err != nil {
+				// update event error
+				_ = ev.UpdateStatus(event.StatusError, err, ctx.Storage)
+				return
+			}
+		}()
 
 		// prepare response
 		return c.Status(fiber.StatusOK).JSON(api.Response{

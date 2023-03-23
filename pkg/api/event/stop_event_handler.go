@@ -2,10 +2,11 @@ package event
 
 import (
 	"github.com/darchlabs/synchronizer-v2/pkg/api"
+	"github.com/darchlabs/synchronizer-v2/pkg/event"
 	"github.com/gofiber/fiber/v2"
 )
 
-func restartEventHandler(ctx Context) func(c *fiber.Ctx) error {
+func stopEventHandler(ctx Context) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		c.Accepts("application/json")
 
@@ -19,7 +20,7 @@ func restartEventHandler(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// get event from storage
-		event, err := ctx.Storage.GetEvent(address, eventName)
+		e, err := ctx.Storage.GetEvent(address, eventName)
 		if err != nil {
 			return c.Status(fiber.StatusConflict).JSON(api.Response{
 				Error: err.Error(),
@@ -27,7 +28,7 @@ func restartEventHandler(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// remove error from event
-		err = event.UpdateError(nil, ctx.Storage)
+		err = e.UpdateStatus(event.StatusStopped, nil, ctx.Storage)
 		if err != nil {
 			return c.Status(fiber.StatusConflict).JSON(api.Response{
 				Error: err.Error(),
