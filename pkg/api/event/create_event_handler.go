@@ -140,6 +140,7 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 				Address:         ev.Address,
 				FromBlockNumber: &ev.LatestBlockNumber,
 				LogsChannel:     logsChannel,
+				Logger:          true,
 			})
 			if err != nil {
 				// update event error
