@@ -18,6 +18,15 @@ type EventDataStorage interface {
 	UpdateEvent(e *Event) error
 }
 
+type EventStatus string
+
+const (
+	StatusSynching EventStatus = "synching"
+	StatusRunning  EventStatus = "running"
+	StatusStopped  EventStatus = "stopped"
+	StatusError    EventStatus = "error"
+)
+
 type Event struct {
 	ID                string       `json:"id"`
 	Network           EventNetwork `json:"network"`
@@ -25,13 +34,17 @@ type Event struct {
 	Address           string       `json:"address"`
 	LatestBlockNumber int64        `json:"latestBlockNumber"`
 	Abi               *Abi         `json:"abi"`
+	Status            EventStatus  `json:"status"`
 	Error             string       `json:"error"`
 
 	CreatedAt time.Time `json:"createdAt,omitempty"`
 	UpdatedAt time.Time `json:"updatedAt,omitempty"`
 }
 
-func (e *Event) UpdateError(eventErr error, storage EventDataStorage) error {
+func (e *Event) UpdateStatus(status EventStatus, eventErr error, storage EventDataStorage) error {
+	// update status in database
+	e.Status = status
+
 	// update error value, can be a string or nil
 	if eventErr != nil {
 		e.Error = eventErr.Error()
@@ -39,7 +52,7 @@ func (e *Event) UpdateError(eventErr error, storage EventDataStorage) error {
 		e.Error = ""
 	}
 
-	// update event in database
+	// update status in database
 	err := storage.UpdateEvent(e)
 	if err != nil {
 		return err

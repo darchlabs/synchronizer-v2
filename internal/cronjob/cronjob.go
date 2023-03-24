@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
@@ -30,32 +31,34 @@ const (
 )
 
 type cronjob struct {
-	ticker  *time.Ticker
-	quit    chan struct{}
-	seconds int64
-	Status  CronjobStatus `json:"status"`
-	clients *map[string]*ethclient.Client
-	error   error
+	ticker *time.Ticker
+	quit   chan struct{}
+	error  error
 
+	seconds int64
+	clients *map[string]*ethclient.Client
 	storage EventDataStorage
+	debug   bool
+	status  CronjobStatus
 }
 
-func New(seconds int64, storage EventDataStorage, clients *map[string]*ethclient.Client) *cronjob {
+func New(seconds int64, storage EventDataStorage, clients *map[string]*ethclient.Client, debug bool) *cronjob {
 	return &cronjob{
 		seconds: seconds,
-		Status:  StatusIdle,
+		status:  StatusIdle,
+		clients: clients,
 
 		storage: storage,
-		clients: clients,
+		debug:   debug,
 	}
 }
 
 func (c *cronjob) Start() error {
-	if c.Status == StatusRunning {
+	if c.status == StatusRunning {
 		return errors.New("cronjob its already running")
 	}
 
-	if c.Status == StatusStopping {
+	if c.status == StatusStopping {
 		return errors.New("cronjob is stopping now, wait few seconds")
 	}
 
@@ -64,7 +67,7 @@ func (c *cronjob) Start() error {
 	// initialize ticker
 	c.ticker = time.NewTicker(time.Duration(time.Duration(c.seconds) * time.Second))
 	c.quit = make(chan struct{})
-	c.Status = StatusRunning
+	c.status = StatusRunning
 	c.error = nil
 
 	// run gourutine associated to the ticker
@@ -75,7 +78,7 @@ func (c *cronjob) Start() error {
 				// call job method to run de ticker process
 				err := c.job()
 				if err != nil {
-					c.Status = StatusError
+					c.status = StatusError
 					c.error = err
 
 					log.Printf("Cronjob has error: %s", err.Error())
@@ -84,7 +87,7 @@ func (c *cronjob) Start() error {
 
 			case <-c.quit:
 				c.ticker.Stop()
-				c.Status = StatusStopped
+				c.status = StatusStopped
 				c.ticker = nil
 				return
 			}
@@ -97,15 +100,15 @@ func (c *cronjob) Start() error {
 func (c *cronjob) Restart() error {
 	log.Println("Restarting ticker")
 
-	if c.Status == StatusIdle {
+	if c.status == StatusIdle {
 		return errors.New("cronjob isn't ready yet, wait few seconds")
 	}
 
-	if c.Status == StatusStopping {
+	if c.status == StatusStopping {
 		return errors.New("cronjob is stopping now, wait few seconds")
 	}
 
-	if c.Status == StatusRunning {
+	if c.status == StatusRunning {
 		err := c.Stop()
 		if err != nil {
 			return err
@@ -113,7 +116,7 @@ func (c *cronjob) Restart() error {
 	}
 
 	// wait c.Seconds for restart, always the neccesary time is < c.Seconds when the cronjob are stopping
-	if c.Status == StatusStopping {
+	if c.status == StatusStopping {
 		time.Sleep(time.Duration(c.seconds) * time.Second)
 	}
 
@@ -126,19 +129,19 @@ func (c *cronjob) Restart() error {
 }
 
 func (c *cronjob) Stop() error {
-	if c.Status == StatusIdle {
+	if c.status == StatusIdle {
 		return errors.New("cronjob isn't ready yet, wait few seconds")
 	}
 
-	if c.Status == StatusStopping {
+	if c.status == StatusStopping {
 		return errors.New("cronjob is stopping now, wait few seconds")
 	}
 
-	if c.Status == StatusStopped {
+	if c.status == StatusStopped {
 		return errors.New("cronjob is already stopped")
 	}
 
-	c.Status = StatusStopping
+	c.status = StatusStopping
 	c.quit <- struct{}{}
 
 	return nil
@@ -151,89 +154,107 @@ func (c *cronjob) job() error {
 		return err
 	}
 
-	// iterate over events
-	for _, event := range events {
-		// if event has error, continue
-		if event.Error != "" {
-			continue
-		}
-
-		// parse abi to string
-		b, err := json.Marshal(event.Abi)
-		if err != nil {
-			// update event error
-			_ = event.UpdateError(err, c.storage)
-			continue
-		}
-
-		// get client from map or create and save
-		client, ok := (*c.clients)[event.NodeURL]
-		if !ok {
-			// Validate client works
-			client, err = ethclient.Dial(event.NodeURL)
-			if err != nil {
-				// update event error
-				_ = event.UpdateError(err, c.storage)
-				continue
-			}
-
-			// Validate client is working correctly
-			_, err = client.ChainID(context.Background())
-			if err != nil {
-				// update event error
-				_ = event.UpdateError(err, c.storage)
-				continue
-			}
-
-			// TODO(nb): validate it matches the given body network
-
-			// Save client in map
-			(*c.clients)[event.NodeURL] = client
-		}
-
-		// get event logs from contract
-		data, latestBlockNumber, err := blockchain.GetLogs(blockchain.Config{
-			Client:          client,
-			ABI:             fmt.Sprintf("[%s]", string(b)),
-			EventName:       event.Abi.Name,
-			Address:         event.Address,
-			FromBlockNumber: &event.LatestBlockNumber,
-		})
-		if err != nil {
-			// update event error
-			_ = event.UpdateError(err, c.storage)
-			continue
-		}
-
-		// insert data to event
-		count, err := event.InsertData(data, c.storage)
-		if err != nil {
-			// update event error
-			_ = event.UpdateError(err, c.storage)
-			continue
-		}
-
-		// finish when the contract dont have new events
-		if count == 0 {
-			continue
-		}
-
-		log.Printf("%d new events have been inserted into the database with %d latest block number \n", count, latestBlockNumber)
-
-		// update latest block number in event
-		err = event.UpdateLatestBlock(latestBlockNumber, c.storage)
-		if err != nil {
-			// update event error
-			_ = event.UpdateError(err, c.storage)
-			continue
+	// filter by only for running events
+	runningEvents := make([]*event.Event, 0)
+	for _, e := range events {
+		if e.Status == event.StatusRunning {
+			runningEvents = append(runningEvents, e)
 		}
 	}
+
+	// define waitgroup for proccessing the events logs
+	var wg sync.WaitGroup
+	wg.Add(len(runningEvents))
+
+	// iterate over events
+	for _, e := range runningEvents {
+		go func(ev *event.Event) {
+			// parse abi to string
+			b, err := json.Marshal(ev.Abi)
+			if err != nil {
+				// update event error
+				_ = ev.UpdateStatus(event.StatusError, err, c.storage)
+				return
+			}
+
+			// get client from map or create and save
+			client, ok := (*c.clients)[ev.NodeURL]
+			if !ok {
+				// validate client works
+				client, err = ethclient.Dial(ev.NodeURL)
+				if err != nil {
+					// update event error
+					_ = ev.UpdateStatus(event.StatusError, err, c.storage)
+					return
+				}
+
+				// validate client is working correctly
+				_, err = client.ChainID(context.Background())
+				if err != nil {
+					// update event error
+					_ = ev.UpdateStatus(event.StatusError, err, c.storage)
+					return
+				}
+
+				// save client in map
+				(*c.clients)[ev.NodeURL] = client
+			}
+
+			// define and read channel with log data in go routine
+			logsChannel := make(chan []blockchain.LogData)
+			go func() {
+				for logs := range logsChannel {
+					// insert logs data to event
+					_, err := ev.InsertData(logs, c.storage)
+					if err != nil {
+						// update event error
+						_ = ev.UpdateStatus(event.StatusError, err, c.storage)
+						return
+					}
+				}
+			}()
+
+			// get event logs from contract
+			count, latestBlockNumber, err := blockchain.GetLogs(blockchain.Config{
+				Client:          client,
+				ABI:             fmt.Sprintf("[%s]", string(b)),
+				EventName:       ev.Abi.Name,
+				Address:         ev.Address,
+				FromBlockNumber: &ev.LatestBlockNumber,
+				LogsChannel:     logsChannel,
+				Logger:          c.debug,
+			})
+			if err != nil {
+				// update event error
+				_ = ev.UpdateStatus(event.StatusError, err, c.storage)
+				return
+			}
+
+			// show count log
+			if count > 0 {
+				log.Printf("%d new events have been inserted into the database with %d latest block number \n", count, latestBlockNumber)
+			}
+
+			// update latest block number
+			err = ev.UpdateLatestBlock(latestBlockNumber, c.storage)
+			if err != nil {
+				// update event error
+				_ = ev.UpdateStatus(event.StatusError, err, c.storage)
+				return
+			}
+
+			defer wg.Done()
+			return
+		}(e)
+	}
+
+	wg.Wait()
 
 	return nil
 }
 
 func (c *cronjob) GetStatus() string {
-	return string(c.Status)
+	return string(c.status)
 }
 
 func (c *cronjob) GetSeconds() int64 {
