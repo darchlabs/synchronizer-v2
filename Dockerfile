@@ -1,12 +1,15 @@
 FROM golang:alpine as builder
 
-WORKDIR /app
+WORKDIR /usr/src/app
 
 COPY . .
 
-# ENV INTERVAL_SECONDS=10
-# ENV DATABASE_URL=./storage.db
+RUN CGO_ENABLED=0 go build -o sync cmd/synchronizer/main.go
 
-RUN CGO_ENABLED=0 go build -o bin/synchronizer cmd/synchronizer/main.go
+FROM golang:alpine as runner
 
-ENTRYPOINT [ "./bin/synchronizer" ]
+WORKDIR /home/sync
+
+COPY --from=builder /usr/src/app/sync /home/sync
+
+CMD [ "./sync" ]
