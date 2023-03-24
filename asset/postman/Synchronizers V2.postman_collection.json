@@ -75,7 +75,7 @@
 					"response": []
 				},
 				{
-					"name": "Delete event [polygon wav3s]",
+					"name": "Delete event [polygon wav3s PostFunded]",
 					"request": {
 						"method": "DELETE",
 						"header": [],
@@ -90,6 +90,69 @@
 								"events",
 								"0xcd8c193b1B2b5cf36F26b94ff42118B5C6cA4bef",
 								"wav3sFrenMirror__PostFunded"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete event [polygon wav3s MirrorProcessed|",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}{{base_url}}/api/v1/events/0xcd8c193b1B2b5cf36F26b94ff42118B5C6cA4bef/wav3sFrenMirror__MirrorProcessed",
+							"host": [
+								"{{api_url}}{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events",
+								"0xcd8c193b1B2b5cf36F26b94ff42118B5C6cA4bef",
+								"wav3sFrenMirror__MirrorProcessed"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete event [goerli]",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}{{base_url}}/api/v1/events/0x580aD6Df3AC48d5223386DbbD4042818e66606D3/Example",
+							"host": [
+								"{{api_url}}{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events",
+								"0x580aD6Df3AC48d5223386DbbD4042818e66606D3",
+								"Example"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete event [mumbai]",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}{{base_url}}/api/v1/events/0xc13530546feA5fC787A2d126bB39bDeC20C4cc9e/Example",
+							"host": [
+								"{{api_url}}{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events",
+								"0xc13530546feA5fC787A2d126bB39bDeC20C4cc9e",
+								"Example"
 							]
 						}
 					},
@@ -191,13 +254,13 @@
 					"response": []
 				},
 				{
-					"name": "Insert event [polygon]",
+					"name": "Insert event [mumbai]",
 					"request": {
 						"method": "POST",
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"event\": {\n        \"nodeURL\": \"https://polygon-mainnet.g.alchemy.com/v2/2hi88g7IcSsxOiUZXV5FEyq1i9egUQvo\",\n        \"network\": \"polygon\",\n        \"abi\": {\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"address\",\n                    \"name\": \"sender\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"poolId\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"token0\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"token1\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount0\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount1\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint24\",\n                    \"name\": \"poolFee\",\n                    \"type\": \"uint24\"\n                }\n            ],\n            \"name\": \"Delete\",\n            \"type\": \"event\"\n        }\n    }\n}",
+							"raw": "{\n    \"event\": {\n        \"network\": \"polygon\",\n        \"nodeURL\": \"https://polygon-mumbai.g.alchemy.com/v2/_fQt29PoLS69dpof_XX_P6ziiJY7-U4I\",\n        \"abi\": {\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"address\",\n                    \"name\": \"userAddr\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount1\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"num\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"string\",\n                    \"name\": \"lala\",\n                    \"type\": \"string\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"string\",\n                    \"name\": \"lala2\",\n                    \"type\": \"string\"\n                }\n            ],\n            \"name\": \"Example\",\n            \"type\": \"event\"\n        }\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -205,7 +268,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{api_url}}{{base_url}}/api/v1/events/0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264",
+							"raw": "{{api_url}}{{base_url}}/api/v1/events/0xc13530546feA5fC787A2d126bB39bDeC20C4cc9e",
 							"host": [
 								"{{api_url}}{{base_url}}"
 							],
@@ -213,20 +276,49 @@
 								"api",
 								"v1",
 								"events",
-								"0xC9Fc250Ab92a802fCc96719eBE17c9c831aDF264"
+								"0xc13530546feA5fC787A2d126bB39bDeC20C4cc9e"
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "Insert event [polygon wav3s]",
+					"name": "Insert event [polygon wav3s PostFunded]",
 					"request": {
 						"method": "POST",
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"event\": {\n        \"nodeURL\": \"https://polygon-mainnet.g.alchemy.com/v2/2hi88g7IcSsxOiUZXV5FEyq1i9egUQvo\",\n        \"network\": \"polygon\",\n        \"abi\": {\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"address\",\n                    \"name\": \"sender\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"poolId\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"token0\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"token1\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount0\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount1\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint24\",\n                    \"name\": \"poolFee\",\n                    \"type\": \"uint24\"\n                }\n            ],\n            \"name\": \"wav3sFrenMirror__PostFunded\",\n            \"type\": \"event\"\n        }\n    }\n}",
+							"raw": "{\n    \"event\": {\n        \"nodeURL\": \"https://polygon-mainnet.g.alchemy.com/v2/2hi88g7IcSsxOiUZXV5FEyq1i9egUQvo\",\n        \"network\": \"polygon\",\n        \"abi\": {\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"string\",\n                    \"name\": \"pubId\",\n                    \"type\": \"string\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"profileAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"budget\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"reward\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"currencyAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"minFollowers\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"feePerMirror\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"appAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"appFee\",\n                    \"type\": \"uint256\"\n                }\n            ],\n            \"name\": \"wav3sFrenMirror__PostFunded\",\n            \"type\": \"event\"\n        }\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_url}}{{base_url}}/api/v1/events/0xcd8c193b1B2b5cf36F26b94ff42118B5C6cA4bef",
+							"host": [
+								"{{api_url}}{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events",
+								"0xcd8c193b1B2b5cf36F26b94ff42118B5C6cA4bef"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Insert event [polygon wav3s MirrorProcessed]",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"event\": {\n        \"nodeURL\": \"https://polygon-mainnet.g.alchemy.com/v2/2hi88g7IcSsxOiUZXV5FEyq1i9egUQvo\",\n        \"network\": \"polygon\",\n        \"abi\": {\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"mirrorerAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"string\",\n                    \"name\": \"pubId\",\n                    \"type\": \"string\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"reward\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"currentBudget\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"feePerMirror\",\n                    \"type\": \"uint256\"\n                }\n            ],\n            \"name\": \"wav3sFrenMirror__MirrorProcessed\",\n            \"type\": \"event\"\n        }\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -300,12 +392,12 @@
 					"response": []
 				},
 				{
-					"name": "Restart event",
+					"name": "Stop event",
 					"request": {
 						"method": "POST",
 						"header": [],
 						"url": {
-							"raw": "{{api_url}}{{base_url}}/api/v1/events/0xc13530546feA5fC787A2d126bB39bDeC20C4cc9e/Example/restart",
+							"raw": "{{api_url}}{{base_url}}/api/v1/events/0x580aD6Df3AC48d5223386DbbD4042818e66606D3/Example/stop",
 							"host": [
 								"{{api_url}}{{base_url}}"
 							],
@@ -313,9 +405,31 @@
 								"api",
 								"v1",
 								"events",
-								"0xc13530546feA5fC787A2d126bB39bDeC20C4cc9e",
+								"0x580aD6Df3AC48d5223386DbbD4042818e66606D3",
 								"Example",
-								"restart"
+								"stop"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Start event",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}{{base_url}}/api/v1/events/0x580aD6Df3AC48d5223386DbbD4042818e66606D3/Example/start",
+							"host": [
+								"{{api_url}}{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events",
+								"0x580aD6Df3AC48d5223386DbbD4042818e66606D3",
+								"Example",
+								"start"
 							]
 						}
 					},
