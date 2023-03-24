@@ -70,7 +70,6 @@ func GetLogs(c Config) (int64, int64, error) {
 
 	// define from block and interval numbers
 	logsCount := int64(0)
-	// latestBlockNumber := int64(0)
 	interval := int64(0)
 	fromBlock := int64(*c.FromBlockNumber)
 	retry := int64(0)
@@ -147,7 +146,7 @@ func GetLogs(c Config) (int64, int64, error) {
 		data := make([]LogData, 0)
 
 		if c.Logger {
-			log.Printf("logs=%d", len(logs))
+			log.Printf("logs=%d\n", len(logs))
 		}
 
 		// iterate over logs
@@ -212,10 +211,6 @@ func GetLogs(c Config) (int64, int64, error) {
 		} else {
 			temporalToBlock = temporalToBlock + interval
 		}
-	}
-
-	if c.Logger {
-		log.Printf("\n")
 	}
 
 	// close log channel
