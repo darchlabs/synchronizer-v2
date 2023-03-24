@@ -31,32 +31,34 @@ const (
 )
 
 type cronjob struct {
-	ticker  *time.Ticker
-	quit    chan struct{}
-	seconds int64
-	Status  CronjobStatus `json:"status"`
-	clients *map[string]*ethclient.Client
-	error   error
+	ticker *time.Ticker
+	quit   chan struct{}
+	error  error
 
+	seconds int64
+	clients *map[string]*ethclient.Client
 	storage EventDataStorage
+	debug   bool
+	status  CronjobStatus
 }
 
-func New(seconds int64, storage EventDataStorage, clients *map[string]*ethclient.Client) *cronjob {
+func New(seconds int64, storage EventDataStorage, clients *map[string]*ethclient.Client, debug bool) *cronjob {
 	return &cronjob{
 		seconds: seconds,
-		Status:  StatusIdle,
+		status:  StatusIdle,
+		clients: clients,
 
 		storage: storage,
-		clients: clients,
+		debug:   debug,
 	}
 }
 
 func (c *cronjob) Start() error {
-	if c.Status == StatusRunning {
+	if c.status == StatusRunning {
 		return errors.New("cronjob its already running")
 	}
 
-	if c.Status == StatusStopping {
+	if c.status == StatusStopping {
 		return errors.New("cronjob is stopping now, wait few seconds")
 	}
 
@@ -65,7 +67,7 @@ func (c *cronjob) Start() error {
 	// initialize ticker
 	c.ticker = time.NewTicker(time.Duration(time.Duration(c.seconds) * time.Second))
 	c.quit = make(chan struct{})
-	c.Status = StatusRunning
+	c.status = StatusRunning
 	c.error = nil
 
 	// run gourutine associated to the ticker
@@ -76,7 +78,7 @@ func (c *cronjob) Start() error {
 				// call job method to run de ticker process
 				err := c.job()
 				if err != nil {
-					c.Status = StatusError
+					c.status = StatusError
 					c.error = err
 
 					log.Printf("Cronjob has error: %s", err.Error())
@@ -85,7 +87,7 @@ func (c *cronjob) Start() error {
 
 			case <-c.quit:
 				c.ticker.Stop()
-				c.Status = StatusStopped
+				c.status = StatusStopped
 				c.ticker = nil
 				return
 			}
@@ -98,15 +100,15 @@ func (c *cronjob) Start() error {
 func (c *cronjob) Restart() error {
 	log.Println("Restarting ticker")
 
-	if c.Status == StatusIdle {
+	if c.status == StatusIdle {
 		return errors.New("cronjob isn't ready yet, wait few seconds")
 	}
 
-	if c.Status == StatusStopping {
+	if c.status == StatusStopping {
 		return errors.New("cronjob is stopping now, wait few seconds")
 	}
 
-	if c.Status == StatusRunning {
+	if c.status == StatusRunning {
 		err := c.Stop()
 		if err != nil {
 			return err
@@ -114,7 +116,7 @@ func (c *cronjob) Restart() error {
 	}
 
 	// wait c.Seconds for restart, always the neccesary time is < c.Seconds when the cronjob are stopping
-	if c.Status == StatusStopping {
+	if c.status == StatusStopping {
 		time.Sleep(time.Duration(c.seconds) * time.Second)
 	}
 
@@ -127,19 +129,19 @@ func (c *cronjob) Restart() error {
 }
 
 func (c *cronjob) Stop() error {
-	if c.Status == StatusIdle {
+	if c.status == StatusIdle {
 		return errors.New("cronjob isn't ready yet, wait few seconds")
 	}
 
-	if c.Status == StatusStopping {
+	if c.status == StatusStopping {
 		return errors.New("cronjob is stopping now, wait few seconds")
 	}
 
-	if c.Status == StatusStopped {
+	if c.status == StatusStopped {
 		return errors.New("cronjob is already stopped")
 	}
 
-	c.Status = StatusStopping
+	c.status = StatusStopping
 	c.quit <- struct{}{}
 
 	return nil
@@ -167,8 +169,6 @@ func (c *cronjob) job() error {
 	// iterate over events
 	for _, e := range runningEvents {
 		go func(ev *event.Event) {
-			// fmt.Printf("event_name=%s address=%s", ev.Abi.Name, ev.Address)
-
 			// parse abi to string
 			b, err := json.Marshal(ev.Abi)
 			if err != nil {
@@ -222,7 +222,7 @@ func (c *cronjob) job() error {
 				Address:         ev.Address,
 				FromBlockNumber: &ev.LatestBlockNumber,
 				LogsChannel:     logsChannel,
-				Logger:          false,
+				Logger:          c.debug,
 			})
 			if err != nil {
 				// update event error
@@ -248,15 +248,13 @@ func (c *cronjob) job() error {
 		}(e)
 	}
 
-	// fmt.Println("Cronjob: Before to waiting WG")
 	wg.Wait()
-	// fmt.Println("Cronjob: After to waiting WG")
 
 	return nil
 }
 
 func (c *cronjob) GetStatus() string {
-	return string(c.Status)
+	return string(c.status)
 }
 
 func (c *cronjob) GetSeconds() int64 {
