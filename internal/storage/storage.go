@@ -1,21 +1,23 @@
 package storage
 
 import (
-	"fmt"
-
-	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 )
 
 type S struct {
-	DB *leveldb.DB
+	DB *sqlx.DB
 }
 
-func New(filepath string) (*S, error) {
-	// read db from file
-	db, err := leveldb.OpenFile(fmt.Sprintf("./%s", filepath), nil)
+func New(dsn string) (*S, error) {
+	// create connection to database
+	db, err := sqlx.Connect("postgres", dsn)
 	if err != nil {
 		return nil, err
 	}
+
+	// create tables if is necessary
+	_ = db.MustExec(schema)
 
 	return &S{
 		DB: db,
