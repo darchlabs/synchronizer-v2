@@ -1,6 +1,7 @@
 package event
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
@@ -14,7 +15,7 @@ const (
 )
 
 type EventDataStorage interface {
-	InsertEventData(e *Event, data []blockchain.LogData) (int64, error)
+	InsertEventData(e *Event, data []blockchain.LogData) error
 	UpdateEvent(e *Event) error
 }
 
@@ -28,17 +29,27 @@ const (
 )
 
 type Event struct {
-	ID                string       `json:"id"`
-	Network           EventNetwork `json:"network"`
-	NodeURL           string       `json:"nodeURL"`
-	Address           string       `json:"address"`
-	LatestBlockNumber int64        `json:"latestBlockNumber"`
-	Abi               *Abi         `json:"abi"`
-	Status            EventStatus  `json:"status"`
-	Error             string       `json:"error"`
+	ID                int64        `json:"id" db:"id"`
+	Network           EventNetwork `json:"network" db:"network"`
+	NodeURL           string       `json:"nodeURL" db:"node_url"`
+	Address           string       `json:"address" db:"address"`
+	LatestBlockNumber int64        `json:"latestBlockNumber" db:"latest_block_number"`
+	AbiID             int64        `json:"abiId" db:"abi_id"`
+	Status            EventStatus  `json:"status" db:"status"`
+	Error             string       `json:"error" db:"error"`
+	CreatedAt         time.Time    `json:"createdAt,omitempty" db:"created_at"`
+	UpdatedAt         time.Time    `json:"updatedAt,omitempty" db:"updated_at"`
 
-	CreatedAt time.Time `json:"createdAt,omitempty"`
-	UpdatedAt time.Time `json:"updatedAt,omitempty"`
+	Abi *Abi `json:"abi"`
+}
+
+type EventData struct {
+	ID          int64           `json:"id" db:"id"`
+	EventID     int64           `json:"eventId" db:"event_id"`
+	Tx          string          `json:"tx" db:"tx"`
+	BlockNumber int64           `json:"blockNumber" db:"block_number"`
+	Data        json.RawMessage `json:"data" db:"data"`
+	CreatedAt   time.Time       `json:"createdAt,omitempty" db:"created_at"`
 }
 
 func (e *Event) UpdateStatus(status EventStatus, eventErr error, storage EventDataStorage) error {
@@ -77,12 +88,12 @@ func (e *Event) UpdateLatestBlock(lbn int64, storage EventDataStorage) error {
 	return nil
 }
 
-func (e *Event) InsertData(data []blockchain.LogData, storage EventDataStorage) (int64, error) {
+func (e *Event) InsertData(data []blockchain.LogData, storage EventDataStorage) error {
 	// insert event data to event
-	count, err := storage.InsertEventData(e, data)
+	err := storage.InsertEventData(e, data)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return count, nil
+	return nil
 }
