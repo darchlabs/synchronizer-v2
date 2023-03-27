@@ -35,7 +35,7 @@ func main() {
 	}
 
 	// initialize storage
-	s, err := storage.New(env.DatabaseFilepath)
+	s, err := storage.New(env.DatabaseDSN)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -58,8 +58,6 @@ func main() {
 
 	// create clients map
 	clients := make(map[string]*ethclient.Client)
-
-	fmt.Println("DEBUG VALUE", env.Debug)
 
 	// initialize the cronjob
 	cronjobSvc = cronjob.New(seconds, eventStorage, &clients, env.Debug)
