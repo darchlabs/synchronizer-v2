@@ -3,12 +3,10 @@ package eventstorage
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
 	"github.com/darchlabs/synchronizer-v2/pkg/event"
-	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 type Storage struct {
@@ -21,49 +19,85 @@ func New(s *storage.S) *Storage {
 	}
 }
 
-func (s *Storage) InsertEvent(e *event.Event) error {
-	// format the composed key used in db
-	key := fmt.Sprintf("event:%s:%s", e.Address, e.Abi.Name)
-
-	// check if key already exists in database
-	current, _ := s.GetEvent(e.Address, e.Abi.Name)
-	if current != nil {
-		return fmt.Errorf("key=%s already exists in db", key)
+func (s *Storage) InsertEvent(e *event.Event) (*event.Event, error) {
+	// check if already existe an event with the same address and name
+	ev, _ := s.GetEvent(e.Address, e.Abi.Name)
+	if ev != nil {
+		return nil, fmt.Errorf("event already exists with address=%s and eventName=%s", e.Address, e.Abi.Name)
 	}
 
-	// set default values to event
-	e.ID = key
+	// prepare transaction to create event on db
+	tx, err := s.storage.DB.Beginx()
+	if err != nil {
+		return nil, err
+	}
+
+	// inser abi to use in db
+	var abiID int64
+	abiQuery := "INSERT INTO abi (name, type, anonymous) VALUES ($1, $2, $3) RETURNING id"
+	err = tx.Get(&abiID, abiQuery, e.Abi.Name, e.Abi.Type, e.Abi.Anonymous)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// iterate over inputs for inserting on db
+	for _, input := range e.Abi.Inputs {
+		inputQuery := "INSERT INTO input (indexed, internal_type, name, type, abi_id) VALUES ($1, $2, $3, $4, $5)"
+		_, err = tx.Exec(inputQuery, input.Indexed, input.InternalType, input.Name, input.Type, abiID)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+	}
+
+	// set base/default values
 	// TODO(ca): should use the creation block number of the contract
 	e.LatestBlockNumber = 0
-	e.CreatedAt = time.Now()
+	e.Status = event.StatusSynching
+	e.Error = ""
 
-	// parse struct to bytes
-	b, err := json.Marshal(e)
+	// insert new event in database
+	var eventID int64
+	eventQuery := "INSERT INTO event (network, node_url, address, latest_block_number, abi_id, status, error) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id"
+	err = tx.Get(&eventID, eventQuery, e.Network, e.NodeURL, e.Address, e.LatestBlockNumber, abiID, e.Status, e.Error)
 	if err != nil {
-		return err
+		tx.Rollback()
+		return nil, err
 	}
 
-	// save in database
-	err = s.storage.DB.Put([]byte(key), b, nil)
+	// commit transaction
+	err = tx.Commit()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	// get created event
+	createdEvent, err := s.GetEventByID(eventID)
+	if err != nil {
+		return nil, err
+	}
+
+	return createdEvent, nil
 }
 
 func (s *Storage) UpdateEvent(e *event.Event) error {
-	// format the composed key used in db
-	key := fmt.Sprintf("event:%s:%s", e.Address, e.Abi.Name)
-
-	// parse struct to bytes
-	b, err := json.Marshal(e)
+	// prepare transaction
+	tx, err := s.storage.DB.Beginx()
 	if err != nil {
+		return nil
+	}
+
+	// update event on db
+	query := "UPDATE event SET network = $1, node_url = $2, address = $3, latest_block_number = $4, abi_id = $5, status = $6, error = $7, updated_at = NOW() WHERE id = $8"
+	_, err = tx.Exec(query, e.Network, e.NodeURL, e.Address, e.LatestBlockNumber, e.AbiID, e.Status, e.Error, e.ID)
+	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
-	// save in database
-	err = s.storage.DB.Put([]byte(key), b, nil)
+	// send transaction to db
+	err = tx.Commit()
 	if err != nil {
 		return err
 	}
@@ -72,93 +106,232 @@ func (s *Storage) UpdateEvent(e *event.Event) error {
 }
 
 func (s *Storage) ListEvents() ([]*event.Event, error) {
-	// format the composed prefix key used in db
-	prefix := "event:"
+	// define events response
+	events := []*event.Event{}
 
-	// prepare slice of events
-	events := make([]*event.Event, 0)
+	// get events from db
+	eventQuery := "SELECT * FROM event"
+	err := s.storage.DB.Select(&events, eventQuery)
+	if err != nil {
+		return nil, err
+	}
 
-	// iterate over db elements and push in slice
-	iter := s.storage.DB.NewIterator(util.BytesPrefix([]byte(prefix)), nil)
-	for iter.Next() {
-		// parse bytes to event struct
-		var event *event.Event
-		err := json.Unmarshal(iter.Value(), &event)
+	// iterate over events for getting abi and input values
+	for _, e := range events {
+		// query for getting event abi
+		abi := &event.Abi{}
+		abiQuery := "SELECT * FROM abi WHERE ID = $1"
+		err = s.storage.DB.Get(abi, abiQuery, e.AbiID)
 		if err != nil {
 			return nil, err
 		}
+		e.Abi = abi
 
-		// append new element to events slice
-		events = append(events, event)
-	}
-	iter.Release()
-
-	// check if iteration has error
-	err := iter.Error()
-	if err != nil {
-		return nil, err
+		// query for getting event abi inputs
+		inputs := []*event.Input{}
+		inputsQuery := "SELECT * FROM input WHERE abi_id = $1"
+		err = s.storage.DB.Select(&inputs, inputsQuery, abi.ID)
+		if err != nil {
+			return nil, err
+		}
+		e.Abi.Inputs = inputs
 	}
 
 	return events, nil
 }
 
 func (s *Storage) ListEventsByAddress(address string) ([]*event.Event, error) {
-	// format the composed prefix key used in db
-	prefix := fmt.Sprintf("event:%s:", address)
+	// define events response
+	events := []*event.Event{}
 
-	// prepare slice of events
-	events := make([]*event.Event, 0)
+	// get events from db
+	eventQuery := "SELECT * FROM event WHERE address = $1"
+	err := s.storage.DB.Select(&events, eventQuery, address)
+	if err != nil {
+		return nil, err
+	}
 
-	// iterate over db elements and push in slice
-	iter := s.storage.DB.NewIterator(util.BytesPrefix([]byte(prefix)), nil)
-	for iter.Next() {
-		// parse bytes to Event struct
-		var event *event.Event
-		err := json.Unmarshal(iter.Value(), &event)
+	// iterate over events for getting abi and input values
+	for _, e := range events {
+		// query for getting event abi
+		abi := &event.Abi{}
+		abiQuery := "SELECT * FROM abi WHERE ID = $1"
+		err = s.storage.DB.Get(abi, abiQuery, e.AbiID)
 		if err != nil {
 			return nil, err
 		}
+		e.Abi = abi
 
-		// append new element to events slice
-		events = append(events, event)
-	}
-	iter.Release()
-
-	// check if iteration has error
-	err := iter.Error()
-	if err != nil {
-		return nil, err
+		// query for getting event abi inputs
+		inputs := []*event.Input{}
+		inputsQuery := "SELECT * FROM input WHERE abi_id = $1"
+		err = s.storage.DB.Select(&inputs, inputsQuery, abi.ID)
+		if err != nil {
+			return nil, err
+		}
+		e.Abi.Inputs = inputs
 	}
 
 	return events, nil
 }
 
 func (s *Storage) GetEvent(address string, eventName string) (*event.Event, error) {
-	// format the composed key used in db
-	key := fmt.Sprintf("event:%s:%s", address, eventName)
-
-	// get bytes by composed key to db
-	b, err := s.storage.DB.Get([]byte(key), nil)
+	// get event from db
+	e := &event.Event{}
+	err := s.storage.DB.Get(e, "SELECT event.* FROM event INNER JOIN abi ON event.abi_id = abi.id WHERE event.address = $1 AND abi.name = $2", address, eventName)
 	if err != nil {
 		return nil, err
 	}
 
-	// parse bytes to Event struct
-	var event *event.Event
-	err = json.Unmarshal(b, &event)
+	// get event abi from db
+	abi := &event.Abi{}
+	err = s.storage.DB.Get(abi, "SELECT * FROM abi WHERE ID = $1", e.AbiID)
+	if err != nil {
+		return nil, err
+	}
+	e.Abi = abi
+
+	// get event abi inputs from db
+	inputs := []*event.Input{}
+	err = s.storage.DB.Select(&inputs, "SELECT * FROM input WHERE abi_id = $1", e.AbiID)
+	if err != nil {
+		return nil, err
+	}
+	e.Abi.Inputs = inputs
+
+	return e, nil
+}
+
+func (s *Storage) GetEventByID(id int64) (*event.Event, error) {
+	// get event from db
+	e := &event.Event{}
+	err := s.storage.DB.Get(e, "SELECT * FROM event WHERE id = $1", id)
 	if err != nil {
 		return nil, err
 	}
 
-	return event, nil
+	// get event abi from db
+	abi := &event.Abi{}
+	err = s.storage.DB.Get(abi, "SELECT * FROM abi WHERE ID = $1", e.AbiID)
+	if err != nil {
+		return nil, err
+	}
+	e.Abi = abi
+
+	// get event abi inputs from db
+	inputs := []*event.Input{}
+	err = s.storage.DB.Select(&inputs, "SELECT * FROM input WHERE abi_id = $1", e.AbiID)
+	if err != nil {
+		return nil, err
+	}
+	e.Abi.Inputs = inputs
+
+	return e, nil
 }
 
 func (s *Storage) DeleteEvent(address string, eventName string) error {
-	// format the composed key used in db
-	key := fmt.Sprintf("event:%s:%s", address, eventName)
+	// get event using address and eventName
+	e, err := s.GetEvent(address, eventName)
+	if err != nil {
+		return fmt.Errorf("event does not exist with address=%s event_name=%s", address, eventName)
+	}
 
-	// delete data on db using composed key
-	err := s.storage.DB.Delete([]byte(key), nil)
+	// prepare transaction
+	tx, err := s.storage.DB.Beginx()
+	if err != nil {
+		return err
+	}
+
+	// delete event data
+	eventDataQuery := "DELETE FROM event_data WHERE event_id = $1"
+	_, err = tx.Exec(eventDataQuery, e.ID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// delete event from db
+	eventQuery := "DELETE FROM event WHERE id = $1"
+	_, err = tx.Exec(eventQuery, e.ID)
+	if err != nil {
+		return err
+	}
+
+	// delete inputs from db
+	inputQuery := "DELETE FROM input WHERE abi_id = $1"
+	_, err = tx.Exec(inputQuery, e.AbiID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// delete abi from db
+	abiQuery := "DELETE FROM abi WHERE ID = $1"
+	_, err = tx.Exec(abiQuery, e.AbiID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// send transaction to db
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Storage) ListEventData(address string, eventName string) ([]*event.EventData, error) {
+	// define events data response
+	eventsData := []*event.EventData{}
+
+	// define and make the query on db
+	eventsDataQuery := "SELECT event_data.* FROM event_data JOIN event ON event_data.event_id = event.id JOIN abi ON event.abi_id = abi.id WHERE event.address = $1 AND abi.name = $2"
+	err := s.storage.DB.Select(&eventsData, eventsDataQuery, address, eventName)
+	if err != nil {
+		return nil, err
+	}
+
+	return eventsData, nil
+}
+
+func (s *Storage) InsertEventData(e *event.Event, data []blockchain.LogData) error {
+	// prepare transaction
+	tx, err := s.storage.DB.Beginx()
+	if err != nil {
+		return err
+	}
+
+	// insert event data in db
+	eventDataQuery := "INSERT INTO event_data (event_id, tx, block_number, data, created_at) VALUES ($1, $2, $3, $4, NOW())"
+	batch, err := tx.Preparex(eventDataQuery)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	defer batch.Close()
+
+	// iterate over logsData array for inserting on db
+	for _, logData := range data {
+		// convert the map to json
+		data, err := json.Marshal(logData.Data)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		// execute que batch into the db
+		_, err = batch.Exec(e.ID, logData.Tx.String(), logData.BlockNumber, data)
+		if err != nil {
+			tx.Rollback()
+
+			return err
+		}
+	}
+
+	// send transaction to db
+	err = tx.Commit()
 	if err != nil {
 		return err
 	}
@@ -167,90 +340,9 @@ func (s *Storage) DeleteEvent(address string, eventName string) error {
 }
 
 func (s *Storage) Stop() error {
-	return s.storage.DB.Close()
-}
-
-func (s *Storage) ListEventData(address string, eventName string) ([]interface{}, error) {
-	// format the composed prefix used in db
-	prefix := fmt.Sprintf("data:%s:%s:", address, eventName)
-
-	// prepare slice of event data
-	data := make([]interface{}, 0)
-
-	// iterate over db elements and push in event data slice
-	iter := s.storage.DB.NewIterator(util.BytesPrefix([]byte(prefix)), nil)
-	for iter.Next() {
-		// parse bytes to blockchain.LogData struct
-		var logData blockchain.LogData
-		err := json.Unmarshal(iter.Value(), &logData)
-		if err != nil {
-			return nil, err
-		}
-
-		// append new elemento to data slice
-		data = append(data, logData)
-	}
-	iter.Release()
-
-	// check if iteration has error
-	err := iter.Error()
+	err := s.storage.DB.Close()
 	if err != nil {
-		return nil, err
-	}
-
-	return data, nil
-}
-
-func (s *Storage) InsertEventData(e *event.Event, data []blockchain.LogData) (int64, error) {
-	// define counter for new events
-	count := int64(0)
-
-	for _, d := range data {
-		// format the composed prefix used in db
-		key := fmt.Sprintf("data:%s:%s:%s", e.Address, e.Abi.Name, d.Tx)
-
-		// get exist value from database
-		exist, err := s.storage.DB.Has([]byte(key), nil)
-		if err != nil {
-			return 0, err
-		}
-
-		// check if key is present in database
-		if exist {
-			continue
-		}
-
-		// parse struct to bytes
-		b, err := json.Marshal(d)
-		if err != nil {
-			return 0, err
-		}
-
-		// save in database
-		err = s.storage.DB.Put([]byte(key), b, nil)
-		if err != nil {
-			return 0, err
-		}
-
-		// increase in one the counter
-		count++
-	}
-
-	return count, nil
-}
-
-func (s *Storage) DeleteEventData(address string, eventName string) error {
-	// format the composed prefix key used in db
-	prefix := fmt.Sprintf("data:%s:%s:", address, eventName)
-
-	// iterate over db elements and delete each one
-	iter := s.storage.DB.NewIterator(util.BytesPrefix([]byte(prefix)), nil)
-	for iter.Next() {
-		// delete data on db using composed key
-		err := s.storage.DB.Delete([]byte(iter.Key()), nil)
-		if err != nil {
-			return err
-		}
+		return err
 	}
 
 	return nil
