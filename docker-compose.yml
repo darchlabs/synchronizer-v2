@@ -7,20 +7,12 @@ volumes:
     driver: local
 
 services:
-  # synchronizer:
-  #   image: synchronizer
-  #   ports:
-  #     - 3500:3500
-  #   env_file:
-  #     - .env
-
-  redis:
-    image: redis:latest
+  synchronizer:
+    image: synchronizer
     ports:
-      - 6379:6379
-    volumes:
-      - data-redis:/data-redis
-
+      - 5555:5555
+    env_file:
+      - .env
   postgres:
     image: postgres:latest
     ports:
