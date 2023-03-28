@@ -50,7 +50,6 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 
 		// Update address
 		body.Event.Address = address
-		body.Event.Status = event.StatusSynching
 
 		// Validate abi is not nil
 		if body.Event.Abi == nil {
@@ -95,7 +94,7 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// save event struct on database
-		err = ctx.Storage.InsertEvent(body.Event)
+		createdEvent, err := ctx.Storage.InsertEvent(body.Event)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				api.Response{
@@ -106,7 +105,13 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 
 		// get initial logs in background
 		go func() {
-			ev := body.Event
+			// get created event from database
+			ev, err := ctx.Storage.GetEvent(body.Event.Address, body.Event.Abi.Name)
+			if err != nil {
+				// update event error
+				_ = ev.UpdateStatus(event.StatusError, err, ctx.Storage)
+				return
+			}
 
 			// parse abi to string
 			b, err := json.Marshal(ev.Abi)
@@ -120,10 +125,10 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 			logsChannel := make(chan []blockchain.LogData)
 			go func() {
 				for logs := range logsChannel {
-					log.Printf("received logs data=%+v \n", logs)
+					log.Printf("received logs len_data=%+v \n", len(logs))
 
 					// insert logs data to event
-					_, err := ev.InsertData(logs, ctx.Storage)
+					err := ev.InsertData(logs, ctx.Storage)
 					if err != nil {
 						// update event error
 						_ = ev.UpdateStatus(event.StatusError, err, ctx.Storage)
@@ -162,7 +167,7 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 			}
 
 			// update event status to running
-			err = ev.UpdateStatus(event.StatusRunning, err, ctx.Storage)
+			err = ev.UpdateStatus(event.StatusRunning, nil, ctx.Storage)
 			if err != nil {
 				// update event error
 				_ = ev.UpdateStatus(event.StatusError, err, ctx.Storage)
@@ -172,7 +177,7 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 
 		// prepare response
 		return c.Status(fiber.StatusOK).JSON(api.Response{
-			Data: body.Event,
+			Data: createdEvent,
 		})
 	}
 }

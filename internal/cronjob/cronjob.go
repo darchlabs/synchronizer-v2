@@ -16,7 +16,7 @@ import (
 
 type EventDataStorage interface {
 	ListEvents() ([]*event.Event, error)
-	InsertEventData(e *event.Event, data []blockchain.LogData) (int64, error)
+	InsertEventData(e *event.Event, data []blockchain.LogData) error
 	UpdateEvent(e *event.Event) error
 }
 
@@ -205,7 +205,7 @@ func (c *cronjob) job() error {
 			go func() {
 				for logs := range logsChannel {
 					// insert logs data to event
-					_, err := ev.InsertData(logs, c.storage)
+					err := ev.InsertData(logs, c.storage)
 					if err != nil {
 						// update event error
 						_ = ev.UpdateStatus(event.StatusError, err, c.storage)

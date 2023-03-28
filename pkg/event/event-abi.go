@@ -1,15 +1,19 @@
 package event
 
 type Abi struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
-	Anonymous bool `json:"anonymous"`
+	ID        int64  `id:"id" db:"id"`
+	Name      string `json:"name" db:"name"`
+	Type      string `json:"type" db:"type"`
+	Anonymous bool   `json:"anonymous" db:"anonymous"`
+
 	Inputs []*Input `json:"inputs"`
 }
 
 type Input struct {
-	Indexed bool `json:"indexed"`
-	InternalType string `json:"internalType"`
-	Name string `json:"name"`
-	Type string `json:"type"`
+	ID           int64  `json:"id" db:"id"`
+	Indexed      bool   `json:"indexed" db:"indexed"`
+	InternalType string `json:"internalType" db:"internal_type"`
+	Name         string `json:"name" db:"name"`
+	Type         string `json:"type" db:"type"`
+	AbiId        int64  `json:"abiId" db:"abi_id"`
 }

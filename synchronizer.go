@@ -9,12 +9,12 @@ type EventStorage interface {
 	ListEventsByAddress(address string) ([]*event.Event, error)
 	ListEvents() ([]*event.Event, error)
 	GetEvent(address string, eventName string) (*event.Event, error)
-	InsertEvent(e *event.Event) error
+	GetEventByID(id int64) (*event.Event, error)
+	InsertEvent(e *event.Event) (*event.Event, error)
 	UpdateEvent(e *event.Event) error
 	DeleteEvent(address string, eventName string) error
-	DeleteEventData(address string, eventName string) error
-	ListEventData(address string, eventName string) ([]interface{}, error)
-	InsertEventData(e *event.Event, data []blockchain.LogData) (int64, error)
+	ListEventData(address string, eventName string) ([]*event.EventData, error)
+	InsertEventData(e *event.Event, data []blockchain.LogData) error
 	Stop() error
 }
 
