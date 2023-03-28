@@ -3,8 +3,6 @@ package event
 import (
 	"encoding/json"
 	"time"
-
-	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
 )
 
 type EventNetwork string
@@ -13,11 +11,6 @@ const (
 	Ethereum EventNetwork = "ethereum"
 	Polygon  EventNetwork = "polygon"
 )
-
-type EventDataStorage interface {
-	InsertEventData(e *Event, data []blockchain.LogData) error
-	UpdateEvent(e *Event) error
-}
 
 type EventStatus string
 
@@ -29,71 +22,43 @@ const (
 )
 
 type Event struct {
-	ID                int64        `json:"id" db:"id"`
+	ID                string       `json:"id" db:"id"`
 	Network           EventNetwork `json:"network" db:"network"`
 	NodeURL           string       `json:"nodeURL" db:"node_url"`
 	Address           string       `json:"address" db:"address"`
 	LatestBlockNumber int64        `json:"latestBlockNumber" db:"latest_block_number"`
-	AbiID             int64        `json:"abiId" db:"abi_id"`
+	AbiID             string       `json:"abiId" db:"abi_id"`
 	Status            EventStatus  `json:"status" db:"status"`
 	Error             string       `json:"error" db:"error"`
-	CreatedAt         time.Time    `json:"createdAt,omitempty" db:"created_at"`
-	UpdatedAt         time.Time    `json:"updatedAt,omitempty" db:"updated_at"`
+	CreatedAt         time.Time    `json:"createdAt" db:"created_at"`
+	UpdatedAt         time.Time    `json:"updatedAt" db:"updated_at"`
 
 	Abi *Abi `json:"abi"`
 }
 
+type Abi struct {
+	ID        string `id:"id" db:"id"`
+	Name      string `json:"name" db:"name"`
+	Type      string `json:"type" db:"type"`
+	Anonymous bool   `json:"anonymous" db:"anonymous"`
+
+	Inputs []*Input `json:"inputs"`
+}
+
+type Input struct {
+	ID           string `json:"id" db:"id"`
+	Indexed      bool   `json:"indexed" db:"indexed"`
+	InternalType string `json:"internalType" db:"internal_type"`
+	Name         string `json:"name" db:"name"`
+	Type         string `json:"type" db:"type"`
+	AbiId        string `json:"abiId" db:"abi_id"`
+}
+
 type EventData struct {
-	ID          int64           `json:"id" db:"id"`
-	EventID     int64           `json:"eventId" db:"event_id"`
+	ID          string          `json:"id" db:"id"`
+	EventID     string          `json:"eventId" db:"event_id"`
 	Tx          string          `json:"tx" db:"tx"`
 	BlockNumber int64           `json:"blockNumber" db:"block_number"`
 	Data        json.RawMessage `json:"data" db:"data"`
-	CreatedAt   time.Time       `json:"createdAt,omitempty" db:"created_at"`
-}
-
-func (e *Event) UpdateStatus(status EventStatus, eventErr error, storage EventDataStorage) error {
-	// update status in database
-	e.Status = status
-
-	// update error value, can be a string or nil
-	if eventErr != nil {
-		e.Error = eventErr.Error()
-	} else {
-		e.Error = ""
-	}
-
-	// update status in database
-	err := storage.UpdateEvent(e)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (e *Event) UpdateLatestBlock(lbn int64, storage EventDataStorage) error {
-	// change latest block number value
-	e.LatestBlockNumber = lbn
-
-	// chanche updated at value
-	e.UpdatedAt = time.Now()
-
-	// update event in database
-	err := storage.UpdateEvent(e)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (e *Event) InsertData(data []blockchain.LogData, storage EventDataStorage) error {
-	// insert event data to event
-	err := storage.InsertEventData(e, data)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	CreatedAt   time.Time       `json:"createdAt" db:"created_at"`
 }
