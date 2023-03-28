@@ -1,15 +1,23 @@
 package event
 
 import (
+	"time"
+
 	"github.com/darchlabs/synchronizer-v2"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
 )
 
+type idGenerator func() string
+type dateGenerator func() time.Time
+
 type Context struct {
 	Clients *map[string]*ethclient.Client
 	Storage synchronizer.EventStorage
 	Cronjob synchronizer.Cronjob
+
+	IDGen   idGenerator
+	DateGen dateGenerator
 }
 
 func Route(app *fiber.App, ctx Context) {

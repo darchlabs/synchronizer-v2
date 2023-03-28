@@ -2,6 +2,7 @@ package event
 
 import (
 	"github.com/darchlabs/synchronizer-v2/pkg/api"
+	"github.com/darchlabs/synchronizer-v2/pkg/util"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -13,10 +14,27 @@ func listEventsByAddressHandler(ctx Context) func(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusUnprocessableEntity).JSON(api.Response{
 				Error: "invalid param",
 			})
-		}	
+		}
+
+		// get pagination
+		pagination := &util.Pagination{}
+		err := pagination.GetPaginationFromFiber(c)
+		if err != nil {
+			return c.Status(fiber.StatusConflict).JSON(api.Response{
+				Error: err.Error(),
+			})
+		}
 
 		// get elements from database
-		events, err := ctx.Storage.ListEventsByAddress(address)
+		events, err := ctx.Storage.ListEventsByAddress(address, pagination.Limit, pagination.Offset)
+		if err != nil {
+			return c.Status(fiber.StatusConflict).JSON(api.Response{
+				Error: err.Error(),
+			})
+		}
+
+		// get all events by address count from database
+		count, err := ctx.Storage.GetEventCountByAddress(address)
 		if err != nil {
 			return c.Status(fiber.StatusConflict).JSON(api.Response{
 				Error: err.Error(),
@@ -25,13 +43,12 @@ func listEventsByAddressHandler(ctx Context) func(c *fiber.Ctx) error {
 
 		// define meta response
 		meta := make(map[string]interface{})
-		meta["cronjob"] = struct{
-			Status string `json:"status"`
-			Seconds int64 `json:"seconds"`
-		} {
-			Status: ctx.Cronjob.GetStatus(),
+		meta["cronjob"] = CronjobMeta{
+			Status:  ctx.Cronjob.GetStatus(),
 			Seconds: ctx.Cronjob.GetSeconds(),
+			Error:   ctx.Cronjob.GetError(),
 		}
+		meta["pagination"] = pagination.GetPaginationMeta(count)
 
 		// prepare response
 		return c.Status(fiber.StatusOK).JSON(api.Response{

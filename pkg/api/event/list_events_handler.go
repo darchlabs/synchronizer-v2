@@ -2,29 +2,39 @@ package event
 
 import (
 	"github.com/darchlabs/synchronizer-v2/pkg/api"
-	"github.com/darchlabs/synchronizer-v2/pkg/event"
+	"github.com/darchlabs/synchronizer-v2/pkg/util"
 	"github.com/gofiber/fiber/v2"
 )
 
-type MetaCronjob struct {
+type CronjobMeta struct {
 	Status  string `json:"status"`
 	Seconds int64  `json:"seconds"`
 	Error   string `json:"error"`
 }
 
-type Meta struct {
-	Cronjob *MetaCronjob `json:"cronjob"`
-}
-
-type ListEventResponse struct {
-	Data []*event.Event `json:"data"`
-	Meta *Meta          `json:"meta"`
-}
-
 func listEvents(ctx Context) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
+		c.Accepts("application/json")
+
+		// get pagination
+		pagination := &util.Pagination{}
+		err := pagination.GetPaginationFromFiber(c)
+		if err != nil {
+			return c.Status(fiber.StatusConflict).JSON(api.Response{
+				Error: err.Error(),
+			})
+		}
+
 		// get elements from database
-		events, err := ctx.Storage.ListEvents()
+		events, err := ctx.Storage.ListEvents(pagination.Limit, pagination.Offset)
+		if err != nil {
+			return c.Status(fiber.StatusConflict).JSON(api.Response{
+				Error: err.Error(),
+			})
+		}
+
+		// get all events count from database
+		count, err := ctx.Storage.GetEventsCount()
 		if err != nil {
 			return c.Status(fiber.StatusConflict).JSON(api.Response{
 				Error: err.Error(),
@@ -32,16 +42,16 @@ func listEvents(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// define meta response
-		meta := &Meta{
-			Cronjob: &MetaCronjob{
-				Status:  ctx.Cronjob.GetStatus(),
-				Seconds: ctx.Cronjob.GetSeconds(),
-				Error:   ctx.Cronjob.GetError(),
-			},
+		meta := make(map[string]interface{})
+		meta["cronjob"] = CronjobMeta{
+			Status:  ctx.Cronjob.GetStatus(),
+			Seconds: ctx.Cronjob.GetSeconds(),
+			Error:   ctx.Cronjob.GetError(),
 		}
+		meta["pagination"] = pagination.GetPaginationMeta(count)
 
 		// prepare response
-		return c.Status(fiber.StatusOK).JSON(ListEventResponse{
+		return c.Status(fiber.StatusOK).JSON(api.Response{
 			Data: events,
 			Meta: meta,
 		})

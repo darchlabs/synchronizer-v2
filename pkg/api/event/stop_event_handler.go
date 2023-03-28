@@ -27,8 +27,11 @@ func stopEventHandler(ctx Context) func(c *fiber.Ctx) error {
 			})
 		}
 
-		// remove error from event
-		err = e.UpdateStatus(event.StatusStopped, nil, ctx.Storage)
+		// update event
+		e.Status = event.StatusStopped
+		e.Error = ""
+		e.UpdatedAt = ctx.DateGen()
+		err = ctx.Storage.UpdateEvent(e)
 		if err != nil {
 			return c.Status(fiber.StatusConflict).JSON(api.Response{
 				Error: err.Error(),
