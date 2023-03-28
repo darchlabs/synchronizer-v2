@@ -33,9 +33,9 @@ func (s *Storage) InsertEvent(e *event.Event) (*event.Event, error) {
 	}
 
 	// inser abi to use in db
-	var abiID int64
-	abiQuery := "INSERT INTO abi (name, type, anonymous) VALUES ($1, $2, $3) RETURNING id"
-	err = tx.Get(&abiID, abiQuery, e.Abi.Name, e.Abi.Type, e.Abi.Anonymous)
+	var abiID string
+	abiQuery := "INSERT INTO abi (id, name, type, anonymous) VALUES ($1, $2, $3, $4) RETURNING id"
+	err = tx.Get(&abiID, abiQuery, e.Abi.ID, e.Abi.Name, e.Abi.Type, e.Abi.Anonymous)
 	if err != nil {
 		tx.Rollback()
 		return nil, err
@@ -43,24 +43,18 @@ func (s *Storage) InsertEvent(e *event.Event) (*event.Event, error) {
 
 	// iterate over inputs for inserting on db
 	for _, input := range e.Abi.Inputs {
-		inputQuery := "INSERT INTO input (indexed, internal_type, name, type, abi_id) VALUES ($1, $2, $3, $4, $5)"
-		_, err = tx.Exec(inputQuery, input.Indexed, input.InternalType, input.Name, input.Type, abiID)
+		inputQuery := "INSERT INTO input (id, indexed, internal_type, name, type, abi_id) VALUES ($1, $2, $3, $4, $5, $6)"
+		_, err = tx.Exec(inputQuery, input.ID, input.Indexed, input.InternalType, input.Name, input.Type, abiID)
 		if err != nil {
 			tx.Rollback()
 			return nil, err
 		}
 	}
 
-	// set base/default values
-	// TODO(ca): should use the creation block number of the contract
-	e.LatestBlockNumber = 0
-	e.Status = event.StatusSynching
-	e.Error = ""
-
 	// insert new event in database
-	var eventID int64
-	eventQuery := "INSERT INTO event (network, node_url, address, latest_block_number, abi_id, status, error) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id"
-	err = tx.Get(&eventID, eventQuery, e.Network, e.NodeURL, e.Address, e.LatestBlockNumber, abiID, e.Status, e.Error)
+	var eventID string
+	eventQuery := "INSERT INTO event (id, network, node_url, address, latest_block_number, abi_id, status, error) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id"
+	err = tx.Get(&eventID, eventQuery, e.ID, e.Network, e.NodeURL, e.Address, e.LatestBlockNumber, abiID, e.Status, e.Error)
 	if err != nil {
 		tx.Rollback()
 		return nil, err
@@ -105,7 +99,7 @@ func (s *Storage) UpdateEvent(e *event.Event) error {
 	return nil
 }
 
-func (s *Storage) ListEvents() ([]*event.Event, error) {
+func (s *Storage) ListAllEvents() ([]*event.Event, error) {
 	// define events response
 	events := []*event.Event{}
 
@@ -140,13 +134,48 @@ func (s *Storage) ListEvents() ([]*event.Event, error) {
 	return events, nil
 }
 
-func (s *Storage) ListEventsByAddress(address string) ([]*event.Event, error) {
+func (s *Storage) ListEvents(limit int64, offset int64) ([]*event.Event, error) {
 	// define events response
 	events := []*event.Event{}
 
 	// get events from db
-	eventQuery := "SELECT * FROM event WHERE address = $1"
-	err := s.storage.DB.Select(&events, eventQuery, address)
+	eventQuery := "SELECT * FROM event ORDER BY id LIMIT $1 OFFSET $2"
+	err := s.storage.DB.Select(&events, eventQuery, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	// iterate over events for getting abi and input values
+	for _, e := range events {
+		// query for getting event abi
+		abi := &event.Abi{}
+		abiQuery := "SELECT * FROM abi WHERE ID = $1"
+		err = s.storage.DB.Get(abi, abiQuery, e.AbiID)
+		if err != nil {
+			return nil, err
+		}
+		e.Abi = abi
+
+		// query for getting event abi inputs
+		inputs := []*event.Input{}
+		inputsQuery := "SELECT * FROM input WHERE abi_id = $1"
+		err = s.storage.DB.Select(&inputs, inputsQuery, abi.ID)
+		if err != nil {
+			return nil, err
+		}
+		e.Abi.Inputs = inputs
+	}
+
+	return events, nil
+}
+
+func (s *Storage) ListEventsByAddress(address string, limit int64, offset int64) ([]*event.Event, error) {
+	// define events response
+	events := []*event.Event{}
+
+	// get events from db
+	eventQuery := "SELECT * FROM event WHERE address = $1 ORDER BY id LIMIT $2 OFFSET $3"
+	err := s.storage.DB.Select(&events, eventQuery, address, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +231,7 @@ func (s *Storage) GetEvent(address string, eventName string) (*event.Event, erro
 	return e, nil
 }
 
-func (s *Storage) GetEventByID(id int64) (*event.Event, error) {
+func (s *Storage) GetEventByID(id string) (*event.Event, error) {
 	// get event from db
 	e := &event.Event{}
 	err := s.storage.DB.Get(e, "SELECT * FROM event WHERE id = $1", id)
@@ -282,13 +311,13 @@ func (s *Storage) DeleteEvent(address string, eventName string) error {
 	return nil
 }
 
-func (s *Storage) ListEventData(address string, eventName string) ([]*event.EventData, error) {
+func (s *Storage) ListEventData(address string, eventName string, limit int64, offset int64) ([]*event.EventData, error) {
 	// define events data response
 	eventsData := []*event.EventData{}
 
 	// define and make the query on db
-	eventsDataQuery := "SELECT event_data.* FROM event_data JOIN event ON event_data.event_id = event.id JOIN abi ON event.abi_id = abi.id WHERE event.address = $1 AND abi.name = $2"
-	err := s.storage.DB.Select(&eventsData, eventsDataQuery, address, eventName)
+	eventsDataQuery := "SELECT event_data.* FROM event_data JOIN event ON event_data.event_id = event.id JOIN abi ON event.abi_id = abi.id WHERE event.address = $1 AND abi.name = $2 LIMIT $3 OFFSET $4"
+	err := s.storage.DB.Select(&eventsData, eventsDataQuery, address, eventName, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -337,6 +366,39 @@ func (s *Storage) InsertEventData(e *event.Event, data []blockchain.LogData) err
 	}
 
 	return nil
+}
+
+func (s *Storage) GetEventsCount() (int64, error) {
+	var totalRows int64
+	query := "SELECT COUNT(*) FROM event"
+	err := s.storage.DB.Get(&totalRows, query)
+	if err != nil {
+		return 0, err
+	}
+
+	return totalRows, nil
+}
+
+func (s *Storage) GetEventCountByAddress(address string) (int64, error) {
+	var totalRows int64
+	query := "SELECT COUNT(*) FROM event WHERE address = $1"
+	err := s.storage.DB.Get(&totalRows, query, address)
+	if err != nil {
+		return 0, err
+	}
+
+	return totalRows, nil
+}
+
+func (s *Storage) GetEventDataCount(address string, eventName string) (int64, error) {
+	var totalRows int64
+	query := "SELECT COUNT(event_data.*) FROM event_data JOIN event ON event_data.event_id = event.id JOIN abi ON event.abi_id = abi.id WHERE event.address = $1 AND abi.name = $2"
+	err := s.storage.DB.Get(&totalRows, query, address, eventName)
+	if err != nil {
+		return 0, err
+	}
+
+	return totalRows, nil
 }
 
 func (s *Storage) Stop() error {
