@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/darchlabs/synchronizer-v2"
 	"github.com/darchlabs/synchronizer-v2/internal/cronjob"
@@ -18,7 +19,11 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/pressly/goose/v3"
+
+	_ "github.com/darchlabs/synchronizer-v2/migrations"
 )
 
 var (
@@ -36,6 +41,12 @@ func main() {
 
 	// initialize storage
 	s, err := storage.New(env.DatabaseDSN)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// run migrations
+	err = goose.Up(s.DB.DB, env.MigrationDir)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -60,10 +71,16 @@ func main() {
 	clients := make(map[string]*ethclient.Client)
 
 	// initialize the cronjob
-	cronjobSvc = cronjob.New(seconds, eventStorage, &clients, env.Debug)
+	cronjobSvc = cronjob.New(seconds, eventStorage, &clients, env.Debug, uuid.NewString, time.Now)
 
 	// configure routers
-	EventAPI.Route(api, EventAPI.Context{Storage: eventStorage, Cronjob: cronjobSvc, Clients: &clients})
+	EventAPI.Route(api, EventAPI.Context{
+		Storage: eventStorage,
+		Cronjob: cronjobSvc,
+		Clients: &clients,
+		IDGen:   uuid.NewString,
+		DateGen: time.Now,
+	})
 	CronjobAPI.Route(api, CronjobAPI.Context{
 		Cronjob: cronjobSvc,
 	})
