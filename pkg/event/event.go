@@ -3,6 +3,8 @@ package event
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
 )
 
 type EventNetwork string
@@ -61,4 +63,24 @@ type EventData struct {
 	BlockNumber int64           `json:"blockNumber" db:"block_number"`
 	Data        json.RawMessage `json:"data" db:"data"`
 	CreatedAt   time.Time       `json:"createdAt" db:"created_at"`
+}
+
+func (ed *EventData) FromLogData(logData blockchain.LogData, id string, eventID string, createdAt time.Time) error {
+	// parse transaction to string
+	tx := logData.Tx.Hex()
+
+	// parse data to json
+	data, err := json.Marshal(logData.Data)
+	if err != nil {
+		return err
+	}
+
+	ed.ID = id
+	ed.EventID = eventID
+	ed.Tx = tx
+	ed.BlockNumber = int64(logData.BlockNumber)
+	ed.Data = data
+	ed.CreatedAt = createdAt
+
+	return nil
 }
