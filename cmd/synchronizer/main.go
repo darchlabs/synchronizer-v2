@@ -117,13 +117,10 @@ func gracefullShutdown() {
 	log.Println("Gracefully shutdown")
 
 	// stop cronjob ticker
-	err := cronjobSvc.Stop()
-	if err != nil {
-		log.Println(err)
-	}
+	cronjobSvc.Halt()
 
 	// close databanse connection
-	err = eventStorage.Stop()
+	err := eventStorage.Stop()
 	if err != nil {
 		log.Println(err)
 	}
