@@ -13,12 +13,12 @@ func init() {
 func upCreateEventDataTable(tx *sql.Tx) error {
 	_, err := tx.Exec(`
 		CREATE TABLE IF NOT EXISTS event_data (
-			id SERIAL PRIMARY KEY,
+			id TEXT PRIMARY KEY,
 			event_id TEXT NOT NULL,
 			tx TEXT NOT NULL,
 			block_number BIGINT NOT NULL,
 			data JSONB NOT NULL,
-			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+			created_at TIMESTAMP WITH TIME ZONE NOT NULL,
 			FOREIGN KEY (event_id) REFERENCES event (id) ON DELETE CASCADE
 		)
 	`)

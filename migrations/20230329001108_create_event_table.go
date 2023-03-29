@@ -21,8 +21,8 @@ func upCreateEventTable(tx *sql.Tx) error {
 			abi_id TEXT NOT NULL,
 			status TEXT NOT NULL,
 			error TEXT,
-			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+			created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+			updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
 			FOREIGN KEY (abi_id) REFERENCES abi (id) ON DELETE CASCADE
 		)
 	`)
