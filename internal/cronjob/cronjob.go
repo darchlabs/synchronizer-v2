@@ -19,7 +19,7 @@ type dateGenerator func() time.Time
 
 type EventDataStorage interface {
 	ListAllEvents() ([]*event.Event, error)
-	InsertEventData(e *event.Event, data []blockchain.LogData) error
+	InsertEventData(e *event.Event, data []*event.EventData) error
 	UpdateEvent(e *event.Event) error
 }
 
@@ -156,7 +156,6 @@ func (c *cronjob) Stop() error {
 }
 
 func (c *cronjob) job() error {
-
 	// get all events from storage
 	events, err := c.storage.ListAllEvents()
 	if err != nil {
@@ -222,8 +221,25 @@ func (c *cronjob) job() error {
 			logsChannel := make(chan []blockchain.LogData)
 			go func() {
 				for logs := range logsChannel {
+					// parse each log to EventData
+					eventDatas := make([]*event.EventData, 0)
+					for _, log := range logs {
+						ed := &event.EventData{}
+						err := ed.FromLogData(log, c.idGen(), ev.ID, c.dateGen())
+						if err != nil {
+							// update event error
+							ev.Status = event.StatusError
+							ev.Error = err.Error()
+							ev.UpdatedAt = c.dateGen()
+							_ = c.storage.UpdateEvent(ev)
+							return
+						}
+
+						eventDatas = append(eventDatas, ed)
+					}
+
 					// insert logs data to event
-					err := c.storage.InsertEventData(ev, logs)
+					err := c.storage.InsertEventData(ev, eventDatas)
 					if err != nil {
 						// update event error
 						ev.Status = event.StatusError
@@ -235,16 +251,21 @@ func (c *cronjob) job() error {
 
 					// update latest block number using last dataLog
 					if len(logs) > 0 {
-						ev.LatestBlockNumber = int64(logs[len(logs)-1].BlockNumber)
-						ev.UpdatedAt = c.dateGen()
-						err = c.storage.UpdateEvent(ev)
-						if err != nil {
-							// update event error
-							ev.Status = event.StatusError
-							ev.Error = err.Error()
+						logBlockNumber := int64(logs[len(logs)-1].BlockNumber)
+
+						// update only when log_block_number is greater than event block number
+						if logBlockNumber > ev.LatestBlockNumber {
+							ev.LatestBlockNumber = logBlockNumber
 							ev.UpdatedAt = c.dateGen()
-							_ = c.storage.UpdateEvent(ev)
-							return
+							err = c.storage.UpdateEvent(ev)
+							if err != nil {
+								// update event error
+								ev.Status = event.StatusError
+								ev.Error = err.Error()
+								ev.UpdatedAt = c.dateGen()
+								_ = c.storage.UpdateEvent(ev)
+								return
+							}
 						}
 					}
 				}
@@ -277,6 +298,7 @@ func (c *cronjob) job() error {
 			// update latest block number
 			ev.LatestBlockNumber = latestBlockNumber
 			ev.UpdatedAt = c.dateGen()
+
 			err = c.storage.UpdateEvent(ev)
 			if err != nil {
 				// update event error
@@ -295,6 +317,12 @@ func (c *cronjob) job() error {
 	wg.Wait()
 
 	return nil
+}
+
+func (c *cronjob) Halt() {
+	c.ticker.Stop()
+	c.status = StatusStopped
+	c.ticker = nil
 }
 
 func (c *cronjob) GetStatus() string {
