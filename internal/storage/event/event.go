@@ -1,10 +1,8 @@
 package eventstorage
 
 import (
-	"encoding/json"
 	"fmt"
 
-	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
 	"github.com/darchlabs/synchronizer-v2/pkg/event"
 )
@@ -53,8 +51,8 @@ func (s *Storage) InsertEvent(e *event.Event) (*event.Event, error) {
 
 	// insert new event in database
 	var eventID string
-	eventQuery := "INSERT INTO event (id, network, node_url, address, latest_block_number, abi_id, status, error) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id"
-	err = tx.Get(&eventID, eventQuery, e.ID, e.Network, e.NodeURL, e.Address, e.LatestBlockNumber, abiID, e.Status, e.Error)
+	eventQuery := "INSERT INTO event (id, network, node_url, address, latest_block_number, abi_id, status, error, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id"
+	err = tx.Get(&eventID, eventQuery, e.ID, e.Network, e.NodeURL, e.Address, e.LatestBlockNumber, abiID, e.Status, e.Error, e.CreatedAt, e.UpdatedAt)
 	if err != nil {
 		tx.Rollback()
 		return nil, err
@@ -83,8 +81,8 @@ func (s *Storage) UpdateEvent(e *event.Event) error {
 	}
 
 	// update event on db
-	query := "UPDATE event SET network = $1, node_url = $2, address = $3, latest_block_number = $4, abi_id = $5, status = $6, error = $7, updated_at = NOW() WHERE id = $8"
-	_, err = tx.Exec(query, e.Network, e.NodeURL, e.Address, e.LatestBlockNumber, e.AbiID, e.Status, e.Error, e.ID)
+	query := "UPDATE event SET network = $1, node_url = $2, address = $3, latest_block_number = $4, abi_id = $5, status = $6, error = $7, updated_at = $8 WHERE id = $9"
+	_, err = tx.Exec(query, e.Network, e.NodeURL, e.Address, e.LatestBlockNumber, e.AbiID, e.Status, e.Error, e.UpdatedAt, e.ID)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -134,12 +132,12 @@ func (s *Storage) ListAllEvents() ([]*event.Event, error) {
 	return events, nil
 }
 
-func (s *Storage) ListEvents(limit int64, offset int64) ([]*event.Event, error) {
+func (s *Storage) ListEvents(sort string, limit int64, offset int64) ([]*event.Event, error) {
 	// define events response
 	events := []*event.Event{}
 
 	// get events from db
-	eventQuery := "SELECT * FROM event ORDER BY id LIMIT $1 OFFSET $2"
+	eventQuery := fmt.Sprintf("SELECT * FROM event ORDER BY created_at %s LIMIT $1 OFFSET $2", sort)
 	err := s.storage.DB.Select(&events, eventQuery, limit, offset)
 	if err != nil {
 		return nil, err
@@ -169,12 +167,12 @@ func (s *Storage) ListEvents(limit int64, offset int64) ([]*event.Event, error) 
 	return events, nil
 }
 
-func (s *Storage) ListEventsByAddress(address string, limit int64, offset int64) ([]*event.Event, error) {
+func (s *Storage) ListEventsByAddress(address string, sort string, limit int64, offset int64) ([]*event.Event, error) {
 	// define events response
 	events := []*event.Event{}
 
 	// get events from db
-	eventQuery := "SELECT * FROM event WHERE address = $1 ORDER BY id LIMIT $2 OFFSET $3"
+	eventQuery := fmt.Sprintf("SELECT * FROM event WHERE address = $1 ORDER BY created_at %s LIMIT $2 OFFSET $3", sort)
 	err := s.storage.DB.Select(&events, eventQuery, address, limit, offset)
 	if err != nil {
 		return nil, err
@@ -311,12 +309,12 @@ func (s *Storage) DeleteEvent(address string, eventName string) error {
 	return nil
 }
 
-func (s *Storage) ListEventData(address string, eventName string, limit int64, offset int64) ([]*event.EventData, error) {
+func (s *Storage) ListEventData(address string, eventName string, sort string, limit int64, offset int64) ([]*event.EventData, error) {
 	// define events data response
 	eventsData := []*event.EventData{}
 
 	// define and make the query on db
-	eventsDataQuery := "SELECT event_data.* FROM event_data JOIN event ON event_data.event_id = event.id JOIN abi ON event.abi_id = abi.id WHERE event.address = $1 AND abi.name = $2 LIMIT $3 OFFSET $4"
+	eventsDataQuery := fmt.Sprintf("SELECT event_data.* FROM event_data JOIN event ON event_data.event_id = event.id JOIN abi ON event.abi_id = abi.id WHERE event.address = $1 AND abi.name = $2 ORDER BY event_data.created_at %s LIMIT $3 OFFSET $4", sort)
 	err := s.storage.DB.Select(&eventsData, eventsDataQuery, address, eventName, limit, offset)
 	if err != nil {
 		return nil, err
@@ -325,7 +323,7 @@ func (s *Storage) ListEventData(address string, eventName string, limit int64, o
 	return eventsData, nil
 }
 
-func (s *Storage) InsertEventData(e *event.Event, data []blockchain.LogData) error {
+func (s *Storage) InsertEventData(e *event.Event, data []*event.EventData) error {
 	// prepare transaction
 	tx, err := s.storage.DB.Beginx()
 	if err != nil {
@@ -333,7 +331,7 @@ func (s *Storage) InsertEventData(e *event.Event, data []blockchain.LogData) err
 	}
 
 	// insert event data in db
-	eventDataQuery := "INSERT INTO event_data (event_id, tx, block_number, data, created_at) VALUES ($1, $2, $3, $4, NOW())"
+	eventDataQuery := "INSERT INTO event_data (id, event_id, tx, block_number, data, created_at) VALUES ($1, $2, $3, $4, $5, $6)"
 	batch, err := tx.Preparex(eventDataQuery)
 	if err != nil {
 		tx.Rollback()
@@ -342,16 +340,9 @@ func (s *Storage) InsertEventData(e *event.Event, data []blockchain.LogData) err
 	defer batch.Close()
 
 	// iterate over logsData array for inserting on db
-	for _, logData := range data {
-		// convert the map to json
-		data, err := json.Marshal(logData.Data)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-
+	for _, ed := range data {
 		// execute que batch into the db
-		_, err = batch.Exec(e.ID, logData.Tx.String(), logData.BlockNumber, data)
+		_, err = batch.Exec(ed.ID, e.ID, ed.Tx, ed.BlockNumber, ed.Data, ed.CreatedAt)
 		if err != nil {
 			tx.Rollback()
 
