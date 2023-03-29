@@ -37,7 +37,7 @@ func listEventDataHandler(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// get event data from storage
-		data, err := ctx.Storage.ListEventData(address, eventName, pagination.Limit, pagination.Offset)
+		data, err := ctx.Storage.ListEventData(address, eventName, pagination.Sort, pagination.Limit, pagination.Offset)
 		if err != nil {
 			return c.Status(fiber.StatusConflict).JSON(api.Response{
 				Error: err.Error(),

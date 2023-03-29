@@ -143,8 +143,25 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 				for logs := range logsChannel {
 					log.Printf("received logs len_data=%+v \n", len(logs))
 
+					// parse each log to EventData
+					eventDatas := make([]*event.EventData, 0)
+					for _, log := range logs {
+						ed := &event.EventData{}
+						err := ed.FromLogData(log, ctx.IDGen(), ev.ID, ctx.DateGen())
+						if err != nil {
+							// update event error
+							ev.Status = event.StatusError
+							ev.Error = err.Error()
+							ev.UpdatedAt = ctx.DateGen()
+							_ = ctx.Storage.UpdateEvent(ev)
+							return
+						}
+
+						eventDatas = append(eventDatas, ed)
+					}
+
 					// insert logs data to event
-					err := ctx.Storage.InsertEventData(ev, logs)
+					err := ctx.Storage.InsertEventData(ev, eventDatas)
 					if err != nil {
 						// update event error
 						ev.Status = event.StatusError
