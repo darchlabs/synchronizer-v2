@@ -48,8 +48,18 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 			})
 		}
 
-		// Update address
+		// Update event
 		body.Event.Address = address
+		body.Event.ID = ctx.IDGen()
+		body.Event.Abi.ID = ctx.IDGen()
+		body.Event.LatestBlockNumber = 0
+		body.Event.Status = event.StatusSynching
+		body.Event.Error = ""
+		body.Event.CreatedAt = ctx.DateGen()
+		body.Event.UpdatedAt = ctx.DateGen()
+		for _, input := range body.Event.Abi.Inputs {
+			input.ID = ctx.IDGen()
+		}
 
 		// Validate abi is not nil
 		if body.Event.Abi == nil {
@@ -109,7 +119,10 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 			ev, err := ctx.Storage.GetEvent(body.Event.Address, body.Event.Abi.Name)
 			if err != nil {
 				// update event error
-				_ = ev.UpdateStatus(event.StatusError, err, ctx.Storage)
+				ev.Status = event.StatusError
+				ev.Error = err.Error()
+				ev.UpdatedAt = ctx.DateGen()
+				_ = ctx.Storage.UpdateEvent(ev)
 				return
 			}
 
@@ -117,7 +130,10 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 			b, err := json.Marshal(ev.Abi)
 			if err != nil {
 				// update event error
-				_ = ev.UpdateStatus(event.StatusError, err, ctx.Storage)
+				ev.Status = event.StatusError
+				ev.Error = err.Error()
+				ev.UpdatedAt = ctx.DateGen()
+				_ = ctx.Storage.UpdateEvent(ev)
 				return
 			}
 
@@ -127,12 +143,47 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 				for logs := range logsChannel {
 					log.Printf("received logs len_data=%+v \n", len(logs))
 
+					// parse each log to EventData
+					eventDatas := make([]*event.EventData, 0)
+					for _, log := range logs {
+						ed := &event.EventData{}
+						err := ed.FromLogData(log, ctx.IDGen(), ev.ID, ctx.DateGen())
+						if err != nil {
+							// update event error
+							ev.Status = event.StatusError
+							ev.Error = err.Error()
+							ev.UpdatedAt = ctx.DateGen()
+							_ = ctx.Storage.UpdateEvent(ev)
+							return
+						}
+
+						eventDatas = append(eventDatas, ed)
+					}
+
 					// insert logs data to event
-					err := ev.InsertData(logs, ctx.Storage)
+					err := ctx.Storage.InsertEventData(ev, eventDatas)
 					if err != nil {
 						// update event error
-						_ = ev.UpdateStatus(event.StatusError, err, ctx.Storage)
+						ev.Status = event.StatusError
+						ev.Error = err.Error()
+						ev.UpdatedAt = ctx.DateGen()
+						_ = ctx.Storage.UpdateEvent(ev)
 						return
+					}
+
+					// update latest block number using last dataLog
+					if len(logs) > 0 {
+						ev.LatestBlockNumber = int64(logs[len(logs)-1].BlockNumber)
+						ev.UpdatedAt = ctx.DateGen()
+						err = ctx.Storage.UpdateEvent(ev)
+						if err != nil {
+							// update event error
+							ev.Status = event.StatusError
+							ev.Error = err.Error()
+							ev.UpdatedAt = ctx.DateGen()
+							_ = ctx.Storage.UpdateEvent(ev)
+							return
+						}
 					}
 				}
 			}()
@@ -149,7 +200,10 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 			})
 			if err != nil {
 				// update event error
-				_ = ev.UpdateStatus(event.StatusError, err, ctx.Storage)
+				ev.Status = event.StatusError
+				ev.Error = err.Error()
+				ev.UpdatedAt = ctx.DateGen()
+				_ = ctx.Storage.UpdateEvent(ev)
 				return
 			}
 
@@ -159,18 +213,29 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 			}
 
 			// update latest block number in event
-			err = ev.UpdateLatestBlock(latestBlockNumber, ctx.Storage)
+			ev.LatestBlockNumber = latestBlockNumber
+			ev.UpdatedAt = ctx.DateGen()
+			err = ctx.Storage.UpdateEvent(ev)
 			if err != nil {
 				// update event error
-				_ = ev.UpdateStatus(event.StatusError, err, ctx.Storage)
+				ev.Status = event.StatusError
+				ev.Error = err.Error()
+				ev.UpdatedAt = ctx.DateGen()
+				_ = ctx.Storage.UpdateEvent(ev)
 				return
 			}
 
 			// update event status to running
-			err = ev.UpdateStatus(event.StatusRunning, nil, ctx.Storage)
+			ev.Status = event.StatusRunning
+			ev.Error = ""
+			ev.UpdatedAt = ctx.DateGen()
+			_ = ctx.Storage.UpdateEvent(ev)
 			if err != nil {
 				// update event error
-				_ = ev.UpdateStatus(event.StatusError, err, ctx.Storage)
+				ev.Status = event.StatusError
+				ev.Error = err.Error()
+				ev.UpdatedAt = ctx.DateGen()
+				_ = ctx.Storage.UpdateEvent(ev)
 				return
 			}
 		}()

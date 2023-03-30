@@ -5,4 +5,5 @@ type Env struct {
 	DatabaseDSN     string `envconfig:"database_dsn" required:"true"`
 	Port            string `envconfig:"port" required:"true"`
 	Debug           bool   `envconfig:"debug" default:"false"`
+	MigrationDir    string `envconfig:"migration_dir" required:"true"`
 }

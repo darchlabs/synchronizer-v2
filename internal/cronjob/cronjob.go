@@ -14,9 +14,12 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
+type idGenerator func() string
+type dateGenerator func() time.Time
+
 type EventDataStorage interface {
-	ListEvents() ([]*event.Event, error)
-	InsertEventData(e *event.Event, data []blockchain.LogData) error
+	ListAllEvents() ([]*event.Event, error)
+	InsertEventData(e *event.Event, data []*event.EventData) error
 	UpdateEvent(e *event.Event) error
 }
 
@@ -40,9 +43,12 @@ type cronjob struct {
 	storage EventDataStorage
 	debug   bool
 	status  CronjobStatus
+
+	idGen   idGenerator
+	dateGen dateGenerator
 }
 
-func New(seconds int64, storage EventDataStorage, clients *map[string]*ethclient.Client, debug bool) *cronjob {
+func New(seconds int64, storage EventDataStorage, clients *map[string]*ethclient.Client, debug bool, idGen idGenerator, dateGen dateGenerator) *cronjob {
 	return &cronjob{
 		seconds: seconds,
 		status:  StatusIdle,
@@ -50,6 +56,8 @@ func New(seconds int64, storage EventDataStorage, clients *map[string]*ethclient
 
 		storage: storage,
 		debug:   debug,
+		idGen:   idGen,
+		dateGen: dateGen,
 	}
 }
 
@@ -149,7 +157,7 @@ func (c *cronjob) Stop() error {
 
 func (c *cronjob) job() error {
 	// get all events from storage
-	events, err := c.storage.ListEvents()
+	events, err := c.storage.ListAllEvents()
 	if err != nil {
 		return err
 	}
@@ -169,14 +177,6 @@ func (c *cronjob) job() error {
 	// iterate over events
 	for _, e := range runningEvents {
 		go func(ev *event.Event) {
-			// parse abi to string
-			b, err := json.Marshal(ev.Abi)
-			if err != nil {
-				// update event error
-				_ = ev.UpdateStatus(event.StatusError, err, c.storage)
-				return
-			}
-
 			// get client from map or create and save
 			client, ok := (*c.clients)[ev.NodeURL]
 			if !ok {
@@ -184,7 +184,10 @@ func (c *cronjob) job() error {
 				client, err = ethclient.Dial(ev.NodeURL)
 				if err != nil {
 					// update event error
-					_ = ev.UpdateStatus(event.StatusError, err, c.storage)
+					ev.Status = event.StatusError
+					ev.Error = err.Error()
+					ev.UpdatedAt = c.dateGen()
+					_ = c.storage.UpdateEvent(ev)
 					return
 				}
 
@@ -192,7 +195,10 @@ func (c *cronjob) job() error {
 				_, err = client.ChainID(context.Background())
 				if err != nil {
 					// update event error
-					_ = ev.UpdateStatus(event.StatusError, err, c.storage)
+					ev.Status = event.StatusError
+					ev.Error = err.Error()
+					ev.UpdatedAt = c.dateGen()
+					_ = c.storage.UpdateEvent(ev)
 					return
 				}
 
@@ -200,16 +206,67 @@ func (c *cronjob) job() error {
 				(*c.clients)[ev.NodeURL] = client
 			}
 
+			// parse abi to string
+			b, err := json.Marshal(ev.Abi)
+			if err != nil {
+				// update event error
+				ev.Status = event.StatusError
+				ev.Error = err.Error()
+				ev.UpdatedAt = c.dateGen()
+				_ = c.storage.UpdateEvent(ev)
+				return
+			}
+
 			// define and read channel with log data in go routine
 			logsChannel := make(chan []blockchain.LogData)
 			go func() {
 				for logs := range logsChannel {
+					// parse each log to EventData
+					eventDatas := make([]*event.EventData, 0)
+					for _, log := range logs {
+						ed := &event.EventData{}
+						err := ed.FromLogData(log, c.idGen(), ev.ID, c.dateGen())
+						if err != nil {
+							// update event error
+							ev.Status = event.StatusError
+							ev.Error = err.Error()
+							ev.UpdatedAt = c.dateGen()
+							_ = c.storage.UpdateEvent(ev)
+							return
+						}
+
+						eventDatas = append(eventDatas, ed)
+					}
+
 					// insert logs data to event
-					err := ev.InsertData(logs, c.storage)
+					err := c.storage.InsertEventData(ev, eventDatas)
 					if err != nil {
 						// update event error
-						_ = ev.UpdateStatus(event.StatusError, err, c.storage)
+						ev.Status = event.StatusError
+						ev.Error = err.Error()
+						ev.UpdatedAt = c.dateGen()
+						_ = c.storage.UpdateEvent(ev)
 						return
+					}
+
+					// update latest block number using last dataLog
+					if len(logs) > 0 {
+						logBlockNumber := int64(logs[len(logs)-1].BlockNumber)
+
+						// update only when log_block_number is greater than event block number
+						if logBlockNumber > ev.LatestBlockNumber {
+							ev.LatestBlockNumber = logBlockNumber
+							ev.UpdatedAt = c.dateGen()
+							err = c.storage.UpdateEvent(ev)
+							if err != nil {
+								// update event error
+								ev.Status = event.StatusError
+								ev.Error = err.Error()
+								ev.UpdatedAt = c.dateGen()
+								_ = c.storage.UpdateEvent(ev)
+								return
+							}
+						}
 					}
 				}
 			}()
@@ -226,7 +283,10 @@ func (c *cronjob) job() error {
 			})
 			if err != nil {
 				// update event error
-				_ = ev.UpdateStatus(event.StatusError, err, c.storage)
+				ev.Status = event.StatusError
+				ev.Error = err.Error()
+				ev.UpdatedAt = c.dateGen()
+				_ = c.storage.UpdateEvent(ev)
 				return
 			}
 
@@ -236,10 +296,16 @@ func (c *cronjob) job() error {
 			}
 
 			// update latest block number
-			err = ev.UpdateLatestBlock(latestBlockNumber, c.storage)
+			ev.LatestBlockNumber = latestBlockNumber
+			ev.UpdatedAt = c.dateGen()
+
+			err = c.storage.UpdateEvent(ev)
 			if err != nil {
 				// update event error
-				_ = ev.UpdateStatus(event.StatusError, err, c.storage)
+				ev.Status = event.StatusError
+				ev.Error = err.Error()
+				ev.UpdatedAt = c.dateGen()
+				_ = c.storage.UpdateEvent(ev)
 				return
 			}
 
@@ -251,6 +317,12 @@ func (c *cronjob) job() error {
 	wg.Wait()
 
 	return nil
+}
+
+func (c *cronjob) Halt() {
+	c.ticker.Stop()
+	c.status = StatusStopped
+	c.ticker = nil
 }
 
 func (c *cronjob) GetStatus() string {

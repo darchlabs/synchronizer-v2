@@ -16,9 +16,6 @@ func New(dsn string) (*S, error) {
 		return nil, err
 	}
 
-	// create tables if is necessary
-	_ = db.MustExec(schema)
-
 	return &S{
 		DB: db,
 	}, nil
