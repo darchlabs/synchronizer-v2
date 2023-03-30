@@ -1,18 +1,5 @@
 version: "3.9"
-
-volumes:
-  data-postgres:
-    driver: local
-  data-redis:
-    driver: local
-
 services:
-  synchronizer:
-    image: synchronizer
-    ports:
-      - 5555:5555
-    env_file:
-      - .env
   postgres:
     image: postgres:latest
     ports:
@@ -20,4 +7,14 @@ services:
     environment:
       POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
-      - data-postgres:/data-postgres
+      - ./data/postgres:/var/lib/postgresql/data
+
+  synchronizer:
+    image: darchlabs/synchronizer-v2
+    ports:
+      - 5555:5555
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    restart: always
