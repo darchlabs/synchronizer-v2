@@ -11,5 +11,6 @@ FROM golang:alpine as runner
 WORKDIR /home/sync
 
 COPY --from=builder /usr/src/app/sync /home/sync
+COPY --from=builder /usr/src/app/migrations /home/sync/migrations
 
 CMD [ "./sync" ]
