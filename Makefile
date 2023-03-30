@@ -14,6 +14,11 @@ compile: rm
 	@echo "[compile] Compiling..."
 	@go build -o $(BIN_FOLDER_PATH)/synchronizer cmd/synchronizer/main.go
 
+build:
+	@echo "[build] Builing docker image locally..."
+	@docker build -t darchlabs/synchronizer-v2 -f ./Dockerfile --progress tty .
+	@echo "Build darchlabs/synchronizer-v2 docker image done ✔︎"
+
 linux: rm
 	@echo "[compile-linux] Compiling..."
 	@GOOS=linux GOARCH=amd64 go build -o $(BIN_FOLDER_PATH)/synchronizer-linux cmd/synchronizer/main.go
