@@ -12,13 +12,13 @@ const DefaultLimit = 10
 
 const SortAsc = "ASC"
 const SortDesc = "DESC"
-const DefaultSort = "DESC" // asc
+const DefaultSort = "DESC"
 
 type Pagination struct {
 	Page   int64  `json:"page" query:"page"`
 	Limit  int64  `json:"limit" query:"limit"`
 	Offset int64  `json:"offset"`
-	Sort   string `json:"sort"`
+	Sort   string `json:"sort" query:"sort"`
 }
 
 type PaginationMeta struct {
