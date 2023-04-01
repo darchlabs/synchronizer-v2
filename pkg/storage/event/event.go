@@ -331,7 +331,7 @@ func (s *Storage) InsertEventData(e *event.Event, data []*event.EventData) error
 	}
 
 	// insert event data in db
-	eventDataQuery := "INSERT INTO event_data (id, event_id, tx, block_number, data, created_at) VALUES ($1, $2, $3, $4, $5, $6)"
+	eventDataQuery := "INSERT INTO event_data (id, event_id, tx, block_number, data, transaction_ready, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)"
 	batch, err := tx.Preparex(eventDataQuery)
 	if err != nil {
 		tx.Rollback()
@@ -342,7 +342,7 @@ func (s *Storage) InsertEventData(e *event.Event, data []*event.EventData) error
 	// iterate over logsData array for inserting on db
 	for _, ed := range data {
 		// execute que batch into the db
-		_, err = batch.Exec(ed.ID, e.ID, ed.Tx, ed.BlockNumber, ed.Data, ed.CreatedAt)
+		_, err = batch.Exec(ed.ID, e.ID, ed.Tx, ed.BlockNumber, ed.Data, false, ed.CreatedAt)
 		if err != nil {
 			tx.Rollback()
 
@@ -355,6 +355,19 @@ func (s *Storage) InsertEventData(e *event.Event, data []*event.EventData) error
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (s *Storage) UpdateEventData(transactionID string, tr bool) error {
+	// update event on db
+	query := "UPDATE event_data SET transaction_ready = $1 WHERE id = $2"
+	results, err := s.storage.DB.Exec(query, tr, transactionID)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Result UpdateEventData", results)
 
 	return nil
 }

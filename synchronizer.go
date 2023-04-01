@@ -15,6 +15,7 @@ type EventStorage interface {
 	DeleteEvent(address string, eventName string) error
 	ListEventData(address string, eventName string, sort string, limit int64, offset int64) ([]*event.EventData, error)
 	InsertEventData(e *event.Event, data []*event.EventData) error
+	UpdateEventData(transactionID string, tr bool) error
 	GetEventsCount() (int64, error)
 	GetEventCountByAddress(address string) (int64, error)
 	GetEventDataCount(address string, eventName string) (int64, error)

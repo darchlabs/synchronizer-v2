@@ -58,12 +58,13 @@ type Input struct {
 }
 
 type EventData struct {
-	ID          string          `json:"id" db:"id"`
-	EventID     string          `json:"eventId" db:"event_id"`
-	Tx          string          `json:"tx" db:"tx"`
-	BlockNumber int64           `json:"blockNumber" db:"block_number"`
-	Data        json.RawMessage `json:"data" db:"data"`
-	CreatedAt   time.Time       `json:"createdAt" db:"created_at"`
+	ID               string          `json:"id" db:"id"`
+	EventID          string          `json:"eventId" db:"event_id"`
+	Tx               string          `json:"tx" db:"tx"`
+	BlockNumber      int64           `json:"blockNumber" db:"block_number"`
+	Data             json.RawMessage `json:"data" db:"data"`
+	TransactionReady bool            `json:"transactionReady" json:"transaction_ready"`
+	CreatedAt        time.Time       `json:"createdAt" db:"created_at"`
 }
 
 func (ed *EventData) FromLogData(logData blockchain.LogData, id string, eventID string, createdAt time.Time) error {
