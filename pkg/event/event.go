@@ -38,6 +38,7 @@ type Event struct {
 	Abi *Abi `json:"abi"`
 }
 
+// TODO(ca): add support to stateMutability and outputs abi attributes
 type Abi struct {
 	ID        string `id:"id" db:"id"`
 	Name      string `json:"name" db:"name"`

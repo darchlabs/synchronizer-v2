@@ -3,8 +3,8 @@ package eventstorage
 import (
 	"fmt"
 
-	"github.com/darchlabs/synchronizer-v2/internal/storage"
 	"github.com/darchlabs/synchronizer-v2/pkg/event"
+	"github.com/darchlabs/synchronizer-v2/pkg/storage"
 )
 
 type Storage struct {
