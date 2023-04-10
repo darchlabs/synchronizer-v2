@@ -14,8 +14,10 @@ import (
 	"github.com/darchlabs/synchronizer-v2/internal/env"
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
 	eventstorage "github.com/darchlabs/synchronizer-v2/internal/storage/event"
+	smartcontractstorage "github.com/darchlabs/synchronizer-v2/internal/storage/smartcontract"
 	CronjobAPI "github.com/darchlabs/synchronizer-v2/pkg/api/cronjob"
 	EventAPI "github.com/darchlabs/synchronizer-v2/pkg/api/event"
+	smartcontractsAPI "github.com/darchlabs/synchronizer-v2/pkg/api/smartcontracts"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -27,8 +29,9 @@ import (
 )
 
 var (
-	eventStorage synchronizer.EventStorage
-	cronjobSvc   synchronizer.Cronjob
+	eventStorage        synchronizer.EventStorage
+	smartContactStorage synchronizer.SmartContractStorage
+	cronjobSvc          synchronizer.Cronjob
 )
 
 func main() {
@@ -53,6 +56,7 @@ func main() {
 
 	// initialize event storage
 	eventStorage = eventstorage.New(s)
+	smartContactStorage = smartcontractstorage.New(s)
 
 	// parse seconds from string to int64
 	seconds, err := strconv.ParseInt(env.IntervalSeconds, 10, 64)
@@ -74,6 +78,13 @@ func main() {
 	cronjobSvc = cronjob.New(seconds, eventStorage, &clients, env.Debug, uuid.NewString, time.Now)
 
 	// configure routers
+	smartcontractsAPI.Route(api, smartcontractsAPI.Context{
+		Storage:      smartContactStorage,
+		EventStorage: eventStorage,
+		IDGen:        uuid.NewString,
+		DateGen:      time.Now,
+		Env:          env,
+	})
 	EventAPI.Route(api, EventAPI.Context{
 		Storage: eventStorage,
 		Cronjob: cronjobSvc,
