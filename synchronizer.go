@@ -2,6 +2,7 @@ package synchronizer
 
 import (
 	"github.com/darchlabs/synchronizer-v2/pkg/event"
+	"github.com/darchlabs/synchronizer-v2/pkg/smartcontract"
 )
 
 type EventStorage interface {
@@ -29,4 +30,14 @@ type Cronjob interface {
 	GetStatus() string
 	GetSeconds() int64
 	GetError() string
+}
+
+type SmartContractStorage interface {
+	ListSmartContracts(sort string, limit int64, offset int64) ([]*smartcontract.SmartContract, error)
+	InsertSmartContract(s *smartcontract.SmartContract) (*smartcontract.SmartContract, error)
+	DeleteSmartContractByAddress(address string) error
+	GetSmartContractByID(id string) (*smartcontract.SmartContract, error)
+	GetSmartContractByAddress(address string) (*smartcontract.SmartContract, error)
+	GetSmartContractsCount() (int64, error)
+	Stop() error
 }
