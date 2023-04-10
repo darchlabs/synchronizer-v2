@@ -92,6 +92,7 @@ func GetLogs(c Config) (int64, int64, error) {
 	if c.Logger {
 		log.Printf("\nmaking batches requests for event_name%s", c.EventName)
 	}
+
 	for count := 0; ; count++ {
 		if c.Logger {
 			log.Printf("\naddress=%s event_name=%s iteration=%d from=%d to=%d interval=%d ", c.Address, c.EventName, count, fromBlock, temporalToBlock, interval)
@@ -136,6 +137,8 @@ func GetLogs(c Config) (int64, int64, error) {
 			retry++
 			if retry > c.MaxRetry {
 				return 0, 0, fmt.Errorf("max_retry, error=%s", err.Error())
+			} else {
+				fmt.Printf("Error: c.Client.FilterLogs(context.Background(), query), err%s \n", err.Error())
 			}
 
 			continue
