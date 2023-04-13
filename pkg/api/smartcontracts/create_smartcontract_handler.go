@@ -9,6 +9,8 @@ import (
 
 	"github.com/darchlabs/synchronizer-v2/pkg/event"
 	"github.com/darchlabs/synchronizer-v2/pkg/smartcontract"
+	"github.com/darchlabs/synchronizer-v2/pkg/util"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
@@ -136,6 +138,9 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 		body.SmartContract.CreatedAt = ctx.DateGen()
 		body.SmartContract.UpdatedAt = ctx.DateGen()
 		body.SmartContract.Events = events
+		body.SmartContract.LastTxBlockSynced = 0
+		body.SmartContract.Status = smartcontract.StatusIdle
+
 		for _, input := range body.SmartContract.Abi {
 			input.ID = ctx.IDGen()
 		}
@@ -152,6 +157,16 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 
 		// update response
 		createdSmartContract.Events = events
+
+		// Get the deployed block number and updated it in the table
+		go func() {
+			toBlock, err := client.BlockNumber(context.Background())
+			if err != nil {
+				fmt.Println("err: ", err)
+				return
+			}
+			util.GetDeployedBlockNumber(client, common.HexToAddress(createdSmartContract.Address), toBlock)
+		}()
 
 		// prepare response
 		return c.Status(fiber.StatusOK).JSON(struct {
