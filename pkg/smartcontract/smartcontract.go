@@ -12,9 +12,9 @@ type SmartContract struct {
 	Network           event.EventNetwork  `json:"network" db:"network" validate:"required"`
 	NodeURL           string              `json:"nodeURL" db:"node_url" validate:"required,url"`
 	Address           string              `json:"address" db:"address" validate:"required"`
-	LastTxBlockSynced uint64              `json:"last_tx_block_synced" db:"last_tx_block_synced"`
+	LastTxBlockSynced int64               `json:"last_tx_block_synced" db:"last_tx_block_synced"`
 	Status            SmartContractStatus `json:"status" db:"status"`
-	Error             string              `json:"error" db:"error"`
+	Error             *string             `json:"error" db:"error"`
 
 	Abi    []*event.Abi   `json:"abi,omitempty" validate:"required,gt=0,dive"`
 	Events []*event.Event `json:"events"`

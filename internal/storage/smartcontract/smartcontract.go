@@ -27,8 +27,9 @@ func (s *Storage) InsertSmartContract(sc *smartcontract.SmartContract) (*smartco
 
 	// insert new smartcontract in database
 	var smartcontractId string
-	query := "INSERT INTO smartcontracts (id, name, network, node_url, address, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id"
-	err := s.storage.DB.Get(&smartcontractId, query, sc.ID, sc.Name, sc.Network, sc.NodeURL, sc.Address, sc.CreatedAt, sc.UpdatedAt)
+	query := "INSERT INTO smartcontracts ( id, name, network, node_url, address,last_tx_block_synced, status, error, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id"
+	err := s.storage.DB.Get(&smartcontractId, query, sc.ID, sc.Name, sc.Network, sc.NodeURL, sc.Address,
+		sc.LastTxBlockSynced, sc.Status, sc.Error, sc.CreatedAt, sc.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +52,7 @@ func (s *Storage) UpdateLastBlockNumber(id string, blockNumber string) (*smartco
 
 	// insert new smartcontract in database
 	var smartContract *smartcontract.SmartContract
-	query := fmt.Sprintf("INSERT INTO smartcontracts (last_tx_block_synced, updated_at) VALUES ($1, $2) WHERE id = %s RETURNING *", current.ID)
+	query := fmt.Sprintf("UPDATE smartcontracts SET last_tx_block_synced = $1, updated_at = $2 VALUES ($1, $2) WHERE id = %s RETURNING *", current.ID)
 	err := s.storage.DB.Get(&smartContract, query, blockNumber, time.Now())
 	if err != nil {
 		return nil, err

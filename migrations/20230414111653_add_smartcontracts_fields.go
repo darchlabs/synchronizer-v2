@@ -13,8 +13,8 @@ func init() {
 func upAddSmartContractsFields(tx *sql.Tx) error {
 	_, err := tx.Exec(`
 ALTER TABLE smartcontracts
-ADD COLUMN last_tx_block_synced BIGINT NOT NULL,
-ADD COLUMN status TEXT NOT NULL,
+ADD COLUMN last_tx_block_synced BIGINT NOT NULL DEFAULT 0,
+ADD COLUMN status TEXT NOT NULL DEFAULT 'idle',
 ADD COLUMN error TEXT;
 `)
 
@@ -24,9 +24,9 @@ ADD COLUMN error TEXT;
 func downAddSmartContractsFields(tx *sql.Tx) error {
 	_, err := tx.Exec(`
 	ALTER TABLE smartcontracts
-	DROP COLUMN last_tx_block_synced BIGINT NOT NULL,
-	DROP COLUMN status TEXT NOT NULL,
-	DROP COLUMN error TEXT;
+	DROP COLUMN last_tx_block_synced,
+	DROP COLUMN status,
+	DROP COLUMN error;
 	`)
 
 	return err
