@@ -43,22 +43,24 @@ func (s *Storage) InsertSmartContract(sc *smartcontract.SmartContract) (*smartco
 	return createdSmartcontract, nil
 }
 
-func (s *Storage) UpdateLastBlockNumber(id string, blockNumber string) (*smartcontract.SmartContract, error) {
+func (s *Storage) UpdateLastBlockNumber(id string, blockNumber int64) error {
 	// get current sc
 	current, _ := s.GetSmartContractByID(id)
 	if current == nil {
-		return nil, fmt.Errorf("smartcontract does not exist")
+		return fmt.Errorf("smartcontract does not exist")
 	}
+
+	fmt.Println("id: ", id)
+	fmt.Println("blockNumber: ", blockNumber)
 
 	// insert new smartcontract in database
-	var smartContract *smartcontract.SmartContract
-	query := fmt.Sprintf("UPDATE smartcontracts SET last_tx_block_synced = $1, updated_at = $2 VALUES ($1, $2) WHERE id = %s RETURNING *", current.ID)
-	err := s.storage.DB.Get(&smartContract, query, blockNumber, time.Now())
+	query := `UPDATE smartcontracts SET last_tx_block_synced = $1, updated_at = $2  WHERE id = $3 RETURNING *`
+	_, err := s.storage.DB.Exec(query, blockNumber, time.Now(), id)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return smartContract, nil
+	return nil
 }
 
 func (s *Storage) UpdateStatusAndError(id string, status smartcontract.SmartContractStatus, err error) error {
@@ -114,12 +116,14 @@ func (s *Storage) ListSmartContracts(sort string, limit int64, offset int64) ([]
 	// define smartcontracts response
 	smartcontracts := []*smartcontract.SmartContract{}
 
+	fmt.Println("as: ")
 	// get smartcontracts from db
 	scQuery := fmt.Sprintf("SELECT * FROM smartcontracts ORDER BY created_at %s LIMIT $1 OFFSET $2", sort)
 	err := s.storage.DB.Select(&smartcontracts, scQuery, limit, offset)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("scscs: ", smartcontracts)
 
 	return smartcontracts, nil
 }

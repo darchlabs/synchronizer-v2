@@ -138,6 +138,7 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 		body.SmartContract.CreatedAt = ctx.DateGen()
 		body.SmartContract.UpdatedAt = ctx.DateGen()
 		body.SmartContract.Events = events
+		body.SmartContract.Status = smartcontract.StatusIdle
 
 		fmt.Println("body sc: ", body.SmartContract)
 		fmt.Println("body sc: upat", body.SmartContract.UpdatedAt)
