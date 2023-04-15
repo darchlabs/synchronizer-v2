@@ -2,3 +2,4 @@ storage.db
 .env
 bin
 data
+*.DS_Store*

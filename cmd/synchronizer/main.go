@@ -15,6 +15,8 @@ import (
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
 	eventstorage "github.com/darchlabs/synchronizer-v2/internal/storage/event"
 	smartcontractstorage "github.com/darchlabs/synchronizer-v2/internal/storage/smartcontract"
+	transactionstorage "github.com/darchlabs/synchronizer-v2/internal/storage/transaction"
+	txsengine "github.com/darchlabs/synchronizer-v2/internal/txs-engine"
 	CronjobAPI "github.com/darchlabs/synchronizer-v2/pkg/api/cronjob"
 	EventAPI "github.com/darchlabs/synchronizer-v2/pkg/api/event"
 	smartcontractsAPI "github.com/darchlabs/synchronizer-v2/pkg/api/smartcontracts"
@@ -32,6 +34,7 @@ var (
 	eventStorage        synchronizer.EventStorage
 	smartContactStorage synchronizer.SmartContractStorage
 	cronjobSvc          synchronizer.Cronjob
+	txsEngine           txsengine.TxsEngine
 )
 
 func main() {
@@ -54,9 +57,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// initialize event storage
+	// initialize storages
 	eventStorage = eventstorage.New(s)
 	smartContactStorage = smartcontractstorage.New(s)
+	transactionStorage := transactionstorage.New(s)
 
 	// parse seconds from string to int64
 	seconds, err := strconv.ParseInt(env.IntervalSeconds, 10, 64)
@@ -76,6 +80,9 @@ func main() {
 
 	// initialize the cronjob
 	cronjobSvc = cronjob.New(seconds, eventStorage, &clients, env.Debug, uuid.NewString, time.Now)
+
+	// Initialize the transactions engine
+	txsEngine := txsengine.New(smartContactStorage, transactionStorage, uuid.NewString, time.Now)
 
 	// configure routers
 	smartcontractsAPI.Route(api, smartcontractsAPI.Context{
@@ -105,6 +112,16 @@ func main() {
 		api.Listen(fmt.Sprintf(":%s", env.Port))
 	}()
 
+	// TODO(nb): This should be inside a txs engine function
+	go func() {
+		for {
+			txsEngine.Run()
+			fmt.Println("---- sleeping ---")
+			time.Sleep(time.Duration(seconds) * time.Second)
+			fmt.Println("---- sleept ---")
+		}
+	}()
+
 	// listen interrupt
 	quit := make(chan struct{})
 	listenInterrupt(quit)
@@ -129,6 +146,9 @@ func gracefullShutdown() {
 
 	// stop cronjob ticker
 	cronjobSvc.Halt()
+
+	// stop txs engine
+	txsEngine.Halt()
 
 	// close databanse connection
 	err := eventStorage.Stop()
