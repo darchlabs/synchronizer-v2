@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/darchlabs/synchronizer-v2"
+	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
 	transactionstorage "github.com/darchlabs/synchronizer-v2/internal/storage/transaction"
 	"github.com/darchlabs/synchronizer-v2/pkg/smartcontract"
 	"github.com/darchlabs/synchronizer-v2/pkg/transaction"
@@ -64,7 +65,6 @@ func New(ss synchronizer.SmartContractStorage, ts *transactionstorage.Storage, i
 // Run txs engine process
 func (te *T) Run() {
 	// Check if the engine status is running
-
 	if te.GetStatus() == StatusIdle || te.GetStatus() == StatusRunning {
 		// Exec engine
 		te.ExecEngine()
@@ -85,7 +85,7 @@ func (te *T) ExecEngine() {
 			log.Panicf("the txs engine can't perform: %v", err)
 		}
 
-		// TODO(nb): Evaluate to use go routines for managing concurrent sc's
+		// TODO(nb): Use go routines for managing concurrent sc's
 		for _, contract := range scArr {
 			// If it is stopped, continue with the other contracts
 			if contract.Status == smartcontract.StatusStopping || contract.Status == smartcontract.StatusStopped {
@@ -151,14 +151,15 @@ func (te *T) GetContractTxs(contract *smartcontract.SmartContract) error {
 	} else if contract.LastTxBlockSynced != 0 {
 		lastSyncedTxBlock = contract.LastTxBlockSynced
 	} else {
-		// If the deployed block number is not updated yet, we'll have to calculate and update it
-		// Get the deployed block number
-		lastSyncedTxBlock = 16678843
-		// lastSyncedTxBlock, err = util.GetDeployedBlockNumber(client, common.HexToAddress(contract.Address), uint64(toBlock))
+		//TODO(nb): Get the deployed block number
+		// Get the block number from the first emitted logs of the contract (probably 1st event)
+		var maxRetry int64 = 10
+		firstEventBlock, err := blockchain.GetFirstLogBlockNum(client, contract.Address, maxRetry)
 		if err != nil {
 			return err
 		}
 
+		lastSyncedTxBlock = int64(firstEventBlock)
 		// Update the deployment tx on smart contracts table
 		err = te.ScStorage.UpdateLastBlockNumber(contract.ID, lastSyncedTxBlock)
 		if err != nil {
@@ -167,10 +168,7 @@ func (te *T) GetContractTxs(contract *smartcontract.SmartContract) error {
 	}
 
 	// get all of the new txs, starting from the last one we have
-
-	// TODO(nb): momentaneous hardcode
-	lastSyncedTxBlock = 16877120
-	toBlock = 16877132
+	//todo: Manage retry
 	for block := lastSyncedTxBlock; block < int64(toBlock); block++ {
 		fmt.Println("block n~: ", block)
 		block, err := client.BlockByNumber(context.Background(), big.NewInt(int64(block)))
@@ -247,6 +245,7 @@ func (te *T) GetContractTxs(contract *smartcontract.SmartContract) error {
 	fmt.Println("here--")
 	// insert them if there are
 	if len(transactions) == 0 {
+		te.ScStorage.UpdateLastBlockNumber(contract.ID, int64(toBlock))
 		return nil
 	}
 

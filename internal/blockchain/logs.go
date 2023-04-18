@@ -221,3 +221,113 @@ func GetLogs(c Config) (int64, int64, error) {
 
 	return logsCount, int64(toBlock), nil
 }
+
+func GetFirstLogBlockNum(client *ethclient.Client, address string, maxRetry int64) (uint64, error) {
+	// check config params
+	if client == nil {
+		return 0, errors.New("invalid Client config param")
+	}
+
+	if address == "" {
+		return 0, errors.New("invalid Address config param")
+	}
+
+	if maxRetry == 0 {
+		maxRetry = 20
+	}
+
+	// define from block and interval numbers
+	interval := int64(0)
+	fromBlock := int64(0)
+	retry := int64(0)
+
+	// set toBlock and temporalToBlock using config or lastest value from node
+	var toBlock int64
+	// get current latest block from
+	blockNumber, err := client.BlockNumber(context.Background())
+	if err != nil {
+		return 0, err
+	}
+	toBlock = int64(blockNumber)
+	temporalToBlock := toBlock
+
+	for count := 0; ; count++ {
+		log.Printf("\naddress=%s  iteration=%d from=%d to=%d interval=%d ", address, count, fromBlock, temporalToBlock, interval)
+
+		// prepare query params
+		query := ethereum.FilterQuery{
+			FromBlock: big.NewInt(fromBlock),
+			ToBlock:   big.NewInt(temporalToBlock),
+			Addresses: []common.Address{
+				common.HexToAddress(address),
+			},
+			Topics: [][]common.Hash{},
+		}
+
+		fmt.Println("lolo--------")
+		// get logs from contract
+		logs, err := client.FilterLogs(context.Background(), query)
+		fmt.Println("logs: ", logs)
+		fmt.Println("err: ", err)
+
+		if err != nil {
+			fmt.Println("err client log: ", err)
+			// TODO(ca): should implement a better recongnition for node log limit error
+			//
+			// Infura(Polygon): query returned more than 10000 results
+			//
+			// Alchemy(Ethereum): Log response size exceeded. You can make eth_getLogs requests
+			// with up to a 2K block range and no limit on the response size, or you can request
+			// any block range with a cap of 10K logs in the response. Based on your parameters
+			// and the response size limit, this block range should work: [0x0, 0x88c025]
+			//
+			// Alchemy(Polygon): Query git out exceeded. Consider reducing your block range. Based
+			// on your parameters and the response size limit, this block range should work: [0x0, 0x1360b8a]
+			//
+			// QuickNode(Polygon): 413 Request Entity Too Large: {"jsonrpc":"2.0","id":2,"result":null,"error":
+			// {"code":-32602,"message":"eth_getLogs and eth_newFilter are limited to a 10,000 blocks range"}}
+			//
+			if strings.Contains(err.Error(), "returned") || strings.Contains(err.Error(), "exceeded") || strings.Contains(err.Error(), "reducing") || strings.Contains(err.Error(), "limited") {
+				fmt.Println("alfaa: ")
+				interval = (temporalToBlock - fromBlock) / 2
+				temporalToBlock = temporalToBlock - interval
+
+				continue
+			}
+
+			// retry process
+			retry++
+			if retry > maxRetry {
+				return 0, fmt.Errorf("max_retry, error=%s", err.Error())
+			} else {
+				fmt.Printf("Error: client.FilterLogs(context.Background(), query), err%s \n", err.Error())
+			}
+
+			continue
+		}
+
+		if len(logs) > 0 {
+			fmt.Println("logs: ", logs)
+			return logs[0].BlockNumber, nil
+		}
+
+		// condition for finish the bucle
+		if temporalToBlock == toBlock {
+			fmt.Println("si")
+			break
+		}
+
+		// add interval value to fromBlock and toBlock numbers
+		// TODO(ca): maybe is interval + 1
+		fromBlock = fromBlock + interval
+		if temporalToBlock+interval > int64(toBlock) {
+			temporalToBlock = int64(toBlock)
+		} else {
+			temporalToBlock = temporalToBlock + interval
+		}
+
+		fmt.Println("ya")
+	}
+
+	return 0, nil
+}
