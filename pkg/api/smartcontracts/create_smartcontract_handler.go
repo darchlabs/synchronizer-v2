@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
 	"github.com/darchlabs/synchronizer-v2/pkg/event"
 	"github.com/darchlabs/synchronizer-v2/pkg/smartcontract"
-	"github.com/darchlabs/synchronizer-v2/pkg/util"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/go-playground/validator"
@@ -73,6 +73,25 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 					Error: fmt.Sprintf("can't valid ethclient error=%s", err),
 				},
 			)
+		}
+
+		// Validate contract exists on the given address
+		code, err := client.CodeAt(context.Background(), common.HexToAddress(body.SmartContract.Address), nil)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				createSmartContractResponse{
+					Error: fmt.Sprintf("can't get contract code at given address error=%s", err),
+				},
+			)
+		}
+
+		if len(code) == 0 {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				createSmartContractResponse{
+					Error: fmt.Sprint("the contract does not exist at the given address"),
+				},
+			)
+
 		}
 
 		// filter abi events from body
@@ -157,18 +176,26 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 			)
 		}
 
-		// update response
-		createdSmartContract.Events = events
-
-		// Get the deployed block number and updated it in the table
 		go func() {
-			toBlock, err := client.BlockNumber(context.Background())
+			// Get the block number from the first emitted logs of the contract (probably 1st event)
+			var maxRetry int64 = 10
+			firstEventBlock, err := blockchain.GetFirstLogBlockNum(client, body.SmartContract.Address, maxRetry)
+			// This error only breaks the go routine and won't be returned since it will be finished after sending the response to the client
 			if err != nil {
-				fmt.Println("err: ", err)
+				fmt.Println("err in create sc handler: ", err)
 				return
 			}
-			util.GetDeployedBlockNumber(client, common.HexToAddress(createdSmartContract.Address), toBlock)
+
+			err = ctx.Storage.UpdateLastBlockNumber(body.SmartContract.ID, int64(firstEventBlock))
+			// This error only breaks the go routine and won't be returned since it will be finished after sending the response to the client
+			if err != nil {
+				fmt.Println("err in create sc handler: ", err)
+				return
+			}
 		}()
+
+		// update response
+		createdSmartContract.Events = events
 
 		// prepare response
 		return c.Status(fiber.StatusOK).JSON(struct {

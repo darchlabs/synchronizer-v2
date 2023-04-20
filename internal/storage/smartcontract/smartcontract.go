@@ -50,13 +50,11 @@ func (s *Storage) UpdateLastBlockNumber(id string, blockNumber int64) error {
 		return fmt.Errorf("smartcontract does not exist")
 	}
 
-	fmt.Println("id: ", id)
-	fmt.Println("blockNumber: ", blockNumber)
-
 	// insert new smartcontract in database
-	query := `UPDATE smartcontracts SET last_tx_block_synced = $1, updated_at = $2  WHERE id = $3 RETURNING *`
+	query := `UPDATE smartcontracts SET last_tx_block_synced = $1, updated_at = $2  WHERE id = $3`
 	_, err := s.storage.DB.Exec(query, blockNumber, time.Now(), id)
 	if err != nil {
+		fmt.Println("es si: ", err)
 		return err
 	}
 

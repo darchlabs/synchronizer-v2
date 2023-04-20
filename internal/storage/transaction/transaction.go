@@ -93,7 +93,8 @@ func (s *Storage) ListTotalAddresses(contractAddr string) (*int64, error) {
 }
 
 // get the last synced tx and its block before executing it
-func (s *Storage) InsertTxsByContract(transactions []*transaction.Transaction) error {
+func (s *Storage) InsertTxsByContract(transactions []*transaction.Transaction, lastBlock uint64) error {
+	fmt.Println("inserting txs: ", transactions)
 	// prepare transaction to create event on db
 	tx, err := s.storage.DB.Beginx()
 	if err != nil {
@@ -113,6 +114,7 @@ func (s *Storage) InsertTxsByContract(transactions []*transaction.Transaction) e
 
 	// Create the array for each transaction field
 	for _, txData := range transactions {
+		fmt.Println("hash: ", txData.Hash)
 		ids = append(ids, txData.ID)
 		contractIds = append(contractIds, txData.ContractID)
 		hashes = append(hashes, txData.Hash)
@@ -146,7 +148,7 @@ func (s *Storage) InsertTxsByContract(transactions []*transaction.Transaction) e
 
 	// Get the smart contract id and the last block number from its txs array
 	contractID := transactions[len(transactions)-1].ContractID
-	latestBlockNumber := transactions[len(transactions)-1].BlockNumber
+	latestBlockNumber := lastBlock
 
 	// Update the smart contract with the latest block number
 	smartContractQuery := `UPDATE smartcontracts SET last_tx_block_synced = $1 WHERE id = $2`

@@ -82,7 +82,7 @@ func main() {
 	cronjobSvc = cronjob.New(seconds, eventStorage, &clients, env.Debug, uuid.NewString, time.Now)
 
 	// Initialize the transactions engine
-	txsEngine := txsengine.New(smartContactStorage, transactionStorage, uuid.NewString, time.Now)
+	txsEngine := txsengine.New(smartContactStorage, transactionStorage, uuid.NewString)
 
 	// configure routers
 	smartcontractsAPI.Route(api, smartcontractsAPI.Context{

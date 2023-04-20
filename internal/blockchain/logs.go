@@ -264,11 +264,8 @@ func GetFirstLogBlockNum(client *ethclient.Client, address string, maxRetry int6
 			Topics: [][]common.Hash{},
 		}
 
-		fmt.Println("lolo--------")
 		// get logs from contract
 		logs, err := client.FilterLogs(context.Background(), query)
-		fmt.Println("logs: ", logs)
-		fmt.Println("err: ", err)
 
 		if err != nil {
 			fmt.Println("err client log: ", err)
@@ -288,7 +285,6 @@ func GetFirstLogBlockNum(client *ethclient.Client, address string, maxRetry int6
 			// {"code":-32602,"message":"eth_getLogs and eth_newFilter are limited to a 10,000 blocks range"}}
 			//
 			if strings.Contains(err.Error(), "returned") || strings.Contains(err.Error(), "exceeded") || strings.Contains(err.Error(), "reducing") || strings.Contains(err.Error(), "limited") {
-				fmt.Println("alfaa: ")
 				interval = (temporalToBlock - fromBlock) / 2
 				temporalToBlock = temporalToBlock - interval
 
@@ -307,13 +303,11 @@ func GetFirstLogBlockNum(client *ethclient.Client, address string, maxRetry int6
 		}
 
 		if len(logs) > 0 {
-			fmt.Println("logs: ", logs)
 			return logs[0].BlockNumber, nil
 		}
 
 		// condition for finish the bucle
 		if temporalToBlock == toBlock {
-			fmt.Println("si")
 			break
 		}
 
@@ -326,7 +320,6 @@ func GetFirstLogBlockNum(client *ethclient.Client, address string, maxRetry int6
 			temporalToBlock = temporalToBlock + interval
 		}
 
-		fmt.Println("ya")
 	}
 
 	return 0, nil

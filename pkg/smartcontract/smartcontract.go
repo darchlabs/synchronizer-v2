@@ -30,5 +30,6 @@ const (
 	StatusRunning  SmartContractStatus = "running"
 	StatusStopping SmartContractStatus = "stopping"
 	StatusStopped  SmartContractStatus = "stopped"
+	StatusSynching SmartContractStatus = "synching"
 	StatusError    SmartContractStatus = "error"
 )

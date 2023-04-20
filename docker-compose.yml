@@ -9,12 +9,12 @@ services:
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
 
-  synchronizer:
-    image: darchlabs/synchronizer-v2
-    ports:
-      - 5555:5555
-    env_file:
-      - .env
-    depends_on:
-      - postgres
-    restart: always
+  # synchronizer:
+  #   image: darchlabs/synchronizer-v2
+  #   ports:
+  #     - 5555:5555
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - postgres
+  #   restart: always
