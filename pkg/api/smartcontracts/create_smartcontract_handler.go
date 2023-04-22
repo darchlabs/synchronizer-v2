@@ -75,6 +75,24 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 			)
 		}
 
+		// validate contract exists at the given address
+		code, err := client.CodeAt(context.Background(), common.HexToAddress(body.SmartContract.Address), nil)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				createSmartContractResponse{
+					Error: fmt.Sprintf("can't validate contract exists error=%s", err),
+				},
+			)
+		}
+
+		if len(code) == 0 {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				createSmartContractResponse{
+					Error: "contract does not exist at the given address",
+				},
+			)
+		}
+
 		// filter abi events from body
 		events := make([]*event.Event, 0)
 		for _, a := range body.SmartContract.Abi {

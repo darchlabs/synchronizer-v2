@@ -60,7 +60,7 @@ func main() {
 	// initialize storages
 	eventStorage = eventstorage.New(s)
 	smartContactStorage = smartcontractstorage.New(s)
-	transactionStorage := transactionstorage.New(s)
+	transactionstorage := transactionstorage.New(s)
 
 	// parse seconds from string to int64
 	seconds, err := strconv.ParseInt(env.IntervalSeconds, 10, 64)
@@ -82,7 +82,7 @@ func main() {
 	cronjobSvc = cronjob.New(seconds, eventStorage, &clients, env.Debug, uuid.NewString, time.Now)
 
 	// Initialize the transactions engine
-	txsEngine := txsengine.New(smartContactStorage, transactionStorage, uuid.NewString, time.Now)
+	txsEngine = txsengine.New(smartContactStorage, transactionstorage, uuid.NewString, env.EtherscanApiURL, env.EtherscanApiKey)
 
 	// configure routers
 	smartcontractsAPI.Route(api, smartcontractsAPI.Context{
@@ -112,15 +112,7 @@ func main() {
 		api.Listen(fmt.Sprintf(":%s", env.Port))
 	}()
 
-	// TODO(nb): This should be inside a txs engine function
-	go func() {
-		for {
-			txsEngine.Run()
-			fmt.Println("---- sleeping ---")
-			time.Sleep(time.Duration(seconds) * time.Second)
-			fmt.Println("---- sleept ---")
-		}
-	}()
+	err = txsEngine.Start(seconds + 1)
 
 	// listen interrupt
 	quit := make(chan struct{})

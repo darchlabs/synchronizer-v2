@@ -29,6 +29,7 @@ const (
 	StatusIdle     SmartContractStatus = "idle"
 	StatusRunning  SmartContractStatus = "running"
 	StatusStopping SmartContractStatus = "stopping"
+	StatusSynching SmartContractStatus = "synching"
 	StatusStopped  SmartContractStatus = "stopped"
 	StatusError    SmartContractStatus = "error"
 )
