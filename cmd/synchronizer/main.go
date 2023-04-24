@@ -19,6 +19,7 @@ import (
 	txsengine "github.com/darchlabs/synchronizer-v2/internal/txs-engine"
 	CronjobAPI "github.com/darchlabs/synchronizer-v2/pkg/api/cronjob"
 	EventAPI "github.com/darchlabs/synchronizer-v2/pkg/api/event"
+	"github.com/darchlabs/synchronizer-v2/pkg/api/metrics"
 	smartcontractsAPI "github.com/darchlabs/synchronizer-v2/pkg/api/smartcontracts"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
@@ -101,6 +102,11 @@ func main() {
 	})
 	CronjobAPI.Route(api, CronjobAPI.Context{
 		Cronjob: cronjobSvc,
+	})
+	metrics.Route(api, metrics.Context{
+		SmartContractStorage: smartContactStorage,
+		TransactionStorage:   transactionstorage,
+		EventStorage:         eventStorage,
 	})
 
 	// run process

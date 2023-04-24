@@ -46,10 +46,24 @@ type SmartContractStorage interface {
 }
 
 type TransactionStorage interface {
-	InsertTx(t *transaction.Transaction) (*transaction.Transaction, error)
-	InsertTxs([]*transaction.Transaction) error
+	InsertTxsByContract([]*transaction.Transaction) error
+
 	ListTxs(sort string, limit int64, offset int64) ([]*transaction.Transaction, error)
+	ListContractTxs(id string) ([]*transaction.Transaction, error)
+	GetContractTotalTxs(id string) (int64, error)
 	GetTxById(id string) (*transaction.Transaction, error)
-	ListTotalAddresses(contractAddr string) (*int64, error)
-	GetTVL(contractAddr string) (*int64, error)
+
+	ListContractFailedTxs(id string) ([]*transaction.Transaction, error)
+	GetContractTotalFailedTxs(id string) (int64, error)
+
+	GetContractTotalAddresses(id string) (int64, error)
+	ListContractUniqueAddresses(id string) ([]string, error)
+
+	GetContractCurrentTVL(id string) (int64, error)
+	ListContractTVLs(id string) ([]int64, error)
+
+	GetContractTotalGasSpent(id string) (int64, error)
+	ListContractGasSpent(id string) ([]string, error)
+
+	GetContractTotalValueTransferred(id string) (int64, error)
 }

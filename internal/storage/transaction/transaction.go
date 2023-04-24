@@ -34,6 +34,38 @@ func (s *Storage) ListTxs(sort string, limit int64, offset int64) ([]*transactio
 	return txs, nil
 }
 
+func (s *Storage) ListContractTxs(id string) ([]*transaction.Transaction, error) {
+	// define events response
+	var txs []*transaction.Transaction
+
+	// get txs from db
+	eventQuery := "SELECT * FROM transactions WHERE contract_id = $1"
+	err := s.storage.DB.Select(&txs, eventQuery, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return txs, nil
+
+}
+
+func (s *Storage) GetContractTotalTxs(id string) (int64, error) {
+	// define events response
+	var totalTxsNum []int64
+
+	fmt.Println(1)
+	// get txs from db
+	eventQuery := "SELECT COUNT(*) FROM transactions WHERE contract_id = $1"
+	err := s.storage.DB.Select(&totalTxsNum, eventQuery, id)
+	if err != nil {
+		return 0, err
+	}
+	fmt.Println(2)
+
+	return totalTxsNum[0], nil
+
+}
+
 func (s *Storage) GetTxById(id string) (*transaction.Transaction, error) {
 	// define events response
 	tx := transaction.Transaction{}
@@ -49,48 +81,134 @@ func (s *Storage) GetTxById(id string) (*transaction.Transaction, error) {
 
 }
 
-func (s *Storage) ListCurrentHashes() (*[]string, error) {
+func (s *Storage) GetContractCurrentTVL(id string) (int64, error) {
 	// define events response
-	var hashesArr []string
+	var tvl []int64
 
 	// get txs from db
-	eventQuery := "SELECT tx FROM transactions"
-	err := s.storage.DB.Select(&hashesArr, eventQuery)
+	eventQuery := "SELECT contract_balance::bigint FROM transactions WHERE contract_id = $1 LIMIT 1"
+	err := s.storage.DB.Select(&tvl, eventQuery, id)
+	if err != nil {
+		return 0, err
+	}
+
+	return tvl[0], nil
+}
+
+func (s *Storage) ListContractTVLs(id string) ([]int64, error) {
+	// define events response
+	var tvlArr []int64
+
+	// get txs from db
+	eventQuery := "SELECT contract_balance FROM transactions WHERE contract_id = $1"
+	err := s.storage.DB.Select(&tvlArr, eventQuery, id)
 	if err != nil {
 		return nil, err
 	}
 
-	return &hashesArr, nil
+	return tvlArr, nil
 }
 
-func (s *Storage) GetTVL(contractAddr string) (*int64, error) {
+func (s *Storage) GetContractTotalAddresses(id string) (int64, error) {
 	// define events response
-	var tvl int64
+	var totalAddr []int64
 
-	// get txs from db
-	eventQuery := "SELECT SUM(contract_balance) FROM transaction WHERE address = $1"
-	err := s.storage.DB.Select(&tvl, eventQuery, contractAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	return &tvl, nil
-
-}
-
-func (s *Storage) ListTotalAddresses(contractAddr string) (*int64, error) {
-	// define events response
-	var totalAddr int64
-
-	query := "SELECT COUNT(DISTINCT address) FROM transactions WHERE contract_addr = $1"
+	query := "SELECT COUNT(DISTINCT t.from) FROM transactions as T WHERE contract_id = $1"
 
 	// execute query and retrieve result
-	err := s.storage.DB.Select(&totalAddr, query, contractAddr)
+	err := s.storage.DB.Select(&totalAddr, query, id)
+	if err != nil {
+		return 0, err
+	}
+
+	return totalAddr[0], nil
+}
+
+func (s *Storage) ListContractUniqueAddresses(id string) ([]string, error) {
+	var uniqueAddresses []string
+
+	query := "SELECT DISTINCT t.from FROM transactions AS t WHERE contract_id = $1"
+
+	// execute query and retrieve result
+	err := s.storage.DB.Select(&uniqueAddresses, query, id)
 	if err != nil {
 		return nil, err
 	}
 
-	return &totalAddr, nil
+	return uniqueAddresses, nil
+
+}
+
+func (s *Storage) ListContractFailedTxs(id string) ([]*transaction.Transaction, error) {
+	var failedTxs []*transaction.Transaction
+
+	query := "SELECT * FROM transactions WHERE contract_id = $1 AND (is_error = '1' OR tx_receipt_status = '0')"
+
+	// execute query and retrieve result
+	err := s.storage.DB.Select(&failedTxs, query, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return failedTxs, nil
+
+}
+
+func (s *Storage) GetContractTotalFailedTxs(id string) (int64, error) {
+	var totalFailedTxs []int64
+
+	query := "SELECT COUNT(*) FROM transactions WHERE contract_id = $1 AND (is_error = '1' OR tx_receipt_status = '0')"
+
+	// execute query and retrieve result
+	err := s.storage.DB.Select(&totalFailedTxs, query, id)
+	if err != nil {
+		return 0, err
+	}
+
+	return totalFailedTxs[0], nil
+}
+
+func (s *Storage) GetContractTotalGasSpent(id string) (int64, error) {
+	var totalGasSpent []int64
+
+	query := "SELECT SUM(CAST(gas_used) as bigint) FROM transactions WHERE contract_id = $1"
+
+	// execute query and retrieve result
+	err := s.storage.DB.Select(&totalGasSpent, query, id)
+	if err != nil {
+		return 0, err
+	}
+
+	return totalGasSpent[0], nil
+}
+
+func (s *Storage) ListContractGasSpent(id string) ([]string, error) {
+	var gasSpentArr []string
+
+	query := "SELECT gas_used FROM transactions WHERE contract_id = $1"
+
+	// execute query and retrieve result
+	err := s.storage.DB.Select(&gasSpentArr, query, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return gasSpentArr, nil
+
+}
+
+func (s *Storage) GetContractTotalValueTransferred(id string) (int64, error) {
+	var totalValueTransferred []int64
+
+	query := "SELECT SUM(value::bigint) FROM transactions WHERE contract_id = $1"
+
+	// execute query and retrieve result
+	err := s.storage.DB.Select(&totalValueTransferred, query, id)
+	if err != nil {
+		return 0, err
+	}
+
+	return totalValueTransferred[0], nil
 }
 
 // get the last synced tx and its block before executing it

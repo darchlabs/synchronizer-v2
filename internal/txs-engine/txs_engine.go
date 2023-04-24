@@ -58,21 +58,16 @@ func New(ss synchronizer.SmartContractStorage, ts *transactionstorage.Storage, i
 
 func (te *T) Start(seconds int64) error {
 	if te.GetStatus() == StatusStopped || te.GetStatus() == StatusStopping || te.GetStatus() == StatusError {
-		fmt.Println("te.GetStatus(): ", te.GetStatus() != StatusIdle)
-		fmt.Println(te.GetStatus())
 		return nil
 	}
 
-	fmt.Println(1)
 	// Update to running when starting it
 	te.SetStatus(StatusRunning)
 
-	fmt.Println(2)
 	for te.GetStatus() == StatusRunning {
 
 		// While the status is running, the engine'll execute
 
-		fmt.Println(2)
 		// Get all the current sc's
 		scArr, err := te.ScStorage.ListSmartContracts("asc", 1, 0)
 		if err != nil {
@@ -82,7 +77,6 @@ func (te *T) Start(seconds int64) error {
 
 		// Iterate over contracts for getting their tx's
 		for _, contract := range scArr {
-			fmt.Println(3)
 			// If it is stopped, continue with the other contracts
 			if contract.Status == smartcontract.StatusStopping || contract.Status == smartcontract.StatusStopped || contract.Status == smartcontract.StatusSynching {
 				continue
@@ -90,20 +84,17 @@ func (te *T) Start(seconds int64) error {
 
 			// TODO(nb): Manage some retry's in case the api fails before continuing?
 			// Get tx's
-			fmt.Println(4)
 			startBlock := int64(0)
 			transactions, err := GetTransactions(te.etherscanApiUrl, te.etherscanApiKey, contract.Address, startBlock)
 			if err != nil {
 				continue
 			}
 
-			fmt.Println(5)
 			// Manage when it reachs the 10.000 logs limit and get the missing ones
 			apiResponseLimit := 10000
 			numberOfTxs := len(transactions)
 			if numberOfTxs == apiResponseLimit {
 
-				fmt.Println(6)
 				for numberOfTxs == apiResponseLimit {
 
 					// Get the last block number
@@ -112,44 +103,35 @@ func (te *T) Start(seconds int64) error {
 						continue
 					}
 
-					fmt.Println(6.2)
 					// Get the transactions but starting from the last block number
 					newTransactions, err := GetTransactions(te.etherscanApiUrl, te.etherscanApiKey, contract.Address, startBlock)
 					if err != nil {
 						continue
 					}
 
-					fmt.Println(6.3)
 					transactions = append(transactions, newTransactions...)
 
-					fmt.Println(6.5)
 					numberOfTxs = len(newTransactions)
-					fmt.Println(6.6)
 
 				}
 			}
 
-			fmt.Println(7)
 			// Create an id per txs item
 			transactions, err = util.CompleteTxsDataByContract(transactions, contract, te.idGen)
 			if err != nil {
 				continue
 			}
 
-			fmt.Println(8)
 			// Insert them in the storage
 			err = te.transactionStorage.InsertTxsByContract(transactions)
 			if err != nil {
-				fmt.Println("err while inserting: ", err)
 				continue
 			}
-			fmt.Println(9)
 		}
 
 		time.Sleep(time.Duration(time.Duration(seconds) * time.Second))
 	}
 
-	fmt.Println(10)
 	return nil
 }
 
@@ -165,25 +147,21 @@ func GetTransactions(apiUrl string, apiKey string, address string, startBlock in
 	url := fmt.Sprintf("%s?module=account&action=txlist&address=%s&startblock=%s&endblock=99999999&sort=asc&apikey=%s", apiUrl, address, fmt.Sprint(startBlock), apiKey)
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Println("Error getting transactions:", err)
 		return nil, err
 	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Error reading response body:", err)
 		return nil, err
 	}
 
 	err = json.Unmarshal(body, &res)
 	if err != nil {
-		fmt.Println("Error unmarshalling response body:", err)
 		return nil, err
 	}
 
 	txs = res.Result
-	fmt.Println("resuilt: ", txs)
 	return txs, err
 }
 
