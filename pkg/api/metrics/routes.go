@@ -12,6 +12,7 @@ type Context struct {
 }
 
 func Route(app *fiber.App, ctx Context) {
+	app.Get("/api/v1/metrics/transactions", listTransactions(ctx))
 	app.Get("/api/v1/metrics/transactions/:address", listSmartContractTransactions(ctx))
 	app.Get("/api/v1/metrics/transactions/:address/total", listSmartContractTotalTransactions(ctx))
 	app.Get("/api/v1/metrics/transactions/:address/failed", listSmartContractFailedTransactions(ctx))

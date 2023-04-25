@@ -54,7 +54,7 @@ func listSmartContractFailedTransactions(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// Get the transactions
-		failedTxs, err := ctx.TransactionStorage.ListContractFailedTxs(contract.ID)
+		failedTxs, err := ctx.TransactionStorage.ListContractFailedTxs(contract.ID, p.Sort, p.Limit, p.Offset)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				listSmartContractFailedTransactionsRes{

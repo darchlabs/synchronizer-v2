@@ -46,7 +46,7 @@ func (p *Pagination) GetPaginationFromFiber(c *fiber.Ctx) error {
 		p.Limit = DefaultLimit
 	}
 
-	// define defaul sort
+	// define default sort
 	if p.Sort == "" || !(strings.ToUpper(p.Sort) == SortAsc || strings.ToUpper(p.Sort) == SortDesc) {
 		p.Sort = strings.ToUpper(SortDesc)
 	} else {
@@ -60,7 +60,7 @@ func (p *Pagination) GetPaginationFromFiber(c *fiber.Ctx) error {
 }
 
 func (p *Pagination) GetPaginationMeta(totalElements int64) PaginationMeta {
-	// ger total pages value
+	// get total pages value
 	totalPages := int64(math.Ceil(float64(totalElements) / float64(p.Limit)))
 
 	return PaginationMeta{

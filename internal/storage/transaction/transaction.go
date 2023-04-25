@@ -34,13 +34,13 @@ func (s *Storage) ListTxs(sort string, limit int64, offset int64) ([]*transactio
 	return txs, nil
 }
 
-func (s *Storage) ListContractTxs(id string) ([]*transaction.Transaction, error) {
+func (s *Storage) ListContractTxs(id string, sort string, limit int64, offset int64) ([]*transaction.Transaction, error) {
 	// define events response
 	var txs []*transaction.Transaction
 
 	// get txs from db
-	eventQuery := "SELECT * FROM transactions WHERE contract_id = $1"
-	err := s.storage.DB.Select(&txs, eventQuery, id)
+	eventQuery := fmt.Sprintf("SELECT * FROM transactions WHERE contract_id = $1 ORDER BY block_number %s LIMIT $2 OFFSET $3", sort)
+	err := s.storage.DB.Select(&txs, eventQuery, id, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func (s *Storage) GetContractCurrentTVL(id string) (int64, error) {
 	var tvl []int64
 
 	// get txs from db
-	eventQuery := "SELECT contract_balance::bigint FROM transactions WHERE contract_id = $1 LIMIT 1"
+	eventQuery := "SELECT contract_balance::bigint FROM transactions WHERE contract_id = $1 ORDER BY block_number DESC LIMIT 1"
 	err := s.storage.DB.Select(&tvl, eventQuery, id)
 	if err != nil {
 		return 0, err
@@ -95,13 +95,13 @@ func (s *Storage) GetContractCurrentTVL(id string) (int64, error) {
 	return tvl[0], nil
 }
 
-func (s *Storage) ListContractTVLs(id string) ([]int64, error) {
+func (s *Storage) ListContractTVLs(id string, sort string, limit int64, offset int64) ([]int64, error) {
 	// define events response
 	var tvlArr []int64
 
 	// get txs from db
-	eventQuery := "SELECT contract_balance FROM transactions WHERE contract_id = $1"
-	err := s.storage.DB.Select(&tvlArr, eventQuery, id)
+	eventQuery := fmt.Sprintf("SELECT contract_balance FROM transactions WHERE contract_id = $1 ORDER BY block_number %s LIMIT $2 OFFSET $3", sort)
+	err := s.storage.DB.Select(&tvlArr, eventQuery, id, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -124,13 +124,13 @@ func (s *Storage) GetContractTotalAddresses(id string) (int64, error) {
 	return totalAddr[0], nil
 }
 
-func (s *Storage) ListContractUniqueAddresses(id string) ([]string, error) {
+func (s *Storage) ListContractUniqueAddresses(id string, sort string, limit int64, offset int64) ([]string, error) {
 	var uniqueAddresses []string
 
-	query := "SELECT DISTINCT t.from FROM transactions AS t WHERE contract_id = $1"
+	query := fmt.Sprintf("SELECT DISTINCT t.from FROM (SELECT t.from, t.block_number FROM transactions AS t WHERE contract_id = $1 ORDER BY t.block_number %s) t LIMIT $2 OFFSET $3", sort)
 
 	// execute query and retrieve result
-	err := s.storage.DB.Select(&uniqueAddresses, query, id)
+	err := s.storage.DB.Select(&uniqueAddresses, query, id, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -139,13 +139,13 @@ func (s *Storage) ListContractUniqueAddresses(id string) ([]string, error) {
 
 }
 
-func (s *Storage) ListContractFailedTxs(id string) ([]*transaction.Transaction, error) {
+func (s *Storage) ListContractFailedTxs(id string, sort string, limit int64, offset int64) ([]*transaction.Transaction, error) {
 	var failedTxs []*transaction.Transaction
 
-	query := "SELECT * FROM transactions WHERE contract_id = $1 AND (is_error = '1' OR tx_receipt_status = '0')"
+	query := fmt.Sprintf("SELECT * FROM transactions WHERE contract_id = $1 AND (is_error = '1' OR tx_receipt_status = '0') ORDER BY block_number %s LIMIT $2 OFFSET $3", sort)
 
 	// execute query and retrieve result
-	err := s.storage.DB.Select(&failedTxs, query, id)
+	err := s.storage.DB.Select(&failedTxs, query, id, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -182,13 +182,13 @@ func (s *Storage) GetContractTotalGasSpent(id string) (int64, error) {
 	return totalGasSpent[0], nil
 }
 
-func (s *Storage) ListContractGasSpent(id string) ([]string, error) {
+func (s *Storage) ListContractGasSpent(id string, sort string, limit int64, offset int64) ([]string, error) {
 	var gasSpentArr []string
 
-	query := "SELECT gas_used FROM transactions WHERE contract_id = $1"
+	query := fmt.Sprintf("SELECT gas_used FROM transactions WHERE contract_id = $1 ORDER BY block_number %s LIMIT $2 OFFSET $3", sort)
 
 	// execute query and retrieve result
-	err := s.storage.DB.Select(&gasSpentArr, query, id)
+	err := s.storage.DB.Select(&gasSpentArr, query, id, limit, offset)
 	if err != nil {
 		return nil, err
 	}

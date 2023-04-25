@@ -53,7 +53,7 @@ func listSmartContractTVLs(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// Get the transactions
-		tvlArr, err := ctx.TransactionStorage.ListContractTVLs(contract.ID)
+		tvlArr, err := ctx.TransactionStorage.ListContractTVLs(contract.ID, p.Sort, p.Limit, p.Offset)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				listSmartContractTVLsRes{

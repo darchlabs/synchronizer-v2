@@ -53,7 +53,7 @@ func listSmartContractGasSpent(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// Get the transactions
-		gasSpentArr, err := ctx.TransactionStorage.ListContractGasSpent(contract.ID)
+		gasSpentArr, err := ctx.TransactionStorage.ListContractGasSpent(contract.ID, p.Sort, p.Limit, p.Offset)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				listSmartContractGasSpentRes{

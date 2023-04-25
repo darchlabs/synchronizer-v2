@@ -53,7 +53,7 @@ func listSmartContractActiveAddresses(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// Get the transactions
-		activeAddresses, err := ctx.TransactionStorage.ListContractUniqueAddresses(contract.ID)
+		activeAddresses, err := ctx.TransactionStorage.ListContractUniqueAddresses(contract.ID, p.Sort, p.Limit, p.Offset)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				listSmartContractActiveAddressesRes{

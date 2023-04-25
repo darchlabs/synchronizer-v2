@@ -1,0 +1,960 @@
+{
+	"info": {
+		"_postman_id": "720ad820-cbd0-4160-a8eb-e2d234ce1655",
+		"name": "Synchronizer V2",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "24172998"
+	},
+	"item": [
+		{
+			"name": "Smart Contracts",
+			"item": [
+				{
+					"name": "Insert smart contract",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"smartcontract\": {\n        \"name\": \"Example SmartContract\",\n        \"address\": \"{{address}}\",\n        \"network\": \"goerli\",\n        \"nodeURL\": \"https://eth-goerli.g.alchemy.com/v2/_o8WvawmHs_z0KarPNWswwJntEMHdvKF\",\n        \"abi\": [{{abi}}]\n \n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_url}}/api/v1/smartcontracts",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"smartcontracts"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List smart contracts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}/api/v1/smartcontracts",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"smartcontracts"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Insert smart contract [wav3s]",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"smartcontract\": {\n        \"name\": \"Wav3s Smart Contract\",\n        \"address\": \"0xcd8c193b1B2b5cf36F26b94ff42118B5C6cA4bef\",\n        \"network\": \"polygon\",\n        \"nodeURL\": \"https://polygon-mainnet.infura.io/v3/3d814cb053bf41f2ae0d7bada208e9eb\",\n        \"abi\": [{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"fee\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"wMatic\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"appAddress\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"currencyAddress\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"appFees\",\"type\":\"uint256\"}],\"name\":\"wav3sFrenMirror__AppPaid\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"appAddress\",\"type\":\"address\"}],\"name\":\"wav3sFrenMirror__AppUnlisted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"appAddress\",\"type\":\"address\"}],\"name\":\"wav3sFrenMirror__AppWhitelisted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"stop\",\"type\":\"bool\"}],\"name\":\"wav3sFrenMirror__CircuitBreak\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"appAddress\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"appFees\",\"type\":\"uint256\"}],\"name\":\"wav3sFrenMirror__EmergencyAppFeeWithdraw\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"string\",\"name\":\"pubId\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"budget\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"name\":\"wav3sFrenMirror__EmergencyWithdraw\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"wav3sHub\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"name\":\"wav3sFrenMirror__HubSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"mirrorerAddress\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"pubId\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"reward\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"currentBudget\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"feePerMirror\",\"type\":\"uint256\"}],\"name\":\"wav3sFrenMirror__MirrorProcessed\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"msig\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"name\":\"wav3sFrenMirror__MsigSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"string\",\"name\":\"pubId\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"profileAddress\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"budget\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"reward\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"currencyAddress\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"minFollowers\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"feePerMirror\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"appAddress\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"appFee\",\"type\":\"uint256\"}],\"name\":\"wav3sFrenMirror__PostFunded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"string\",\"name\":\"pubId\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"budget\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"budgetFinal\",\"type\":\"uint256\"}],\"name\":\"wav3sFrenMirror__PostFundedInEmergency\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"string\",\"name\":\"pubId\",\"type\":\"string\"}],\"name\":\"wav3sFrenMirror__PubFinished\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"string\",\"name\":\"pubId\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"budget\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"name\":\"wav3sFrenMirror__PubWithdrawn\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"balance\",\"type\":\"uint256\"}],\"name\":\"wav3sFrenMirror__backdoor\",\"type\":\"event\"},{\"stateMutability\":\"payable\",\"type\":\"fallback\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"appAddress\",\"type\":\"address\"}],\"name\":\"appWhitelisted\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"backdoor\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"circuitBreaker\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"budget\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"reward\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"currencyAddress\",\"type\":\"address\"},{\"internalType\":\"string\",\"name\":\"pubId\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"profileAddress\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"minFollowers\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"appAddress\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"appFee\",\"type\":\"uint256\"}],\"name\":\"fundMirror\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"budget\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"pubId\",\"type\":\"string\"}],\"name\":\"fundMirrorInEmergency\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"appAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"currency\",\"type\":\"address\"}],\"name\":\"getAppFees\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"pubId\",\"type\":\"string\"}],\"name\":\"getMirrorBudget\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getMultisig\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"pubId\",\"type\":\"string\"}],\"name\":\"getPubCurrency\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"pubId\",\"type\":\"string\"}],\"name\":\"getPubData\",\"outputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"budget\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"reward\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"currencyAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"profileAddress\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"minFollowers\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"feePerMirror\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"initiatedFrenWav3\",\"type\":\"bool\"}],\"internalType\":\"struct FrenFundedPostData\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"pubId\",\"type\":\"string\"}],\"name\":\"getPubFeePerMirror\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getWav3sHub\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"pubId\",\"type\":\"string\"}],\"name\":\"isWav3\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"appAddress\",\"type\":\"address\"}],\"name\":\"payApps\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"pubId\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"mirrorerAddress\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"followersCount\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"appAddress\",\"type\":\"address\"}],\"name\":\"processMirror\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"s_multisig\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"s_wav3sHub\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"multisig\",\"type\":\"address\"}],\"name\":\"setMultisig\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"wav3sHub\",\"type\":\"address\"}],\"name\":\"setWav3sHub\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"appAddress\",\"type\":\"address\"}],\"name\":\"unlistApp\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"appAddress\",\"type\":\"address\"}],\"name\":\"whitelistApp\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"appAddress\",\"type\":\"address\"}],\"name\":\"withdrawAppFee\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"pubId\",\"type\":\"string\"}],\"name\":\"withdrawMirrorBudget\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"pubId\",\"type\":\"string\"}],\"name\":\"withdrawPub\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"stateMutability\":\"payable\",\"type\":\"receive\"}]\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_url}}/api/v1/smartcontracts",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"smartcontracts"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete smart contract by address",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}/api/v1/smartcontracts/0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"smartcontracts",
+								"0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Insert smart contract [arch]",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"smartcontract\": {\n        \"name\": \"ArchFinance Smart Contract\",\n        \"address\": \"0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf\",\n        \"network\": \"ethereum\",\n        \"nodeURL\": \"https://mainnet.infura.io/v3/3d814cb053bf41f2ae0d7bada208e9eb\",\n        \"abi\": [{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_owner\",\"type\":\"address\"},{\"internalType\":\"string\",\"name\":\"_name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"_symbol\",\"type\":\"string\"},{\"internalType\":\"address[]\",\"name\":\"_constituents\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"_quantities\",\"type\":\"uint256[]\"},{\"internalType\":\"address[]\",\"name\":\"_wizards\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"_managers\",\"type\":\"address[]\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_allowedContract\",\"type\":\"address\"}],\"name\":\"AllowedContractAdded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_allowedContract\",\"type\":\"address\"}],\"name\":\"AllowedContractRemoved\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Approval\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_constituent\",\"type\":\"address\"}],\"name\":\"ConstituentAdded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_constituent\",\"type\":\"address\"}],\"name\":\"ConstituentRemoved\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_manager\",\"type\":\"address\"}],\"name\":\"ManagerAdded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_manager\",\"type\":\"address\"}],\"name\":\"ManagerRemoved\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_wizard\",\"type\":\"address\"}],\"name\":\"WizardAdded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_wizard\",\"type\":\"address\"}],\"name\":\"WizardRemoved\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"DOMAIN_SEPARATOR\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_target\",\"type\":\"address\"}],\"name\":\"addAllowedContract\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_constituent\",\"type\":\"address\"}],\"name\":\"addConstituent\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_manager\",\"type\":\"address\"}],\"name\":\"addManager\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_wizard\",\"type\":\"address\"}],\"name\":\"addWizard\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"allowance\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"approve\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_from\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_quantity\",\"type\":\"uint256\"}],\"name\":\"burn\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"constituentQuantities\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"constituents\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_sellToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_sellQuantity\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_buyToken\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_minBuyQuantity\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_data\",\"type\":\"bytes\"},{\"internalType\":\"address payable\",\"name\":\"_target\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_allowanceTarget\",\"type\":\"address\"}],\"name\":\"executeTrade\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"tokenAmountBought\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getAllowedContracts\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_constituent\",\"type\":\"address\"}],\"name\":\"getConstituentQuantity\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getConstituentsAddresses\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getManagers\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getQuantities\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getWizards\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_target\",\"type\":\"address\"}],\"name\":\"isAllowedContract\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_constituent\",\"type\":\"address\"}],\"name\":\"isConstituent\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_manager\",\"type\":\"address\"}],\"name\":\"isManager\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_wizard\",\"type\":\"address\"}],\"name\":\"isWizard\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"lockChamber\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_quantity\",\"type\":\"uint256\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"name\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"nonces\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"},{\"internalType\":\"uint8\",\"name\":\"v\",\"type\":\"uint8\"},{\"internalType\":\"bytes32\",\"name\":\"r\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"s\",\"type\":\"bytes32\"}],\"name\":\"permit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_target\",\"type\":\"address\"}],\"name\":\"removeAllowedContract\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_constituent\",\"type\":\"address\"}],\"name\":\"removeConstituent\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_manager\",\"type\":\"address\"}],\"name\":\"removeManager\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_wizard\",\"type\":\"address\"}],\"name\":\"removeWizard\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"symbol\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalSupply\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transferFrom\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"unlockChamber\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"updateQuantities\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_constituent\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_quantity\",\"type\":\"uint256\"}],\"name\":\"withdrawTo\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_url}}/api/v1/smartcontracts",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"smartcontracts"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Events",
+			"item": [
+				{
+					"name": "Insert event",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"event\": {\n        \"network\": \"polygon\",\n        \"nodeURL\": \"https://polygon-mainnet.g.alchemy.com/v2/OiCD6nFyJg5itcyRAofJhUTdZFlSnU4P\",\n        \"abi\": {\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"mirrorerAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"string\",\n                    \"name\": \"pubId\",\n                    \"type\": \"string\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"reward\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"currentBudget\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"feePerMirror\",\n                    \"type\": \"uint256\"\n                }\n            ],\n            \"name\": \"wav3sFrenMirror__MirrorProcessed\",\n            \"type\": \"event\"\n        }\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_url}}/api/v1/events/{{address}}",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events",
+								"{{address}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List events",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}/api/v1/events?limit=0&page=1&sort=0",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "0",
+									"description": "0"
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"description": "1"
+								},
+								{
+									"key": "sort",
+									"value": "0",
+									"description": "0"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List events by address",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}/api/v1/events/{{address}}?limit={{limit}}&page={{page}}&sort={{sort}}",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events",
+								"{{address}}"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "{{limit}}"
+								},
+								{
+									"key": "page",
+									"value": "{{page}}"
+								},
+								{
+									"key": "sort",
+									"value": "{{sort}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get event",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "{{api_url}}/api/v1/events/{{address}}/{{eventName}}",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events",
+								"{{address}}",
+								"{{eventName}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get event data",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}/api/v1/events/{{address}}/{{eventName}}/data?limit=0&page=1&sort=0",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events",
+								"{{address}}",
+								"{{eventName}}",
+								"data"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "0"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "sort",
+									"value": "0"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Stop event",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}/api/v1/events/{{address}}/{{eventName}}/stop",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events",
+								"{{address}}",
+								"{{eventName}}",
+								"stop"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Start event",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"event\": {\n        \"nodeURL\": \"https://polygon-mainnet.g.alchemy.com/v2/2hi88g7IcSsxOiUZXV5FEyq1i9egUQvo\",\n        \"network\": \"polygon\",\n        \"abi\": {\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"mirrorerAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"string\",\n                    \"name\": \"pubId\",\n                    \"type\": \"string\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"reward\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"currentBudget\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"feePerMirror\",\n                    \"type\": \"uint256\"\n                }\n            ],\n            \"name\": \"wav3sFrenMirror__MirrorProcessed\",\n            \"type\": \"event\"\n        }\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_url}}/api/v1/events/{{address}}/{{eventName}}/start",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events",
+								"{{address}}",
+								"{{eventName}}",
+								"start"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete event",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}/api/v1/events/{{address}}/{{eventName}}",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"events",
+								"{{address}}",
+								"{{eventName}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Metrics",
+			"item": [
+				{
+					"name": "Get All TXs",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"event\": {\n        \"nodeURL\": \"https://polygon-mainnet.g.alchemy.com/v2/2hi88g7IcSsxOiUZXV5FEyq1i9egUQvo\",\n        \"network\": \"polygon\",\n        \"abi\": {\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"string\",\n                    \"name\": \"pubId\",\n                    \"type\": \"string\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"profileAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"budget\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"reward\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"currencyAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"minFollowers\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"feePerMirror\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"appAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"appFee\",\n                    \"type\": \"uint256\"\n                }\n            ],\n            \"name\": \"wav3sFrenMirror__PostFunded\",\n            \"type\": \"event\"\n        }\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_url}}/api/v1/metrics/transactions?sort=asc&limit=10&offset=0&page=1",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"metrics",
+								"transactions"
+							],
+							"query": [
+								{
+									"key": "sort",
+									"value": "asc"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Contract TXs",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"event\": {\n        \"nodeURL\": \"https://polygon-mainnet.g.alchemy.com/v2/2hi88g7IcSsxOiUZXV5FEyq1i9egUQvo\",\n        \"network\": \"polygon\",\n        \"abi\": {\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"string\",\n                    \"name\": \"pubId\",\n                    \"type\": \"string\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"profileAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"budget\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"reward\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"currencyAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"minFollowers\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"feePerMirror\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"appAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"appFee\",\n                    \"type\": \"uint256\"\n                }\n            ],\n            \"name\": \"wav3sFrenMirror__PostFunded\",\n            \"type\": \"event\"\n        }\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_url}}/api/v1/metrics/transactions/0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf?limit=10&page=1&sort=desc",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"metrics",
+								"transactions",
+								"0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "sort",
+									"value": "desc"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Total Contract TXs",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"event\": {\n        \"nodeURL\": \"https://polygon-mainnet.g.alchemy.com/v2/2hi88g7IcSsxOiUZXV5FEyq1i9egUQvo\",\n        \"network\": \"polygon\",\n        \"abi\": {\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"string\",\n                    \"name\": \"pubId\",\n                    \"type\": \"string\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"profileAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"budget\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"reward\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"currencyAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"minFollowers\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"feePerMirror\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"appAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"appFee\",\n                    \"type\": \"uint256\"\n                }\n            ],\n            \"name\": \"wav3sFrenMirror__PostFunded\",\n            \"type\": \"event\"\n        }\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_url}}/api/v1/metrics/transactions/0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf/total",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"metrics",
+								"transactions",
+								"0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf",
+								"total"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Contract Failed TXs",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"event\": {\n        \"nodeURL\": \"https://polygon-mainnet.g.alchemy.com/v2/2hi88g7IcSsxOiUZXV5FEyq1i9egUQvo\",\n        \"network\": \"polygon\",\n        \"abi\": {\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"string\",\n                    \"name\": \"pubId\",\n                    \"type\": \"string\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"profileAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"budget\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"reward\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"currencyAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"minFollowers\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"feePerMirror\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"appAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"appFee\",\n                    \"type\": \"uint256\"\n                }\n            ],\n            \"name\": \"wav3sFrenMirror__PostFunded\",\n            \"type\": \"event\"\n        }\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_url}}/api/v1/metrics/transactions/0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf/failed?limit=10&page=1&sort=desc",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"metrics",
+								"transactions",
+								"0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf",
+								"failed"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "sort",
+									"value": "desc"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Contract Total Failed TXs",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"event\": {\n        \"nodeURL\": \"https://polygon-mainnet.g.alchemy.com/v2/2hi88g7IcSsxOiUZXV5FEyq1i9egUQvo\",\n        \"network\": \"polygon\",\n        \"abi\": {\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"string\",\n                    \"name\": \"pubId\",\n                    \"type\": \"string\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"profileAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"budget\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"reward\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"currencyAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"minFollowers\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"feePerMirror\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"appAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"appFee\",\n                    \"type\": \"uint256\"\n                }\n            ],\n            \"name\": \"wav3sFrenMirror__PostFunded\",\n            \"type\": \"event\"\n        }\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_url}}/api/v1/metrics/transactions/0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf/failed/total",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"metrics",
+								"transactions",
+								"0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf",
+								"failed",
+								"total"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Contract Active Addresses",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"event\": {\n        \"nodeURL\": \"https://polygon-mainnet.g.alchemy.com/v2/2hi88g7IcSsxOiUZXV5FEyq1i9egUQvo\",\n        \"network\": \"polygon\",\n        \"abi\": {\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"string\",\n                    \"name\": \"pubId\",\n                    \"type\": \"string\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"profileAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"budget\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"reward\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"currencyAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"minFollowers\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"feePerMirror\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"appAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"appFee\",\n                    \"type\": \"uint256\"\n                }\n            ],\n            \"name\": \"wav3sFrenMirror__PostFunded\",\n            \"type\": \"event\"\n        }\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_url}}/api/v1/metrics/addresses/0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf?limit=10&page=1&sort=desc",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"metrics",
+								"addresses",
+								"0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "sort",
+									"value": "desc"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Contract Total Active Addresses",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"event\": {\n        \"nodeURL\": \"https://polygon-mainnet.g.alchemy.com/v2/2hi88g7IcSsxOiUZXV5FEyq1i9egUQvo\",\n        \"network\": \"polygon\",\n        \"abi\": {\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"string\",\n                    \"name\": \"pubId\",\n                    \"type\": \"string\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"profileAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"budget\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"reward\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"currencyAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"minFollowers\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"feePerMirror\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"address\",\n                    \"name\": \"appAddress\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"appFee\",\n                    \"type\": \"uint256\"\n                }\n            ],\n            \"name\": \"wav3sFrenMirror__PostFunded\",\n            \"type\": \"event\"\n        }\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_url}}/api/v1/metrics/addresses/0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf/total",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"metrics",
+								"addresses",
+								"0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf",
+								"total"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Historic TVL",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"smartcontract\": {\n        \"name\": \"Example Contract\",\n        \"network\": \"polygon\",\n        \"nodeURL\": \"https://polygon-mumbai.g.alchemy.com/v2/_fQt29PoLS69dpof_XX_P6ziiJY7-U4I\",\n        \"address\": \"{{address}}\",\n        \"abi\": [{\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"address\",\n                    \"name\": \"userAddr\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount1\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"num\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"string\",\n                    \"name\": \"lala\",\n                    \"type\": \"string\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"string\",\n                    \"name\": \"lala2\",\n                    \"type\": \"string\"\n                }\n            ],\n            \"name\": \"Example\",\n            \"type\": \"event\"\n        }]\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_url}}/api/v1/metrics/tvl/0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf?limit=10&page=1&sort=desc",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"metrics",
+								"tvl",
+								"0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "sort",
+									"value": "desc"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current TVL",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"smartcontract\": {\n        \"name\": \"Example Contract\",\n        \"network\": \"polygon\",\n        \"nodeURL\": \"https://polygon-mumbai.g.alchemy.com/v2/_fQt29PoLS69dpof_XX_P6ziiJY7-U4I\",\n        \"address\": \"{{address}}\",\n        \"abi\": [{\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"address\",\n                    \"name\": \"userAddr\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount1\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"num\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"string\",\n                    \"name\": \"lala\",\n                    \"type\": \"string\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"string\",\n                    \"name\": \"lala2\",\n                    \"type\": \"string\"\n                }\n            ],\n            \"name\": \"Example\",\n            \"type\": \"event\"\n        }]\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_url}}/api/v1/metrics/tvl/0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf/current",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"metrics",
+								"tvl",
+								"0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf",
+								"current"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get  Contract Historic Gas Used",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"smartcontract\": {\n        \"name\": \"Example Contract\",\n        \"network\": \"polygon\",\n        \"nodeURL\": \"https://polygon-mumbai.g.alchemy.com/v2/_fQt29PoLS69dpof_XX_P6ziiJY7-U4I\",\n        \"address\": \"{{address}}\",\n        \"abi\": [{\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"address\",\n                    \"name\": \"userAddr\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount1\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"num\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"string\",\n                    \"name\": \"lala\",\n                    \"type\": \"string\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"string\",\n                    \"name\": \"lala2\",\n                    \"type\": \"string\"\n                }\n            ],\n            \"name\": \"Example\",\n            \"type\": \"event\"\n        }]\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_url}}/api/v1/metrics/gas/0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf?limit=10&page=1&sort=desc",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"metrics",
+								"gas",
+								"0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "sort",
+									"value": "desc"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get  Contract Total Gas Used",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"smartcontract\": {\n        \"name\": \"Example Contract\",\n        \"network\": \"polygon\",\n        \"nodeURL\": \"https://polygon-mumbai.g.alchemy.com/v2/_fQt29PoLS69dpof_XX_P6ziiJY7-U4I\",\n        \"address\": \"{{address}}\",\n        \"abi\": [{\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"address\",\n                    \"name\": \"userAddr\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount1\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"num\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"string\",\n                    \"name\": \"lala\",\n                    \"type\": \"string\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"string\",\n                    \"name\": \"lala2\",\n                    \"type\": \"string\"\n                }\n            ],\n            \"name\": \"Example\",\n            \"type\": \"event\"\n        }]\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_url}}/api/v1/metrics/gas/0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf/total",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"metrics",
+								"gas",
+								"0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf",
+								"total"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get  Contract Total Value Transferred",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"smartcontract\": {\n        \"name\": \"Example Contract\",\n        \"network\": \"polygon\",\n        \"nodeURL\": \"https://polygon-mumbai.g.alchemy.com/v2/_fQt29PoLS69dpof_XX_P6ziiJY7-U4I\",\n        \"address\": \"{{address}}\",\n        \"abi\": [{\n            \"anonymous\": false,\n            \"inputs\": [\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"address\",\n                    \"name\": \"userAddr\",\n                    \"type\": \"address\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"amount1\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"uint256\",\n                    \"name\": \"num\",\n                    \"type\": \"uint256\"\n                },\n                {\n                    \"indexed\": true,\n                    \"internalType\": \"string\",\n                    \"name\": \"lala\",\n                    \"type\": \"string\"\n                },\n                {\n                    \"indexed\": false,\n                    \"internalType\": \"string\",\n                    \"name\": \"lala2\",\n                    \"type\": \"string\"\n                }\n            ],\n            \"name\": \"Example\",\n            \"type\": \"event\"\n        }]\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{api_url}}/api/v1/metrics/value/0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf/total",
+							"host": [
+								"{{api_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"metrics",
+								"value",
+								"0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf",
+								"total"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Cronjob",
+			"item": [
+				{
+					"name": "Start cronjob",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}{{base_url}}/api/v1/cronjob/start",
+							"host": [
+								"{{api_url}}{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"cronjob",
+								"start"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Stop cronjob",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}{{base_url}}/api/v1/cronjob/stop",
+							"host": [
+								"{{api_url}}{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"cronjob",
+								"stop"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Restart cronjob",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}{{base_url}}/api/v1/cronjob/restart",
+							"host": [
+								"{{api_url}}{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"cronjob",
+								"restart"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Status cronjob",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{api_url}}{{base_url}}/api/v1/cronjob/status",
+							"host": [
+								"{{api_url}}{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"cronjob",
+								"status"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
