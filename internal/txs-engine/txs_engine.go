@@ -3,6 +3,7 @@ package txsengine
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -61,27 +62,31 @@ func New(ss synchronizer.SmartContractStorage, ts *transactionstorage.Storage, i
 	}
 }
 
-func (te *T) Start(seconds int64) {
-	for te.GetStatus() == StatusIdle || te.GetStatus() == StatusRunning {
-		err := te.Run()
+func (t *T) Start(seconds int64) {
+	for t.GetStatus() == StatusIdle || t.GetStatus() == StatusRunning {
+		log.Print("starting ...")
+		err := t.Run()
 		if err != nil {
-			te.SetStatus(StatusError)
+			t.SetStatus(StatusError)
 		}
+		log.Print("finished!")
 
+		log.Print("sleeping ...")
 		time.Sleep(time.Duration(time.Duration(seconds) * time.Second))
+		log.Print("sleept!")
 	}
 }
 
-func (te *T) Run() error {
-	if te.GetStatus() == StatusStopped || te.GetStatus() == StatusStopping || te.GetStatus() == StatusError {
+func (t *T) Run() error {
+	if t.GetStatus() == StatusStopped || t.GetStatus() == StatusStopping || t.GetStatus() == StatusError {
 		return nil
 	}
 
-	// Update to running when starting it
-	te.SetStatus(StatusRunning)
+	// Update enigne to running status when starting it
+	t.SetStatus(StatusRunning)
 
 	// Get all the current sc's
-	scArr, err := te.ScStorage.ListUniqueSmartContractsByNetwork()
+	scArr, err := t.ScStorage.ListUniqueSmartContractsByNetwork()
 	if err != nil {
 		return err
 	}
@@ -89,34 +94,40 @@ func (te *T) Run() error {
 	// TODO(nb): use goroutines for executing the smart contracts at the same time
 	// Iterate over contracts for getting their tx's
 	for _, contract := range scArr {
-		log.Println("contract started at: ", contract.Name)
 		// If it is stopped, continue with the other contracts
 		if contract.Status == smartcontract.StatusStopping || contract.Status == smartcontract.StatusStopped || contract.Status == smartcontract.StatusSynching {
 			continue
 		}
+		log.Println("contract started at: ", contract.Name)
+		// Update contract status to synching
+		t.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusSynching, errors.New(""))
 
-		etherscanApiUrl, etherscanApiKey, err := util.CheckAndGetApis(contract, te.NetworksEtherscanURL, te.NetworksEtherscanAPIKey)
+		// Validate and get etherscan api keys
+		etherscanApiUrl, etherscanApiKey, err := util.CheckAndGetApis(contract, t.NetworksEtherscanURL, t.NetworksEtherscanAPIKey)
 		if err != nil {
-			te.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+			t.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 			continue
 		}
 
-		nodeUrl, err := util.CheckAndGetNodeURL(contract, te.NetworksNodesURL)
+		// Validate and get the node url
+		nodeUrl, err := util.CheckAndGetNodeURL(contract, t.NetworksNodesURL)
 		if err != nil {
-			te.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+			t.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 			continue
 		}
 
+		// Instance client with the node url
 		client, err := ethclient.Dial(nodeUrl)
 		if err != nil {
-			return err
+			t.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+			continue
 		}
 
 		// Get tx's
 		startBlock := contract.LastTxBlockSynced + 1
 		transactions, err := GetTransactions(etherscanApiUrl, etherscanApiKey, contract.Address, startBlock)
 		if err != nil {
-			te.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+			t.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 			continue
 		}
 
@@ -127,11 +138,12 @@ func (te *T) Run() error {
 		if numberOfTxs == 0 {
 			lastBlock, err := client.BlockNumber(context.Background())
 			if err != nil {
-				te.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+				t.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 				continue
 			}
 
-			te.ScStorage.UpdateLastBlockNumber(contract.ID, int64(lastBlock))
+			t.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusRunning, errors.New(""))
+			t.ScStorage.UpdateLastBlockNumber(contract.ID, int64(lastBlock))
 			continue
 		}
 
@@ -155,18 +167,17 @@ func (te *T) Run() error {
 		}
 
 		// Create an id per txs item
-		log.Println("len: txs", len(transactions))
 		if len(transactions) < 25000 {
 			missingDataCTX := &util.MissingDataCTX{
 				Transactions: transactions,
 				Contract:     contract,
 				Client:       client,
-				IdGen:        te.idGen,
+				IdGen:        t.idGen,
 			}
 
 			transactions, err = util.CompleteContractTxsData(missingDataCTX)
 			if err != nil {
-				te.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+				t.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 				continue
 			}
 
@@ -175,24 +186,22 @@ func (te *T) Run() error {
 				Transactions: transactions,
 				Contract:     contract,
 				Client:       nil,
-				IdGen:        te.idGen,
+				IdGen:        t.idGen,
 			}
 			transactions, err = util.CompleteContractTxsDataWithoutBalance(missingDataCTX)
 			if err != nil {
-				te.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+				t.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 				continue
 			}
 
 		}
 
 		// Insert them in the storage
-		err = te.transactionStorage.InsertTxsByContract(transactions)
+		err = t.transactionStorage.InsertTxsByContract(transactions)
 		if err != nil {
-			te.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+			t.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 			continue
 		}
-
-		log.Println("contract finished at: ", contract.Name)
 	}
 
 	return nil
@@ -229,16 +238,16 @@ func GetTransactions(apiUrl string, apiKey string, address string, startBlock in
 }
 
 // Get status
-func (te *T) GetStatus() StatusEngine {
-	return te.Status
+func (t *T) GetStatus() StatusEngine {
+	return t.Status
 }
 
 // Set status with mutex
-func (te *T) SetStatus(status StatusEngine) {
-	te.Status = status
+func (t *T) SetStatus(status StatusEngine) {
+	t.Status = status
 }
 
 // Stop the tx engine
-func (te *T) Halt() {
-	te.Status = StatusStopped
+func (t *T) Halt() {
+	t.Status = StatusStopped
 }

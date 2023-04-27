@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
+	"github.com/darchlabs/synchronizer-v2/pkg/smartcontract"
 	"github.com/darchlabs/synchronizer-v2/pkg/transaction"
 	"github.com/lib/pq"
 )
@@ -237,7 +238,7 @@ func (s *Storage) InsertTxsByContract(transactions []*transaction.Transaction) e
 		ids = append(ids, txData.ID)
 		contractIds = append(contractIds, txData.ContractID)
 		hashes = append(hashes, txData.Hash)
-		chainIds = append(hashes, txData.ChainID)
+		chainIds = append(chainIds, txData.ChainID)
 		blockNumbers = append(blockNumbers, txData.BlockNumber)
 		fromAddresses = append(fromAddresses, txData.From)
 		fromBalances = append(fromBalances, txData.FromBalance)
@@ -285,9 +286,9 @@ func (s *Storage) InsertTxsByContract(transactions []*transaction.Transaction) e
 	contractID := transactions[len(transactions)-1].ContractID
 	latestBlockNumber := transactions[len(transactions)-1].BlockNumber
 
-	// Update the smart contract with the latest block number
-	smartContractQuery := `UPDATE smartcontracts SET last_tx_block_synced = $1 WHERE id = $2`
-	_, err = tx.Exec(smartContractQuery, latestBlockNumber, contractID)
+	// Update the smart contract with the latest block number, status and error
+	smartContractQuery := `UPDATE smartcontracts SET last_tx_block_synced = $1 status = $2 error = $3 WHERE id = $4`
+	_, err = tx.Exec(smartContractQuery, latestBlockNumber, smartcontract.StatusRunning, "", contractID)
 	if err != nil {
 		tx.Rollback()
 		return err

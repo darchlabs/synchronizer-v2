@@ -68,8 +68,8 @@ func (s *Storage) UpdateStatusAndError(id string, status smartcontract.SmartCont
 	}
 
 	// update smartcontract status and error in database
-	query := fmt.Sprintf("UPDATE smartcontracts SET status = $1, error = $2, updated_at = $3 WHERE id = %s", current.ID)
-	_, err = s.storage.DB.Exec(query, status, err, time.Now())
+	query := "UPDATE smartcontracts SET status = $1, error = $2, updated_at = $3 WHERE id = $4"
+	_, err = s.storage.DB.Exec(query, status, err.Error(), time.Now(), current.ID)
 	if err != nil {
 		return err
 	}
@@ -142,13 +142,13 @@ func (s *Storage) ListUniqueSmartContractsByNetwork() ([]*smartcontract.SmartCon
 	smartcontracts := []*smartcontract.SmartContract{}
 
 	// get unique smartcontracts by network from db
-	/* @dev: It creates a sub table with a partition with only address and chain_id fields.
+	/* @dev: It creates a sub table with a partition with only address and network fields.
 	 * This partition makes a counter for each row of smart contracts that has the same address
-	 * and chain id. Then from that partition we only get the first row, ensuring that we are not
+	 * and network. Then from that partition we only get the first row, ensuring that we are not
 	 * getting any smart contract with this repeated info using the row number counter.
 	 */
-	scQuery := `SELECT * FROM (
-					SELECT *, ROW_NUMBER() OVER (PARTITION BY address, chain_id) AS rn
+	scQuery := `SELECT id, name, network, node_url, address, last_tx_block_synced, status, error, created_at, updated_At FROM (
+					SELECT *, ROW_NUMBER() OVER (PARTITION BY address, network) AS rn
 					FROM smartcontracts
 				) AS sq
 			WHERE sq.rn = 1`
