@@ -50,9 +50,6 @@ func (s *Storage) UpdateLastBlockNumber(id string, blockNumber int64) error {
 		return fmt.Errorf("smartcontract does not exist")
 	}
 
-	fmt.Println("id: ", id)
-	fmt.Println("blockNumber: ", blockNumber)
-
 	// insert new smartcontract in database
 	query := `UPDATE smartcontracts SET last_tx_block_synced = $1, updated_at = $2  WHERE id = $3 RETURNING *`
 	_, err := s.storage.DB.Exec(query, blockNumber, time.Now(), id)
@@ -112,18 +109,53 @@ func (s *Storage) DeleteSmartContractByAddress(address string) error {
 	return nil
 }
 
+func (s *Storage) ListAllSmartContracts() ([]*smartcontract.SmartContract, error) {
+	// define smartcontracts response
+	smartcontracts := []*smartcontract.SmartContract{}
+
+	// get smartcontracts from db
+	scQuery := "SELECT * FROM smartcontracts"
+	err := s.storage.DB.Select(&smartcontracts, scQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	return smartcontracts, nil
+}
+
 func (s *Storage) ListSmartContracts(sort string, limit int64, offset int64) ([]*smartcontract.SmartContract, error) {
 	// define smartcontracts response
 	smartcontracts := []*smartcontract.SmartContract{}
 
-	fmt.Println("as: ")
 	// get smartcontracts from db
 	scQuery := fmt.Sprintf("SELECT * FROM smartcontracts ORDER BY created_at %s LIMIT $1 OFFSET $2", sort)
 	err := s.storage.DB.Select(&smartcontracts, scQuery, limit, offset)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("scscs: ", smartcontracts)
+
+	return smartcontracts, nil
+}
+
+func (s *Storage) ListUniqueSmartContractsByNetwork() ([]*smartcontract.SmartContract, error) {
+	// define smartcontracts response
+	smartcontracts := []*smartcontract.SmartContract{}
+
+	// get unique smartcontracts by network from db
+	/* @dev: It creates a sub table with a partition with only address and chain_id fields.
+	 * This partition makes a counter for each row of smart contracts that has the same address
+	 * and chain id. Then from that partition we only get the first row, ensuring that we are not
+	 * getting any smart contract with this repeated info using the row number counter.
+	 */
+	scQuery := `SELECT * FROM (
+					SELECT *, ROW_NUMBER() OVER (PARTITION BY address, chain_id) AS rn
+					FROM smartcontracts
+				) AS sq
+			WHERE sq.rn = 1`
+	err := s.storage.DB.Select(&smartcontracts, scQuery)
+	if err != nil {
+		return nil, err
+	}
 
 	return smartcontracts, nil
 }

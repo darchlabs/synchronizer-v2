@@ -34,7 +34,9 @@ type Cronjob interface {
 }
 
 type SmartContractStorage interface {
+	ListAllSmartContracts() ([]*smartcontract.SmartContract, error)
 	ListSmartContracts(sort string, limit int64, offset int64) ([]*smartcontract.SmartContract, error)
+	ListUniqueSmartContractsByNetwork() ([]*smartcontract.SmartContract, error)
 	InsertSmartContract(s *smartcontract.SmartContract) (*smartcontract.SmartContract, error)
 	UpdateLastBlockNumber(id string, blockNumber int64) error
 	DeleteSmartContractByAddress(address string) error

@@ -1,6 +1,7 @@
 package txsengine
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -14,24 +15,27 @@ import (
 	"github.com/darchlabs/synchronizer-v2/pkg/smartcontract"
 	"github.com/darchlabs/synchronizer-v2/pkg/transaction"
 	"github.com/darchlabs/synchronizer-v2/pkg/util"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 type idGenerator func() string
 
 type TxsEngine interface {
-	Start(seconds int64) error
+	Start(seconds int64)
+	Run() error
 	Halt()
 	GetStatus() StatusEngine
 	SetStatus(status StatusEngine)
 }
 
 type T struct {
-	ScStorage          synchronizer.SmartContractStorage
-	transactionStorage *transactionstorage.Storage
-	Status             StatusEngine
-	idGen              idGenerator
-	etherscanApiUrl    string
-	etherscanApiKey    string
+	ScStorage               synchronizer.SmartContractStorage
+	transactionStorage      *transactionstorage.Storage
+	Status                  StatusEngine
+	idGen                   idGenerator
+	NetworksEtherscanURL    map[string]string
+	NetworksEtherscanAPIKey map[string]string
+	NetworksNodesURL        map[string]string
 }
 
 // Define the enigne status
@@ -45,18 +49,30 @@ const (
 	StatusError    StatusEngine = "error"
 )
 
-func New(ss synchronizer.SmartContractStorage, ts *transactionstorage.Storage, idGen idGenerator, apiUrl string, apiKey string) *T {
+func New(ss synchronizer.SmartContractStorage, ts *transactionstorage.Storage, idGen idGenerator, etherscanUrlMap map[string]string, etherscanApiKeyMap map[string]string, nodesUrlMap map[string]string) *T {
 	return &T{
-		ScStorage:          ss,
-		transactionStorage: ts,
-		Status:             StatusIdle,
-		idGen:              idGen,
-		etherscanApiUrl:    apiUrl,
-		etherscanApiKey:    apiKey,
+		ScStorage:               ss,
+		transactionStorage:      ts,
+		Status:                  StatusIdle,
+		idGen:                   idGen,
+		NetworksEtherscanURL:    etherscanUrlMap,
+		NetworksEtherscanAPIKey: etherscanApiKeyMap,
+		NetworksNodesURL:        nodesUrlMap,
 	}
 }
 
-func (te *T) Start(seconds int64) error {
+func (te *T) Start(seconds int64) {
+	for te.GetStatus() == StatusIdle || te.GetStatus() == StatusRunning {
+		err := te.Run()
+		if err != nil {
+			te.SetStatus(StatusError)
+		}
+
+		time.Sleep(time.Duration(time.Duration(seconds) * time.Second))
+	}
+}
+
+func (te *T) Run() error {
 	if te.GetStatus() == StatusStopped || te.GetStatus() == StatusStopping || te.GetStatus() == StatusError {
 		return nil
 	}
@@ -64,72 +80,119 @@ func (te *T) Start(seconds int64) error {
 	// Update to running when starting it
 	te.SetStatus(StatusRunning)
 
-	for te.GetStatus() == StatusRunning {
+	// Get all the current sc's
+	scArr, err := te.ScStorage.ListUniqueSmartContractsByNetwork()
+	if err != nil {
+		return err
+	}
 
-		// While the status is running, the engine'll execute
+	// TODO(nb): use goroutines for executing the smart contracts at the same time
+	// Iterate over contracts for getting their tx's
+	for _, contract := range scArr {
+		log.Println("contract started at: ", contract.Name)
+		// If it is stopped, continue with the other contracts
+		if contract.Status == smartcontract.StatusStopping || contract.Status == smartcontract.StatusStopped || contract.Status == smartcontract.StatusSynching {
+			continue
+		}
 
-		// Get all the current sc's
-		scArr, err := te.ScStorage.ListSmartContracts("asc", 1, 0)
+		etherscanApiUrl, etherscanApiKey, err := util.CheckAndGetApis(contract, te.NetworksEtherscanURL, te.NetworksEtherscanAPIKey)
 		if err != nil {
-			log.Println("there was an error while getting the contracts from the engine")
-			log.Panicf("the txs engine can't perform: %v", err)
+			te.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+			continue
 		}
 
-		// Iterate over contracts for getting their tx's
-		for _, contract := range scArr {
-			// If it is stopped, continue with the other contracts
-			if contract.Status == smartcontract.StatusStopping || contract.Status == smartcontract.StatusStopped || contract.Status == smartcontract.StatusSynching {
-				continue
-			}
+		nodeUrl, err := util.CheckAndGetNodeURL(contract, te.NetworksNodesURL)
+		if err != nil {
+			te.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+			continue
+		}
 
-			// TODO(nb): Manage some retry's in case the api fails before continuing?
-			// Get tx's
-			startBlock := int64(0)
-			transactions, err := GetTransactions(te.etherscanApiUrl, te.etherscanApiKey, contract.Address, startBlock)
+		client, err := ethclient.Dial(nodeUrl)
+		if err != nil {
+			return err
+		}
+
+		// Get tx's
+		startBlock := contract.LastTxBlockSynced + 1
+		transactions, err := GetTransactions(etherscanApiUrl, etherscanApiKey, contract.Address, startBlock)
+		if err != nil {
+			te.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+			continue
+		}
+
+		// Manage when it reachs the 10.000 logs limit and get the missing ones
+		apiResponseLimit := 10000
+		numberOfTxs := len(transactions)
+
+		if numberOfTxs == 0 {
+			lastBlock, err := client.BlockNumber(context.Background())
 			if err != nil {
+				te.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 				continue
 			}
 
-			// Manage when it reachs the 10.000 logs limit and get the missing ones
-			apiResponseLimit := 10000
-			numberOfTxs := len(transactions)
-			if numberOfTxs == apiResponseLimit {
+			te.ScStorage.UpdateLastBlockNumber(contract.ID, int64(lastBlock))
+			continue
+		}
 
-				for numberOfTxs == apiResponseLimit {
-
-					// Get the last block number
-					startBlock, err := strconv.ParseInt(transactions[len(transactions)-1].BlockNumber, 10, 64)
-					if err != nil {
-						continue
-					}
-
-					// Get the transactions but starting from the last block number
-					newTransactions, err := GetTransactions(te.etherscanApiUrl, te.etherscanApiKey, contract.Address, startBlock)
-					if err != nil {
-						continue
-					}
-
-					transactions = append(transactions, newTransactions...)
-
-					numberOfTxs = len(newTransactions)
-
+		if numberOfTxs == apiResponseLimit {
+			for numberOfTxs == apiResponseLimit {
+				// Get the last block number
+				startBlock, err := strconv.ParseInt(transactions[len(transactions)-1].BlockNumber, 10, 64)
+				if err != nil {
+					continue
 				}
-			}
 
-			// Create an id per txs item
-			transactions, err = util.CompleteTxsDataByContract(transactions, contract, te.idGen)
-			if err != nil {
-				continue
-			}
+				// Get the transactions but starting from the last block number
+				newTransactions, err := GetTransactions(etherscanApiUrl, etherscanApiKey, contract.Address, startBlock)
+				if err != nil {
+					continue
+				}
 
-			// Insert them in the storage
-			err = te.transactionStorage.InsertTxsByContract(transactions)
-			if err != nil {
-				continue
+				transactions = append(transactions, newTransactions...)
+				numberOfTxs = len(newTransactions)
 			}
 		}
 
-		time.Sleep(time.Duration(time.Duration(seconds) * time.Second))
+		// Create an id per txs item
+		log.Println("len: txs", len(transactions))
+		if len(transactions) < 25000 {
+			missingDataCTX := &util.MissingDataCTX{
+				Transactions: transactions,
+				Contract:     contract,
+				Client:       client,
+				IdGen:        te.idGen,
+			}
+
+			transactions, err = util.CompleteContractTxsData(missingDataCTX)
+			if err != nil {
+				te.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+				continue
+			}
+
+		} else {
+			missingDataCTX := &util.MissingDataCTX{
+				Transactions: transactions,
+				Contract:     contract,
+				Client:       nil,
+				IdGen:        te.idGen,
+			}
+			transactions, err = util.CompleteContractTxsDataWithoutBalance(missingDataCTX)
+			if err != nil {
+				te.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+				continue
+			}
+
+		}
+
+		// Insert them in the storage
+		err = te.transactionStorage.InsertTxsByContract(transactions)
+		if err != nil {
+			te.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+			continue
+		}
+
+		log.Println("contract finished at: ", contract.Name)
 	}
 
 	return nil

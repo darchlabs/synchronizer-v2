@@ -21,6 +21,7 @@ import (
 	EventAPI "github.com/darchlabs/synchronizer-v2/pkg/api/event"
 	"github.com/darchlabs/synchronizer-v2/pkg/api/metrics"
 	smartcontractsAPI "github.com/darchlabs/synchronizer-v2/pkg/api/smartcontracts"
+	"github.com/darchlabs/synchronizer-v2/pkg/util"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -44,6 +45,21 @@ func main() {
 	err := envconfig.Process("", &env)
 	if err != nil {
 		log.Fatal("invalid env values, error: ", err)
+	}
+
+	networksEtherscanURL, err := util.ParseStringifiedMap(env.NetworksEtherscanURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	networksEtherscanAPIKey, err := util.ParseStringifiedMap(env.NetworksEtherscanAPIKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	networksNodeURL, err := util.ParseStringifiedMap(env.NetworksNodeURL)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	// initialize storage
@@ -83,7 +99,7 @@ func main() {
 	cronjobSvc = cronjob.New(seconds, eventStorage, &clients, env.Debug, uuid.NewString, time.Now)
 
 	// Initialize the transactions engine
-	txsEngine = txsengine.New(smartContactStorage, transactionstorage, uuid.NewString, env.EtherscanApiURL, env.EtherscanApiKey)
+	txsEngine = txsengine.New(smartContactStorage, transactionstorage, uuid.NewString, networksEtherscanURL, networksEtherscanAPIKey, networksNodeURL)
 
 	// configure routers
 	smartcontractsAPI.Route(api, smartcontractsAPI.Context{
@@ -118,7 +134,8 @@ func main() {
 		api.Listen(fmt.Sprintf(":%s", env.Port))
 	}()
 
-	err = txsEngine.Start(seconds + 1)
+	// Run txs engine process
+	txsEngine.Start(seconds + 1)
 
 	// listen interrupt
 	quit := make(chan struct{})

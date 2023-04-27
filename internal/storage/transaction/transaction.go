@@ -53,14 +53,12 @@ func (s *Storage) GetContractTotalTxs(id string) (int64, error) {
 	// define events response
 	var totalTxsNum []int64
 
-	fmt.Println(1)
 	// get txs from db
 	eventQuery := "SELECT COUNT(*) FROM transactions WHERE contract_id = $1"
 	err := s.storage.DB.Select(&totalTxsNum, eventQuery, id)
 	if err != nil {
 		return 0, err
 	}
-	fmt.Println(2)
 
 	return totalTxsNum[0], nil
 
@@ -227,7 +225,7 @@ func (s *Storage) InsertTxsByContract(transactions []*transaction.Transaction) e
 	/* Prepare the query values */
 	// Make an array of each field from the transactions array
 	var (
-		ids, contractIds, blockNumbers, hashes, fromAddresses,
+		ids, contractIds, blockNumbers, hashes, chainIds, fromAddresses,
 		fromBalances, contractBalances, txsGases,
 		gasPrices, gasUsed, isErrorTxs, fromWhales,
 		txsValues, cumulativeGasesUsed, confirmations, txsReceipts,
@@ -239,6 +237,7 @@ func (s *Storage) InsertTxsByContract(transactions []*transaction.Transaction) e
 		ids = append(ids, txData.ID)
 		contractIds = append(contractIds, txData.ContractID)
 		hashes = append(hashes, txData.Hash)
+		chainIds = append(hashes, txData.ChainID)
 		blockNumbers = append(blockNumbers, txData.BlockNumber)
 		fromAddresses = append(fromAddresses, txData.From)
 		fromBalances = append(fromBalances, txData.FromBalance)
@@ -261,18 +260,18 @@ func (s *Storage) InsertTxsByContract(transactions []*transaction.Transaction) e
 	// Insert the txs on the query
 	/// @notice: `unnest` improves query performance
 	transactionsQuery := `INSERT INTO transactions (
-		id, contract_id, hash, block_number, "from", from_balance, from_is_whale, value,  contract_balance, gas, gas_price, gas_used, cumulative_gas_used, confirmations, is_error, tx_receipt_status, function_name, timestamp, created_at, updated_at
+		id, contract_id, hash, chain_id, block_number, "from", from_balance, from_is_whale, value,  contract_balance, gas, gas_price, gas_used, cumulative_gas_used, confirmations, is_error, tx_receipt_status, function_name, timestamp, created_at, updated_at
 		)
-		SELECT *
-		FROM unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::text[], $7::text[], $8::text[], $9::text[], $10::text[], $11::text[], $12::text[], $13::text[], $14::text[],
-			$15::text[], $16::text[], $17::text[], $18::text[], $19::timestamp with time zone[], $20::timestamp with time zone[]
+		SELECT * FROM unnest(
+			$1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::text[], $7::text[], $8::text[], $9::text[], $10::text[], $11::text[], $12::text[], $13::text[], $14::text[],
+			$15::text[], $16::text[], $17::text[], $18::text[], $19::text[], $20::timestamp with time zone[], $21::timestamp with time zone[]
 		)
-		ON CONFLICT (hash) DO NOTHING`
+		ON CONFLICT (hash, chain_id) DO NOTHING`
 
 	// Insert all of the values in the table, and then obtain each smart contract id with its last block number as response
 	_, err = tx.Exec(
 		transactionsQuery,
-		pq.Array(ids), pq.Array(contractIds), pq.Array(hashes), pq.Array(blockNumbers),
+		pq.Array(ids), pq.Array(contractIds), pq.Array(hashes), pq.Array(chainIds), pq.Array(blockNumbers),
 		pq.Array(fromAddresses), pq.Array(fromBalances), pq.Array(fromWhales), pq.Array(txsValues),
 		pq.Array(contractBalances), pq.Array(txsGases), pq.Array(gasPrices), pq.Array(gasUsed),
 		pq.Array(cumulativeGasesUsed), pq.Array(confirmations), pq.Array(isErrorTxs), pq.Array(txsReceipts),

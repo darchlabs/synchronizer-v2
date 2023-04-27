@@ -8,6 +8,7 @@ type Transaction struct {
 	ID                string    `json:"id" db:"id"`
 	ContractID        string    `json:"contractId" db:"contract_id"`
 	Hash              string    `json:"hash" db:"hash"`
+	ChainID           string    `json:"chain_id" db:"chain_id"`
 	BlockNumber       string    `json:"blockNumber" db:"block_number"`
 	From              string    `json:"from" db:"from"`
 	FromBalance       string    `json:"fromBalance" db:"from_balance"`
