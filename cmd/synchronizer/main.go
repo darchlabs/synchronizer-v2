@@ -123,6 +123,7 @@ func main() {
 		SmartContractStorage: smartContactStorage,
 		TransactionStorage:   transactionstorage,
 		EventStorage:         eventStorage,
+		Engine:               txsEngine,
 	})
 
 	// run process

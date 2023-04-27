@@ -4,19 +4,19 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-type listSmartContractTotalValueTransferredRes struct {
+type getSmartContractTotalFailedTransactionsRes struct {
 	Data  int64  `json:"data"`
 	Error string `json:"error,omitempty"`
 }
 
-func listSmartContractTotalValueTransferred(ctx Context) func(c *fiber.Ctx) error {
+func getSmartContractTotalFailedTransactions(ctx Context) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		c.Accepts("application/json")
 
 		// Get address
 		address := c.Params("address")
 		if address == "" {
-			return c.Status(fiber.StatusOK).JSON(listSmartContractTotalValueTransferredRes{
+			return c.Status(fiber.StatusOK).JSON(getSmartContractTotalFailedTransactionsRes{
 				Error: "address cannot be nil",
 			})
 		}
@@ -24,7 +24,7 @@ func listSmartContractTotalValueTransferred(ctx Context) func(c *fiber.Ctx) erro
 		contract, err := ctx.SmartContractStorage.GetSmartContractByAddress(address)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
-				listSmartContractTotalValueTransferredRes{
+				getSmartContractTotalFailedTransactionsRes{
 					Error: err.Error(),
 				},
 			)
@@ -32,26 +32,26 @@ func listSmartContractTotalValueTransferred(ctx Context) func(c *fiber.Ctx) erro
 
 		if contract == nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
-				listSmartContractTotalValueTransferredRes{
+				getSmartContractTotalFailedTransactionsRes{
 					Error: "smart contract not found in the given address",
 				},
 			)
 
 		}
 
-		// Get the total value transferred
-		totalTransactions, err := ctx.TransactionStorage.GetContractTotalValueTransferred(contract.ID)
+		// Get the transactions
+		totalFailedTransactions, err := ctx.TransactionStorage.GetContractTotalFailedTxs(contract.ID)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
-				listSmartContractTotalValueTransferredRes{
+				getSmartContractTotalFailedTransactionsRes{
 					Error: err.Error(),
 				},
 			)
 		}
 
 		// prepare response
-		return c.Status(fiber.StatusOK).JSON(listSmartContractTotalValueTransferredRes{
-			Data: totalTransactions,
+		return c.Status(fiber.StatusOK).JSON(getSmartContractTotalFailedTransactionsRes{
+			Data: totalFailedTransactions,
 		})
 	}
 }

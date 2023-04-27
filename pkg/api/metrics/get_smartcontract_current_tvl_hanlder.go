@@ -4,19 +4,19 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-type listSmartContractTotalActiveAddressesRes struct {
+type getSmartContractCurrentTVLRes struct {
 	Data  int64  `json:"data"`
 	Error string `json:"error,omitempty"`
 }
 
-func listSmartContractTotalActiveAddresses(ctx Context) func(c *fiber.Ctx) error {
+func getSmartContractCurrentTVL(ctx Context) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		c.Accepts("application/json")
 
 		// Get address
 		address := c.Params("address")
 		if address == "" {
-			return c.Status(fiber.StatusOK).JSON(listSmartContractTotalActiveAddressesRes{
+			return c.Status(fiber.StatusOK).JSON(getSmartContractCurrentTVLRes{
 				Error: "address cannot be nil",
 			})
 		}
@@ -24,7 +24,7 @@ func listSmartContractTotalActiveAddresses(ctx Context) func(c *fiber.Ctx) error
 		contract, err := ctx.SmartContractStorage.GetSmartContractByAddress(address)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
-				listSmartContractTotalActiveAddressesRes{
+				getSmartContractCurrentTVLRes{
 					Error: err.Error(),
 				},
 			)
@@ -32,7 +32,7 @@ func listSmartContractTotalActiveAddresses(ctx Context) func(c *fiber.Ctx) error
 
 		if contract == nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
-				listSmartContractTotalActiveAddressesRes{
+				getSmartContractCurrentTVLRes{
 					Error: "smart contract not found in the given address",
 				},
 			)
@@ -40,18 +40,18 @@ func listSmartContractTotalActiveAddresses(ctx Context) func(c *fiber.Ctx) error
 		}
 
 		// Get the transactions
-		totalActiveAddresses, err := ctx.TransactionStorage.GetContractTotalAddresses(contract.ID)
+		currentTVL, err := ctx.TransactionStorage.GetContractCurrentTVL(contract.ID)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
-				listSmartContractTotalActiveAddressesRes{
+				getSmartContractCurrentTVLRes{
 					Error: err.Error(),
 				},
 			)
 		}
 
 		// prepare response
-		return c.Status(fiber.StatusOK).JSON(listSmartContractTotalActiveAddressesRes{
-			Data: totalActiveAddresses,
+		return c.Status(fiber.StatusOK).JSON(getSmartContractCurrentTVLRes{
+			Data: currentTVL,
 		})
 	}
 }
