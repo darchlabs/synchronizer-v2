@@ -1,6 +1,9 @@
 package metrics
 
 import (
+	"fmt"
+
+	"github.com/darchlabs/synchronizer-v2"
 	"github.com/darchlabs/synchronizer-v2/internal/pagination"
 	"github.com/gofiber/fiber/v2"
 )
@@ -52,8 +55,17 @@ func listSmartContractTVLs(ctx Context) func(c *fiber.Ctx) error {
 			)
 		}
 
+		// Prepare the query context
+		queryCTX := &synchronizer.ListItemsInRangeCTX{
+			Id:        contract.ID,
+			StartTime: fmt.Sprint(p.StartTime),
+			EndTime:   fmt.Sprint(p.EndTime),
+			Sort:      p.Sort,
+			Limit:     p.Limit,
+			Offset:    p.Offset,
+		}
 		// Get the transactions
-		tvlArr, err := ctx.TransactionStorage.ListContractTVLs(contract.ID, p.Sort, p.Limit, p.Offset)
+		tvlArr, err := ctx.TransactionStorage.ListContractTVLs(queryCTX)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				listSmartContractTVLsRes{

@@ -494,7 +494,7 @@
 					"response": []
 				},
 				{
-					"name": "Get Contract TXs",
+					"name": "List Contract TXs",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
 					},
@@ -511,7 +511,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{api_url}}/api/v1/metrics/transactions/?contract=0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf",
+							"raw": "{{api_url}}/api/v1/metrics/transactions/0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf?startTime=1679415143&endTime=1679415191",
 							"host": [
 								"{{api_url}}"
 							],
@@ -520,12 +520,16 @@
 								"v1",
 								"metrics",
 								"transactions",
-								""
+								"0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf"
 							],
 							"query": [
 								{
-									"key": "contract",
-									"value": "0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf"
+									"key": "startTime",
+									"value": "1679415143"
+								},
+								{
+									"key": "endTime",
+									"value": "1679415191"
 								}
 							]
 						}
@@ -533,7 +537,7 @@
 					"response": []
 				},
 				{
-					"name": "Get Contract Failed TXs",
+					"name": "List Contract Failed TXs",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
 					},
@@ -550,7 +554,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{api_url}}/api/v1/metrics/transactions/0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf/failed?limit=2&page=1&sort=desc",
+							"raw": "{{api_url}}/api/v1/metrics/transactions/0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf/failed?limit=2&page=1&sort=desc&?startTime=1679415143&endTime=1679415191",
 							"host": [
 								"{{api_url}}"
 							],
@@ -574,6 +578,14 @@
 								{
 									"key": "sort",
 									"value": "desc"
+								},
+								{
+									"key": "?startTime",
+									"value": "1679415143"
+								},
+								{
+									"key": "endTime",
+									"value": "1679415191"
 								}
 							]
 						}
@@ -581,7 +593,7 @@
 					"response": []
 				},
 				{
-					"name": "Get Contract Active Addresses",
+					"name": "List Contract Active Addresses",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
 					},
@@ -598,7 +610,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{api_url}}/api/v1/metrics/addresses/0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf",
+							"raw": "{{api_url}}/api/v1/metrics/addresses/0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf?startTime=1679415143&endTime=1679415191",
 							"host": [
 								"{{api_url}}"
 							],
@@ -608,13 +620,23 @@
 								"metrics",
 								"addresses",
 								"0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf"
+							],
+							"query": [
+								{
+									"key": "startTime",
+									"value": "1679415143"
+								},
+								{
+									"key": "endTime",
+									"value": "1679415191"
+								}
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "Get Historic TVL",
+					"name": "List Historic TVL",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
 					},
@@ -631,7 +653,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{api_url}}/api/v1/metrics/tvl/0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf?limit=10&sort=asc&offset=5013",
+							"raw": "{{api_url}}/api/v1/metrics/tvl/0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf?limit=10&sort=asc&offset=5013&startTime=1679415143&endTime=1679415191",
 							"host": [
 								"{{api_url}}"
 							],
@@ -654,6 +676,14 @@
 								{
 									"key": "offset",
 									"value": "5013"
+								},
+								{
+									"key": "startTime",
+									"value": "1679415143"
+								},
+								{
+									"key": "endTime",
+									"value": "1679415191"
 								}
 							]
 						}
@@ -695,7 +725,7 @@
 					"response": []
 				},
 				{
-					"name": "Get  Contract Historic Gas Used",
+					"name": "List  Contract Historic Gas Used",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
 					},
@@ -712,7 +742,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{api_url}}/api/v1/metrics/gas/0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf?limit=2&page=1&sort=desc",
+							"raw": "{{api_url}}/api/v1/metrics/gas/0xe15a66b7b8e385caa6f69fd0d55984b96d7263cf?&sort=desc&?startTime=1679415143&endTime=1679415191",
 							"host": [
 								"{{api_url}}"
 							],
@@ -725,16 +755,20 @@
 							],
 							"query": [
 								{
-									"key": "limit",
-									"value": "2"
-								},
-								{
-									"key": "page",
-									"value": "1"
+									"key": null,
+									"value": null
 								},
 								{
 									"key": "sort",
 									"value": "desc"
+								},
+								{
+									"key": "?startTime",
+									"value": "1679415143"
+								},
+								{
+									"key": "endTime",
+									"value": "1679415191"
 								}
 							]
 						}

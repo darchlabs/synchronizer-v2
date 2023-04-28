@@ -1,6 +1,9 @@
 package metrics
 
 import (
+	"fmt"
+
+	"github.com/darchlabs/synchronizer-v2"
 	"github.com/darchlabs/synchronizer-v2/internal/pagination"
 	"github.com/gofiber/fiber/v2"
 )
@@ -52,8 +55,17 @@ func listSmartContractActiveAddresses(ctx Context) func(c *fiber.Ctx) error {
 			)
 		}
 
+		// Prepare the query context
+		queryCTX := &synchronizer.ListItemsInRangeCTX{
+			Id:        contract.ID,
+			StartTime: fmt.Sprint(p.StartTime),
+			EndTime:   fmt.Sprint(p.EndTime),
+			Sort:      p.Sort,
+			Limit:     p.Limit,
+			Offset:    p.Offset,
+		}
 		// Get the array of unique adresses in the given range
-		activeAddresses, err := ctx.TransactionStorage.ListContractUniqueAddresses(contract.ID, p.Sort, p.Limit, p.Offset)
+		activeAddresses, err := ctx.TransactionStorage.ListContractUniqueAddresses(queryCTX)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				listSmartContractActiveAddressesRes{

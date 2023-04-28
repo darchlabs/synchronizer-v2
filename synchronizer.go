@@ -47,24 +47,33 @@ type SmartContractStorage interface {
 	Stop() error
 }
 
+type ListItemsInRangeCTX struct {
+	Id        string
+	StartTime string
+	EndTime   string
+	Sort      string
+	Limit     int64
+	Offset    int64
+}
+
 type TransactionStorage interface {
 	InsertTxsByContract([]*transaction.Transaction) error
 
 	ListTxs(sort string, limit int64, offset int64) ([]*transaction.Transaction, error)
 	GetTotalTxsCount() (int64, error)
 
-	ListContractTxs(id string, sort string, limit int64, offset int64) ([]*transaction.Transaction, error)
+	ListContractTxs(ctx *ListItemsInRangeCTX) ([]*transaction.Transaction, error)
 	GetContractTotalTxsCount(id string) (int64, error)
 
-	ListContractFailedTxs(id string, sort string, limit int64, offset int64) ([]*transaction.Transaction, error)
+	ListContractFailedTxs(ctx *ListItemsInRangeCTX) ([]*transaction.Transaction, error)
 	GetContractTotalFailedTxsCount(id string) (int64, error)
 
 	GetContractTotalAddressesCount(id string) (int64, error)
-	ListContractUniqueAddresses(id string, sort string, limit int64, offset int64) ([]string, error)
+	ListContractUniqueAddresses(ctx *ListItemsInRangeCTX) ([]string, error)
 
 	GetContractCurrentTVL(id string) (int64, error)
-	ListContractTVLs(id string, sort string, limit int64, offset int64) ([]string, error)
+	ListContractTVLs(ctx *ListItemsInRangeCTX) ([]string, error)
 
-	ListContractGasSpent(id string, sort string, limit int64, offset int64) ([]string, error)
+	ListContractGasSpent(ctx *ListItemsInRangeCTX) ([]string, error)
 	GetContractTotalValueTransferred(id string) (int64, error)
 }

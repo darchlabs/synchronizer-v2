@@ -17,6 +17,8 @@ import (
 	smartcontractstorage "github.com/darchlabs/synchronizer-v2/internal/storage/smartcontract"
 	transactionstorage "github.com/darchlabs/synchronizer-v2/internal/storage/transaction"
 	txsengine "github.com/darchlabs/synchronizer-v2/internal/txs-engine"
+	CronjobAPI "github.com/darchlabs/synchronizer-v2/pkg/api/cronjob"
+	EventAPI "github.com/darchlabs/synchronizer-v2/pkg/api/event"
 	"github.com/darchlabs/synchronizer-v2/pkg/api/metrics"
 	smartcontractsAPI "github.com/darchlabs/synchronizer-v2/pkg/api/smartcontracts"
 	"github.com/darchlabs/synchronizer-v2/pkg/util"
@@ -108,16 +110,16 @@ func main() {
 		DateGen:      time.Now,
 		Env:          env,
 	})
-	// EventAPI.Route(api, EventAPI.Context{
-	// 	Storage: eventStorage,
-	// 	Cronjob: cronjobSvc,
-	// 	Clients: &clients,
-	// 	IDGen:   uuid.NewString,
-	// 	DateGen: time.Now,
-	// })
-	// CronjobAPI.Route(api, CronjobAPI.Context{
-	// 	Cronjob: cronjobSvc,
-	// })
+	EventAPI.Route(api, EventAPI.Context{
+		Storage: eventStorage,
+		Cronjob: cronjobSvc,
+		Clients: &clients,
+		IDGen:   uuid.NewString,
+		DateGen: time.Now,
+	})
+	CronjobAPI.Route(api, CronjobAPI.Context{
+		Cronjob: cronjobSvc,
+	})
 	metrics.Route(api, metrics.Context{
 		SmartContractStorage: smartContactStorage,
 		TransactionStorage:   transactionStorage,
