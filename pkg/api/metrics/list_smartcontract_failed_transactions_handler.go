@@ -7,7 +7,7 @@ import (
 )
 
 type listSmartContractFailedTransactionsRes struct {
-	Data  []*transaction.Transaction `json:"data,omitempty"`
+	Data  []*transaction.Transaction `json:"data"`
 	Meta  interface{}                `json:"meta,omitempty"`
 	Error string                     `json:"error,omitempty"`
 }
@@ -53,8 +53,18 @@ func listSmartContractFailedTransactions(ctx Context) func(c *fiber.Ctx) error {
 			)
 		}
 
-		// Get the transactions
+		// List the failed transactions on the given range
 		failedTxs, err := ctx.TransactionStorage.ListContractFailedTxs(contract.ID, p.Sort, p.Limit, p.Offset)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				listSmartContractFailedTransactionsRes{
+					Error: err.Error(),
+				},
+			)
+		}
+
+		// Get the total failed transactions
+		totalFailedTxs, err := ctx.TransactionStorage.GetContractTotalFailedTxsCount(contract.ID)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				listSmartContractFailedTransactionsRes{
@@ -65,7 +75,7 @@ func listSmartContractFailedTransactions(ctx Context) func(c *fiber.Ctx) error {
 
 		// define meta response with pagination
 		meta := make(map[string]interface{})
-		meta["pagination"] = p.GetPaginationMeta(int64(len(failedTxs)))
+		meta["pagination"] = p.GetPaginationMeta(totalFailedTxs)
 
 		// prepare response
 		return c.Status(fiber.StatusOK).JSON(listSmartContractFailedTransactionsRes{

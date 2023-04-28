@@ -17,8 +17,6 @@ import (
 	smartcontractstorage "github.com/darchlabs/synchronizer-v2/internal/storage/smartcontract"
 	transactionstorage "github.com/darchlabs/synchronizer-v2/internal/storage/transaction"
 	txsengine "github.com/darchlabs/synchronizer-v2/internal/txs-engine"
-	CronjobAPI "github.com/darchlabs/synchronizer-v2/pkg/api/cronjob"
-	EventAPI "github.com/darchlabs/synchronizer-v2/pkg/api/event"
 	"github.com/darchlabs/synchronizer-v2/pkg/api/metrics"
 	smartcontractsAPI "github.com/darchlabs/synchronizer-v2/pkg/api/smartcontracts"
 	"github.com/darchlabs/synchronizer-v2/pkg/util"
@@ -36,6 +34,7 @@ var (
 	eventStorage        synchronizer.EventStorage
 	smartContactStorage synchronizer.SmartContractStorage
 	cronjobSvc          synchronizer.Cronjob
+	transactionStorage  synchronizer.TransactionStorage
 	txsEngine           txsengine.TxsEngine
 )
 
@@ -77,7 +76,7 @@ func main() {
 	// initialize storages
 	eventStorage = eventstorage.New(s)
 	smartContactStorage = smartcontractstorage.New(s)
-	transactionstorage := transactionstorage.New(s)
+	transactionStorage = transactionstorage.New(s)
 
 	// parse seconds from string to int64
 	seconds, err := strconv.ParseInt(env.IntervalSeconds, 10, 64)
@@ -99,7 +98,7 @@ func main() {
 	cronjobSvc = cronjob.New(seconds, eventStorage, &clients, env.Debug, uuid.NewString, time.Now)
 
 	// Initialize the transactions engine
-	txsEngine = txsengine.New(smartContactStorage, transactionstorage, uuid.NewString, networksEtherscanURL, networksEtherscanAPIKey, networksNodeURL)
+	txsEngine = txsengine.New(&smartContactStorage, &transactionStorage, uuid.NewString, networksEtherscanURL, networksEtherscanAPIKey, networksNodeURL)
 
 	// configure routers
 	smartcontractsAPI.Route(api, smartcontractsAPI.Context{
@@ -109,19 +108,19 @@ func main() {
 		DateGen:      time.Now,
 		Env:          env,
 	})
-	EventAPI.Route(api, EventAPI.Context{
-		Storage: eventStorage,
-		Cronjob: cronjobSvc,
-		Clients: &clients,
-		IDGen:   uuid.NewString,
-		DateGen: time.Now,
-	})
-	CronjobAPI.Route(api, CronjobAPI.Context{
-		Cronjob: cronjobSvc,
-	})
+	// EventAPI.Route(api, EventAPI.Context{
+	// 	Storage: eventStorage,
+	// 	Cronjob: cronjobSvc,
+	// 	Clients: &clients,
+	// 	IDGen:   uuid.NewString,
+	// 	DateGen: time.Now,
+	// })
+	// CronjobAPI.Route(api, CronjobAPI.Context{
+	// 	Cronjob: cronjobSvc,
+	// })
 	metrics.Route(api, metrics.Context{
 		SmartContractStorage: smartContactStorage,
-		TransactionStorage:   transactionstorage,
+		TransactionStorage:   transactionStorage,
 		EventStorage:         eventStorage,
 		Engine:               txsEngine,
 	})

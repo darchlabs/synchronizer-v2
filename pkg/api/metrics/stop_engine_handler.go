@@ -6,7 +6,7 @@ import (
 )
 
 type stopEngineRes struct {
-	Data  txsengine.StatusEngine `json:"data,omitempty"`
+	Data  txsengine.StatusEngine `json:"data"`
 	Error string                 `json:"error,omitempty"`
 }
 

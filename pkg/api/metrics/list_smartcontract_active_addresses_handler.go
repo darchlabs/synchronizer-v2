@@ -6,7 +6,7 @@ import (
 )
 
 type listSmartContractActiveAddressesRes struct {
-	Data  []string    `json:"data,omitempty"`
+	Data  []string    `json:"data"`
 	Meta  interface{} `json:"meta,omitempty"`
 	Error string      `json:"error,omitempty"`
 }
@@ -52,8 +52,18 @@ func listSmartContractActiveAddresses(ctx Context) func(c *fiber.Ctx) error {
 			)
 		}
 
-		// Get the transactions
+		// Get the array of unique adresses in the given range
 		activeAddresses, err := ctx.TransactionStorage.ListContractUniqueAddresses(contract.ID, p.Sort, p.Limit, p.Offset)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				listSmartContractActiveAddressesRes{
+					Error: err.Error(),
+				},
+			)
+		}
+
+		// Get the total unique addresses
+		totalActiveAddresses, err := ctx.TransactionStorage.GetContractTotalAddressesCount(contract.ID)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				listSmartContractActiveAddressesRes{
@@ -64,7 +74,7 @@ func listSmartContractActiveAddresses(ctx Context) func(c *fiber.Ctx) error {
 
 		// define meta response with pagination
 		meta := make(map[string]interface{})
-		meta["pagination"] = p.GetPaginationMeta(int64(len(activeAddresses)))
+		meta["pagination"] = p.GetPaginationMeta(totalActiveAddresses)
 
 		// prepare response
 		return c.Status(fiber.StatusOK).JSON(listSmartContractActiveAddressesRes{

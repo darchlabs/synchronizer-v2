@@ -3,6 +3,7 @@ package transactionstorage
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
@@ -32,7 +33,26 @@ func (s *Storage) ListTxs(sort string, limit int64, offset int64) ([]*transactio
 		return nil, err
 	}
 
+	// Return an empty array and not null in case there are no rows
+	if len(txs) == 0 {
+		return []*transaction.Transaction{}, nil
+	}
+
 	return txs, nil
+}
+
+func (s *Storage) GetTotalTxsCount() (int64, error) {
+	// define events response
+	var totalTxs []int64
+
+	// get txs from db
+	eventQuery := "SELECT COUNT(*) FROM transactions"
+	err := s.storage.DB.Select(&totalTxs, eventQuery)
+	if err != nil {
+		return 0, err
+	}
+
+	return totalTxs[0], nil
 }
 
 func (s *Storage) ListContractTxs(id string, sort string, limit int64, offset int64) ([]*transaction.Transaction, error) {
@@ -46,11 +66,15 @@ func (s *Storage) ListContractTxs(id string, sort string, limit int64, offset in
 		return nil, err
 	}
 
-	return txs, nil
+	// Return an empty array and not null in case there are no rows
+	if len(txs) == 0 {
+		return []*transaction.Transaction{}, nil
+	}
 
+	return txs, nil
 }
 
-func (s *Storage) GetContractTotalTxs(id string) (int64, error) {
+func (s *Storage) GetContractTotalTxsCount(id string) (int64, error) {
 	// define events response
 	var totalTxsNum []int64
 
@@ -62,41 +86,35 @@ func (s *Storage) GetContractTotalTxs(id string) (int64, error) {
 	}
 
 	return totalTxsNum[0], nil
-
-}
-
-func (s *Storage) GetTxById(id string) (*transaction.Transaction, error) {
-	// define events response
-	tx := transaction.Transaction{}
-
-	// get txs from db
-	eventQuery := "SELECT * FROM transactions WHERE id = $1"
-	err := s.storage.DB.Select(&tx, eventQuery, id)
-	if err != nil {
-		return nil, err
-	}
-
-	return &tx, nil
-
 }
 
 func (s *Storage) GetContractCurrentTVL(id string) (int64, error) {
 	// define events response
-	var tvl []int64
+	var lastTVL []string
 
 	// get txs from db
-	eventQuery := "SELECT contract_balance::bigint FROM transactions WHERE contract_id = $1 ORDER BY block_number DESC LIMIT 1"
-	err := s.storage.DB.Select(&tvl, eventQuery, id)
+	eventQuery := "SELECT contract_balance FROM transactions WHERE contract_id = $1 ORDER BY block_number DESC LIMIT 1"
+	err := s.storage.DB.Select(&lastTVL, eventQuery, id)
 	if err != nil {
 		return 0, err
 	}
 
-	return tvl[0], nil
+	// Return 0 if there is no registers
+	if lastTVL[0] == "" {
+		return 0, nil
+	}
+
+	currentTVL, err := strconv.ParseInt(lastTVL[0], 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return currentTVL, nil
 }
 
-func (s *Storage) ListContractTVLs(id string, sort string, limit int64, offset int64) ([]int64, error) {
+func (s *Storage) ListContractTVLs(id string, sort string, limit int64, offset int64) ([]string, error) {
 	// define events response
-	var tvlArr []int64
+	var tvlArr []string
 
 	// get txs from db
 	eventQuery := fmt.Sprintf("SELECT contract_balance FROM transactions WHERE contract_id = $1 ORDER BY block_number %s LIMIT $2 OFFSET $3", sort)
@@ -105,10 +123,34 @@ func (s *Storage) ListContractTVLs(id string, sort string, limit int64, offset i
 		return nil, err
 	}
 
+	// Return an empty array and not null in case there are no rows
+	if len(tvlArr) == 0 {
+		return []string{}, nil
+	}
+
 	return tvlArr, nil
 }
 
-func (s *Storage) GetContractTotalAddresses(id string) (int64, error) {
+func (s *Storage) ListContractUniqueAddresses(id string, sort string, limit int64, offset int64) ([]string, error) {
+	var uniqueAddresses []string
+
+	query := fmt.Sprintf("SELECT DISTINCT t.from FROM (SELECT t.from, t.block_number FROM transactions AS t WHERE contract_id = $1 ORDER BY t.block_number %s) t LIMIT $2 OFFSET $3", sort)
+
+	// execute query and retrieve result
+	err := s.storage.DB.Select(&uniqueAddresses, query, id, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return an empty array and not null in case there are no rows
+	if len(uniqueAddresses) == 0 {
+		return []string{}, nil
+	}
+
+	return uniqueAddresses, nil
+}
+
+func (s *Storage) GetContractTotalAddressesCount(id string) (int64, error) {
 	// define events response
 	var totalAddr []int64
 
@@ -123,21 +165,6 @@ func (s *Storage) GetContractTotalAddresses(id string) (int64, error) {
 	return totalAddr[0], nil
 }
 
-func (s *Storage) ListContractUniqueAddresses(id string, sort string, limit int64, offset int64) ([]string, error) {
-	var uniqueAddresses []string
-
-	query := fmt.Sprintf("SELECT DISTINCT t.from FROM (SELECT t.from, t.block_number FROM transactions AS t WHERE contract_id = $1 ORDER BY t.block_number %s) t LIMIT $2 OFFSET $3", sort)
-
-	// execute query and retrieve result
-	err := s.storage.DB.Select(&uniqueAddresses, query, id, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-
-	return uniqueAddresses, nil
-
-}
-
 func (s *Storage) ListContractFailedTxs(id string, sort string, limit int64, offset int64) ([]*transaction.Transaction, error) {
 	var failedTxs []*transaction.Transaction
 
@@ -149,11 +176,15 @@ func (s *Storage) ListContractFailedTxs(id string, sort string, limit int64, off
 		return nil, err
 	}
 
-	return failedTxs, nil
+	// Return an empty array and not null in case there are no rows
+	if len(failedTxs) == 0 {
+		return []*transaction.Transaction{}, nil
+	}
 
+	return failedTxs, nil
 }
 
-func (s *Storage) GetContractTotalFailedTxs(id string) (int64, error) {
+func (s *Storage) GetContractTotalFailedTxsCount(id string) (int64, error) {
 	var totalFailedTxs []int64
 
 	query := "SELECT COUNT(*) FROM transactions WHERE contract_id = $1 AND (is_error = '1' OR tx_receipt_status = '0')"
@@ -167,20 +198,6 @@ func (s *Storage) GetContractTotalFailedTxs(id string) (int64, error) {
 	return totalFailedTxs[0], nil
 }
 
-func (s *Storage) GetContractTotalGasSpent(id string) (int64, error) {
-	var totalGasSpent []int64
-
-	query := "SELECT SUM(CAST(gas_used) as bigint) FROM transactions WHERE contract_id = $1"
-
-	// execute query and retrieve result
-	err := s.storage.DB.Select(&totalGasSpent, query, id)
-	if err != nil {
-		return 0, err
-	}
-
-	return totalGasSpent[0], nil
-}
-
 func (s *Storage) ListContractGasSpent(id string, sort string, limit int64, offset int64) ([]string, error) {
 	var gasSpentArr []string
 
@@ -192,8 +209,12 @@ func (s *Storage) ListContractGasSpent(id string, sort string, limit int64, offs
 		return nil, err
 	}
 
-	return gasSpentArr, nil
+	// Return an empty array and not null in case there are no rows
+	if len(gasSpentArr) == 0 {
+		return []string{}, nil
+	}
 
+	return gasSpentArr, nil
 }
 
 func (s *Storage) GetContractTotalValueTransferred(id string) (int64, error) {
@@ -287,7 +308,7 @@ func (s *Storage) InsertTxsByContract(transactions []*transaction.Transaction) e
 	latestBlockNumber := transactions[len(transactions)-1].BlockNumber
 
 	// Update the smart contract with the latest block number, status and error
-	smartContractQuery := `UPDATE smartcontracts SET last_tx_block_synced = $1 status = $2 error = $3 WHERE id = $4`
+	smartContractQuery := `UPDATE smartcontracts SET last_tx_block_synced = $1, status = $2, error = $3 WHERE id = $4`
 	_, err = tx.Exec(smartContractQuery, latestBlockNumber, smartcontract.StatusRunning, "", contractID)
 	if err != nil {
 		tx.Rollback()

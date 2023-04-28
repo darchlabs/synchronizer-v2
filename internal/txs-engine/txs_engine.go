@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/darchlabs/synchronizer-v2"
-	transactionstorage "github.com/darchlabs/synchronizer-v2/internal/storage/transaction"
 	"github.com/darchlabs/synchronizer-v2/pkg/smartcontract"
 	"github.com/darchlabs/synchronizer-v2/pkg/transaction"
 	"github.com/darchlabs/synchronizer-v2/pkg/util"
@@ -30,8 +29,8 @@ type TxsEngine interface {
 }
 
 type T struct {
-	ScStorage               synchronizer.SmartContractStorage
-	transactionStorage      *transactionstorage.Storage
+	SmartContractStorage    synchronizer.SmartContractStorage
+	transactionStorage      synchronizer.TransactionStorage
 	Status                  StatusEngine
 	idGen                   idGenerator
 	NetworksEtherscanURL    map[string]string
@@ -50,10 +49,10 @@ const (
 	StatusError    StatusEngine = "error"
 )
 
-func New(ss synchronizer.SmartContractStorage, ts *transactionstorage.Storage, idGen idGenerator, etherscanUrlMap map[string]string, etherscanApiKeyMap map[string]string, nodesUrlMap map[string]string) *T {
+func New(ss *synchronizer.SmartContractStorage, ts *synchronizer.TransactionStorage, idGen idGenerator, etherscanUrlMap map[string]string, etherscanApiKeyMap map[string]string, nodesUrlMap map[string]string) *T {
 	return &T{
-		ScStorage:               ss,
-		transactionStorage:      ts,
+		SmartContractStorage:    *ss,
+		transactionStorage:      *ts,
 		Status:                  StatusIdle,
 		idGen:                   idGen,
 		NetworksEtherscanURL:    etherscanUrlMap,
@@ -86,7 +85,7 @@ func (t *T) Run() error {
 	t.SetStatus(StatusRunning)
 
 	// Get all the current sc's
-	scArr, err := t.ScStorage.ListUniqueSmartContractsByNetwork()
+	scArr, err := t.SmartContractStorage.ListUniqueSmartContractsByNetwork()
 	if err != nil {
 		return err
 	}
@@ -95,31 +94,33 @@ func (t *T) Run() error {
 	// Iterate over contracts for getting their tx's
 	for _, contract := range scArr {
 		// If it is stopped, continue with the other contracts
-		if contract.Status == smartcontract.StatusStopping || contract.Status == smartcontract.StatusStopped || contract.Status == smartcontract.StatusSynching {
+		fmt.Println("status: ", contract.Status)
+		if contract.Status != smartcontract.StatusIdle && contract.Status != smartcontract.StatusRunning {
+			fmt.Println("should stpo here: ", contract.Status)
 			continue
 		}
 		log.Println("contract started at: ", contract.Name)
 		// Update contract status to synching
-		t.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusSynching, errors.New(""))
+		t.SmartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusSynching, errors.New(""))
 
 		// Validate and get etherscan api keys
 		etherscanApiUrl, etherscanApiKey, err := util.CheckAndGetApis(contract, t.NetworksEtherscanURL, t.NetworksEtherscanAPIKey)
 		if err != nil {
-			t.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+			t.SmartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 			continue
 		}
 
 		// Validate and get the node url
 		nodeUrl, err := util.CheckAndGetNodeURL(contract, t.NetworksNodesURL)
 		if err != nil {
-			t.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+			t.SmartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 			continue
 		}
 
 		// Instance client with the node url
 		client, err := ethclient.Dial(nodeUrl)
 		if err != nil {
-			t.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+			t.SmartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 			continue
 		}
 
@@ -127,7 +128,7 @@ func (t *T) Run() error {
 		startBlock := contract.LastTxBlockSynced + 1
 		transactions, err := GetTransactions(etherscanApiUrl, etherscanApiKey, contract.Address, startBlock)
 		if err != nil {
-			t.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+			t.SmartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 			continue
 		}
 
@@ -138,12 +139,12 @@ func (t *T) Run() error {
 		if numberOfTxs == 0 {
 			lastBlock, err := client.BlockNumber(context.Background())
 			if err != nil {
-				t.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+				t.SmartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 				continue
 			}
 
-			t.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusRunning, errors.New(""))
-			t.ScStorage.UpdateLastBlockNumber(contract.ID, int64(lastBlock))
+			t.SmartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusRunning, errors.New(""))
+			t.SmartContractStorage.UpdateLastBlockNumber(contract.ID, int64(lastBlock))
 			continue
 		}
 
@@ -166,40 +167,52 @@ func (t *T) Run() error {
 			}
 		}
 
-		// Create an id per txs item
-		if len(transactions) < 25000 {
-			missingDataCTX := &util.MissingDataCTX{
-				Transactions: transactions,
-				Contract:     contract,
-				Client:       client,
-				IdGen:        t.idGen,
-			}
+		txsWithBalances := transactions
+		var txsWithoutBalances []*transaction.Transaction
 
-			transactions, err = util.CompleteContractTxsData(missingDataCTX)
-			if err != nil {
-				t.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
-				continue
-			}
+		txNumberLimit := 5000
+		if len(transactions) > txNumberLimit {
+			txsWithBalances = transactions[0:5000]
+			txsWithoutBalances = transactions[5000:]
+		}
 
-		} else {
-			missingDataCTX := &util.MissingDataCTX{
-				Transactions: transactions,
+		// Complete the data (calculating also the balance for those which don't overpass the limit)
+		missingDataCTX := &util.MissingDataCTX{
+			Transactions: txsWithBalances,
+			Contract:     contract,
+			Client:       client,
+			IdGen:        t.idGen,
+		}
+		txsWithBalances, err = util.CompleteContractTxsData(missingDataCTX)
+		if err != nil {
+			// If there is an error, update it
+			t.SmartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+			// Update the txs without balances arr with the total transactions arr
+			txsWithoutBalances = transactions
+		}
+
+		if len(txsWithoutBalances) > 0 {
+			missingDataCTX = &util.MissingDataCTX{
+				Transactions: txsWithoutBalances,
 				Contract:     contract,
 				Client:       nil,
 				IdGen:        t.idGen,
 			}
-			transactions, err = util.CompleteContractTxsDataWithoutBalance(missingDataCTX)
+			txsWithoutBalances, err = util.CompleteContractTxsDataWithoutBalance(missingDataCTX)
 			if err != nil {
-				t.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+				t.SmartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 				continue
 			}
-
 		}
 
+		var completedTxs []*transaction.Transaction
+		completedTxs = append(completedTxs, txsWithBalances...)
+		completedTxs = append(completedTxs, txsWithoutBalances...)
+
 		// Insert them in the storage
-		err = t.transactionStorage.InsertTxsByContract(transactions)
+		err = t.transactionStorage.InsertTxsByContract(completedTxs)
 		if err != nil {
-			t.ScStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+			t.SmartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 			continue
 		}
 	}

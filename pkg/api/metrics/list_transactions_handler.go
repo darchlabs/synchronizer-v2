@@ -7,7 +7,7 @@ import (
 )
 
 type listTransactionsRes struct {
-	Data  []*transaction.Transaction `json:"data,omitempty"`
+	Data  []*transaction.Transaction `json:"data"`
 	Meta  interface{}                `json:"meta,omitempty"`
 	Error string                     `json:"error,omitempty"`
 }
@@ -37,9 +37,19 @@ func listTransactions(ctx Context) func(c *fiber.Ctx) error {
 			)
 		}
 
+		// Get the number of transactions of the contract
+		totalTxs, err := ctx.TransactionStorage.GetTotalTxsCount()
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				listSmartContractGasSpentRes{
+					Error: err.Error(),
+				},
+			)
+		}
+
 		// define meta response with pagination
 		meta := make(map[string]interface{})
-		meta["pagination"] = p.GetPaginationMeta(int64(len(txs)))
+		meta["pagination"] = p.GetPaginationMeta(totalTxs)
 
 		// prepare response
 		return c.Status(fiber.StatusOK).JSON(listTransactionsRes{

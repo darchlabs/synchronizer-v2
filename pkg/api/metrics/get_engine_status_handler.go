@@ -6,7 +6,7 @@ import (
 )
 
 type getEngineStatusRes struct {
-	Data txsengine.StatusEngine `json:"data,omitempty"`
+	Data txsengine.StatusEngine `json:"data"`
 }
 
 func getEngineStatus(ctx Context) func(c *fiber.Ctx) error {

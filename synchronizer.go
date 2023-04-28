@@ -51,21 +51,20 @@ type TransactionStorage interface {
 	InsertTxsByContract([]*transaction.Transaction) error
 
 	ListTxs(sort string, limit int64, offset int64) ([]*transaction.Transaction, error)
+	GetTotalTxsCount() (int64, error)
+
 	ListContractTxs(id string, sort string, limit int64, offset int64) ([]*transaction.Transaction, error)
-	GetContractTotalTxs(id string) (int64, error)
-	GetTxById(id string) (*transaction.Transaction, error)
+	GetContractTotalTxsCount(id string) (int64, error)
 
 	ListContractFailedTxs(id string, sort string, limit int64, offset int64) ([]*transaction.Transaction, error)
-	GetContractTotalFailedTxs(id string) (int64, error)
+	GetContractTotalFailedTxsCount(id string) (int64, error)
 
-	GetContractTotalAddresses(id string) (int64, error)
+	GetContractTotalAddressesCount(id string) (int64, error)
 	ListContractUniqueAddresses(id string, sort string, limit int64, offset int64) ([]string, error)
 
 	GetContractCurrentTVL(id string) (int64, error)
-	ListContractTVLs(id string, sort string, limit int64, offset int64) ([]int64, error)
+	ListContractTVLs(id string, sort string, limit int64, offset int64) ([]string, error)
 
-	GetContractTotalGasSpent(id string) (int64, error)
 	ListContractGasSpent(id string, sort string, limit int64, offset int64) ([]string, error)
-
 	GetContractTotalValueTransferred(id string) (int64, error)
 }
