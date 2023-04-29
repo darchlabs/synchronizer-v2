@@ -5,6 +5,7 @@ import (
 
 	"github.com/darchlabs/synchronizer-v2"
 	"github.com/darchlabs/synchronizer-v2/internal/env"
+	txsengine "github.com/darchlabs/synchronizer-v2/internal/txs-engine"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -15,6 +16,7 @@ type Context struct {
 	Storage      synchronizer.SmartContractStorage
 	EventStorage synchronizer.EventStorage
 	Env          env.Env
+	TxsEngine    txsengine.TxsEngine
 
 	IDGen   idGenerator
 	DateGen dateGenerator

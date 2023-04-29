@@ -15,12 +15,8 @@ import (
 )
 
 type createSmartContractResponse struct {
-	Data  *smartcontract.SmartContract `json:"data,omitempty"`
-	Error string                       `json:"error,omitemty"`
-}
-
-type createEventResponse struct {
-	Data *event.Event `json:"data"`
+	Data  *smartcontract.SmartContract `json:"data"`
+	Error string                       `json:"error,omitempty"`
 }
 
 func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
@@ -133,6 +129,31 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 				},
 			)
 		}
+
+		// Get the contract txs once it is created
+		go func() {
+			// Check if the engine is not already synching it
+			contract, err := ctx.Storage.GetSmartContractByID(createdSmartContract.ID)
+			if err != nil {
+				return
+			}
+			// If it is being synced, is not necessary to execute the rest of the goroutine
+			if contract.Status == smartcontract.StatusSynching {
+				return
+			}
+
+			// First update status to synching
+			ctx.Storage.UpdateStatusAndError(body.SmartContract.ID, smartcontract.StatusSynching, nil)
+
+			// Get the contract txs
+			err = ctx.TxsEngine.GetContractTransactions(body.SmartContract)
+			if err != nil {
+				ctx.Storage.UpdateStatusAndError(body.SmartContract.ID, smartcontract.StatusError, err)
+			}
+
+			// Update status to running
+			ctx.Storage.UpdateStatusAndError(body.SmartContract.ID, smartcontract.StatusRunning, nil)
+		}()
 
 		// update response
 		createdSmartContract.Events = events

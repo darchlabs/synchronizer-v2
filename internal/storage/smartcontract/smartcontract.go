@@ -67,9 +67,15 @@ func (s *Storage) UpdateStatusAndError(id string, status smartcontract.SmartCont
 		return fmt.Errorf("smartcontract does not exist")
 	}
 
+	// If the err is nil, the update err will be an empty string
+	updateErr := ""
+	if err != nil {
+		updateErr = err.Error()
+	}
+
 	// update smartcontract status and error in database
 	query := "UPDATE smartcontracts SET status = $1, error = $2, updated_at = $3 WHERE id = $4"
-	_, err = s.storage.DB.Exec(query, status, err.Error(), time.Now(), current.ID)
+	_, err = s.storage.DB.Exec(query, status, updateErr, time.Now(), current.ID)
 	if err != nil {
 		return err
 	}
