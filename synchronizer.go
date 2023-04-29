@@ -47,15 +47,6 @@ type SmartContractStorage interface {
 	Stop() error
 }
 
-type ListItemsInRangeCTX struct {
-	Id        string
-	StartTime string
-	EndTime   string
-	Sort      string
-	Limit     int64
-	Offset    int64
-}
-
 type TransactionStorage interface {
 	InsertTxsByContract([]*transaction.Transaction) error
 
@@ -68,12 +59,31 @@ type TransactionStorage interface {
 	ListContractFailedTxs(ctx *ListItemsInRangeCTX) ([]*transaction.Transaction, error)
 	GetContractTotalFailedTxsCount(id string) (int64, error)
 
-	GetContractTotalAddressesCount(id string) (int64, error)
 	ListContractUniqueAddresses(ctx *ListItemsInRangeCTX) ([]string, error)
+	GetContractTotalAddressesCount(id string) (int64, error)
 
+	ListContractTVLs(ctx *ListItemsInRangeCTX) ([][]string, error)
 	GetContractCurrentTVL(id string) (int64, error)
-	ListContractTVLs(ctx *ListItemsInRangeCTX) ([]string, error)
 
-	ListContractGasSpent(ctx *ListItemsInRangeCTX) ([]string, error)
+	ListContractGasSpent(ctx *ListItemsInRangeCTX) ([][]string, error)
 	GetContractTotalValueTransferred(id string) (int64, error)
+}
+
+type ListItemsInRangeCTX struct {
+	Id        string
+	StartTime string
+	EndTime   string
+	Sort      string
+	Limit     int64
+	Offset    int64
+}
+
+type GasTimestamp struct {
+	GasUsed   string `db:"gas_used"`
+	Timestamp string `db:"timestamp"`
+}
+
+type ContractBalanceTimestamp struct {
+	ContractBalance string `db:"contract_balance"`
+	Timestamp       string `db:"timestamp"`
 }

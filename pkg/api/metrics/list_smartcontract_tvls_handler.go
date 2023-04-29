@@ -9,7 +9,7 @@ import (
 )
 
 type listSmartContractTVLsRes struct {
-	Data  []string    `json:"data"`
+	Data  [][]string  `json:"data"`
 	Meta  interface{} `json:"meta,omitempty"`
 	Error string      `json:"error,omitempty"`
 }

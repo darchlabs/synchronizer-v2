@@ -113,23 +113,30 @@ func (s *Storage) GetContractCurrentTVL(id string) (int64, error) {
 	return currentTVL, nil
 }
 
-func (s *Storage) ListContractTVLs(ctx *synchronizer.ListItemsInRangeCTX) ([]string, error) {
-	// define events response
-	var tvlArr []string
+func (s *Storage) ListContractTVLs(ctx *synchronizer.ListItemsInRangeCTX) ([][]string, error) {
+	// create an arr of ContractBalanceTimestamp
+	var balanceTimestamps []synchronizer.ContractBalanceTimestamp
 
 	// get txs from db
-	eventQuery := fmt.Sprintf("SELECT contract_balance FROM transactions WHERE contract_id = $1 AND timestamp BETWEEN $2 AND $3 ORDER BY block_number %s LIMIT $4 OFFSET $5", ctx.Sort)
-	err := s.storage.DB.Select(&tvlArr, eventQuery, ctx.Id, ctx.StartTime, ctx.EndTime, ctx.Limit, ctx.Offset)
+	eventQuery := fmt.Sprintf("SELECT contract_balance, timestamp FROM transactions WHERE contract_id = $1 AND timestamp BETWEEN $2 AND $3 ORDER BY block_number %s LIMIT $4 OFFSET $5", ctx.Sort)
+	err := s.storage.DB.Select(&balanceTimestamps, eventQuery, ctx.Id, ctx.StartTime, ctx.EndTime, ctx.Limit, ctx.Offset)
 	if err != nil {
 		return nil, err
 	}
 
-	// Return an empty array and not null in case there are no rows
-	if len(tvlArr) == 0 {
-		return []string{}, nil
+	// define method response
+	var tvlWithTimestampArr [][]string
+	// Iterate over balanceTimestamps and create tvlWithTimestampArr
+	for _, item := range balanceTimestamps {
+		tvlWithTimestampArr = append(tvlWithTimestampArr, []string{item.ContractBalance, item.Timestamp})
 	}
 
-	return tvlArr, nil
+	// Return an empty array and not null in case there are no rows
+	if len(tvlWithTimestampArr) == 0 {
+		return [][]string{}, nil
+	}
+
+	return tvlWithTimestampArr, nil
 }
 
 func (s *Storage) ListContractUniqueAddresses(ctx *synchronizer.ListItemsInRangeCTX) ([]string, error) {
@@ -199,23 +206,30 @@ func (s *Storage) GetContractTotalFailedTxsCount(id string) (int64, error) {
 	return totalFailedTxs[0], nil
 }
 
-func (s *Storage) ListContractGasSpent(ctx *synchronizer.ListItemsInRangeCTX) ([]string, error) {
-	var gasSpentArr []string
+func (s *Storage) ListContractGasSpent(ctx *synchronizer.ListItemsInRangeCTX) ([][]string, error) {
+	// Define array for the query
+	var gasUsedAndTimestamp []synchronizer.GasTimestamp
 
-	query := fmt.Sprintf("SELECT gas_used FROM transactions WHERE contract_id = $1 AND timestamp BETWEEN $2 AND $3 ORDER BY block_number %s LIMIT $4 OFFSET $5", ctx.Sort)
+	query := fmt.Sprintf("SELECT gas_used, timestamp FROM transactions WHERE contract_id = $1 AND timestamp BETWEEN $2 AND $3 ORDER BY block_number %s LIMIT $4 OFFSET $5", ctx.Sort)
 
 	// execute query and retrieve result
-	err := s.storage.DB.Select(&gasSpentArr, query, ctx.Id, ctx.StartTime, ctx.EndTime, ctx.Limit, ctx.Offset)
+	err := s.storage.DB.Select(&gasUsedAndTimestamp, query, ctx.Id, ctx.StartTime, ctx.EndTime, ctx.Limit, ctx.Offset)
 	if err != nil {
 		return nil, err
 	}
 
-	// Return an empty array and not null in case there are no rows
-	if len(gasSpentArr) == 0 {
-		return []string{}, nil
+	// Define array for parsing the query, joining each row of gas with its timestamp
+	var gasSpentWithTimestampArr [][]string
+	for _, item := range gasUsedAndTimestamp {
+		gasSpentWithTimestampArr = append(gasSpentWithTimestampArr, []string{item.GasUsed, item.Timestamp})
 	}
 
-	return gasSpentArr, nil
+	// Return an empty array and not null in case there are no rows
+	if len(gasSpentWithTimestampArr) == 0 {
+		return [][]string{}, nil
+	}
+
+	return gasSpentWithTimestampArr, nil
 }
 
 func (s *Storage) GetContractTotalValueTransferred(id string) (int64, error) {
