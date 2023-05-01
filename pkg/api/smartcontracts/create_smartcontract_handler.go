@@ -9,6 +9,8 @@ import (
 
 	"github.com/darchlabs/synchronizer-v2/pkg/event"
 	"github.com/darchlabs/synchronizer-v2/pkg/smartcontract"
+	"github.com/darchlabs/synchronizer-v2/pkg/util"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
@@ -69,6 +71,24 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				createSmartContractResponse{
 					Error: fmt.Sprintf("can't valid ethclient error=%s", err),
+				},
+			)
+		}
+
+		// validate contract exists at the given address
+		code, err := client.CodeAt(context.Background(), common.HexToAddress(body.SmartContract.Address), nil)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				createSmartContractResponse{
+					Error: fmt.Sprintf("can't validate contract exists error=%s", err),
+				},
+			)
+		}
+
+		if len(code) == 0 {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				createSmartContractResponse{
+					Error: "contract does not exist at the given address",
 				},
 			)
 		}
@@ -136,6 +156,11 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 		body.SmartContract.CreatedAt = ctx.DateGen()
 		body.SmartContract.UpdatedAt = ctx.DateGen()
 		body.SmartContract.Events = events
+		body.SmartContract.Status = smartcontract.StatusIdle
+
+		fmt.Println("body sc: ", body.SmartContract)
+		fmt.Println("body sc: upat", body.SmartContract.UpdatedAt)
+
 		for _, input := range body.SmartContract.Abi {
 			input.ID = ctx.IDGen()
 		}
@@ -152,6 +177,16 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 
 		// update response
 		createdSmartContract.Events = events
+
+		// Get the deployed block number and updated it in the table
+		go func() {
+			toBlock, err := client.BlockNumber(context.Background())
+			if err != nil {
+				fmt.Println("err: ", err)
+				return
+			}
+			util.GetDeployedBlockNumber(client, common.HexToAddress(createdSmartContract.Address), toBlock)
+		}()
 
 		// prepare response
 		return c.Status(fiber.StatusOK).JSON(struct {

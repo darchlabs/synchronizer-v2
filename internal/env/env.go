@@ -6,4 +6,6 @@ type Env struct {
 	Port            string `envconfig:"port" required:"true"`
 	Debug           bool   `envconfig:"debug" default:"false"`
 	MigrationDir    string `envconfig:"migration_dir" required:"true"`
+	EtherscanApiURL string `envconfig:"etherscan_api_url" required:"true"`
+	EtherscanApiKey string `envconfig:"etherscan_api_key" required:"true"`
 }

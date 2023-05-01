@@ -3,6 +3,7 @@ package synchronizer
 import (
 	"github.com/darchlabs/synchronizer-v2/pkg/event"
 	"github.com/darchlabs/synchronizer-v2/pkg/smartcontract"
+	"github.com/darchlabs/synchronizer-v2/pkg/transaction"
 )
 
 type EventStorage interface {
@@ -35,9 +36,34 @@ type Cronjob interface {
 type SmartContractStorage interface {
 	ListSmartContracts(sort string, limit int64, offset int64) ([]*smartcontract.SmartContract, error)
 	InsertSmartContract(s *smartcontract.SmartContract) (*smartcontract.SmartContract, error)
+	UpdateLastBlockNumber(id string, blockNumber int64) error
 	DeleteSmartContractByAddress(address string) error
 	GetSmartContractByID(id string) (*smartcontract.SmartContract, error)
 	GetSmartContractByAddress(address string) (*smartcontract.SmartContract, error)
 	GetSmartContractsCount() (int64, error)
+	UpdateStatusAndError(id string, status smartcontract.SmartContractStatus, err error) error
 	Stop() error
+}
+
+type TransactionStorage interface {
+	InsertTxsByContract([]*transaction.Transaction) error
+
+	ListTxs(sort string, limit int64, offset int64) ([]*transaction.Transaction, error)
+	ListContractTxs(id string, sort string, limit int64, offset int64) ([]*transaction.Transaction, error)
+	GetContractTotalTxs(id string) (int64, error)
+	GetTxById(id string) (*transaction.Transaction, error)
+
+	ListContractFailedTxs(id string, sort string, limit int64, offset int64) ([]*transaction.Transaction, error)
+	GetContractTotalFailedTxs(id string) (int64, error)
+
+	GetContractTotalAddresses(id string) (int64, error)
+	ListContractUniqueAddresses(id string, sort string, limit int64, offset int64) ([]string, error)
+
+	GetContractCurrentTVL(id string) (int64, error)
+	ListContractTVLs(id string, sort string, limit int64, offset int64) ([]int64, error)
+
+	GetContractTotalGasSpent(id string) (int64, error)
+	ListContractGasSpent(id string, sort string, limit int64, offset int64) ([]string, error)
+
+	GetContractTotalValueTransferred(id string) (int64, error)
 }

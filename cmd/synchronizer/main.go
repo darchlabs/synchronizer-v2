@@ -15,8 +15,11 @@ import (
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
 	eventstorage "github.com/darchlabs/synchronizer-v2/internal/storage/event"
 	smartcontractstorage "github.com/darchlabs/synchronizer-v2/internal/storage/smartcontract"
+	transactionstorage "github.com/darchlabs/synchronizer-v2/internal/storage/transaction"
+	txsengine "github.com/darchlabs/synchronizer-v2/internal/txs-engine"
 	CronjobAPI "github.com/darchlabs/synchronizer-v2/pkg/api/cronjob"
 	EventAPI "github.com/darchlabs/synchronizer-v2/pkg/api/event"
+	"github.com/darchlabs/synchronizer-v2/pkg/api/metrics"
 	smartcontractsAPI "github.com/darchlabs/synchronizer-v2/pkg/api/smartcontracts"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
@@ -32,6 +35,7 @@ var (
 	eventStorage        synchronizer.EventStorage
 	smartContactStorage synchronizer.SmartContractStorage
 	cronjobSvc          synchronizer.Cronjob
+	txsEngine           txsengine.TxsEngine
 )
 
 func main() {
@@ -54,9 +58,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// initialize event storage
+	// initialize storages
 	eventStorage = eventstorage.New(s)
 	smartContactStorage = smartcontractstorage.New(s)
+	transactionstorage := transactionstorage.New(s)
 
 	// parse seconds from string to int64
 	seconds, err := strconv.ParseInt(env.IntervalSeconds, 10, 64)
@@ -77,6 +82,9 @@ func main() {
 	// initialize the cronjob
 	cronjobSvc = cronjob.New(seconds, eventStorage, &clients, env.Debug, uuid.NewString, time.Now)
 
+	// Initialize the transactions engine
+	txsEngine = txsengine.New(smartContactStorage, transactionstorage, uuid.NewString, env.EtherscanApiURL, env.EtherscanApiKey)
+
 	// configure routers
 	smartcontractsAPI.Route(api, smartcontractsAPI.Context{
 		Storage:      smartContactStorage,
@@ -95,6 +103,11 @@ func main() {
 	CronjobAPI.Route(api, CronjobAPI.Context{
 		Cronjob: cronjobSvc,
 	})
+	metrics.Route(api, metrics.Context{
+		SmartContractStorage: smartContactStorage,
+		TransactionStorage:   transactionstorage,
+		EventStorage:         eventStorage,
+	})
 
 	// run process
 	err = cronjobSvc.Start()
@@ -104,6 +117,8 @@ func main() {
 	go func() {
 		api.Listen(fmt.Sprintf(":%s", env.Port))
 	}()
+
+	err = txsEngine.Start(seconds + 1)
 
 	// listen interrupt
 	quit := make(chan struct{})
@@ -129,6 +144,9 @@ func gracefullShutdown() {
 
 	// stop cronjob ticker
 	cronjobSvc.Halt()
+
+	// stop txs engine
+	txsEngine.Halt()
 
 	// close databanse connection
 	err := eventStorage.Stop()
