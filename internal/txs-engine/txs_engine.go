@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/darchlabs/synchronizer-v2"
-	transactionstorage "github.com/darchlabs/synchronizer-v2/internal/storage/transaction"
 	"github.com/darchlabs/synchronizer-v2/pkg/smartcontract"
 	"github.com/darchlabs/synchronizer-v2/pkg/transaction"
 	"github.com/darchlabs/synchronizer-v2/pkg/util"
@@ -31,7 +30,7 @@ type TxsEngine interface {
 
 type T struct {
 	ScStorage               synchronizer.SmartContractStorage
-	transactionStorage      *transactionstorage.Storage
+	transactionStorage      synchronizer.TransactionStorage
 	Status                  StatusEngine
 	idGen                   idGenerator
 	NetworksEtherscanURL    map[string]string
@@ -50,15 +49,53 @@ const (
 	StatusError    StatusEngine = "error"
 )
 
-func New(ss synchronizer.SmartContractStorage, ts *transactionstorage.Storage, idGen idGenerator, etherscanUrlMap map[string]string, etherscanApiKeyMap map[string]string, nodesUrlMap map[string]string) *T {
+type EngineCtx struct {
+	SmartContractStorage *synchronizer.SmartContractStorage
+	TransactionStorage   *synchronizer.TransactionStorage
+	IdGen                idGenerator
+	Status               StatusEngine
+	EtherscanUrlMap      map[string]string
+	EtherscanApiKeyMap   map[string]string
+	NodesUrlMap          map[string]string
+}
+
+func New(ctx *EngineCtx) *T {
+	if ctx == nil {
+		log.Fatal("engine ctx cannot be nil")
+	}
+
+	if ctx.SmartContractStorage == nil {
+		log.Fatal("smart contract storage inside engine ctx cannot be nil")
+	}
+
+	if ctx.TransactionStorage == nil {
+		log.Fatal("transaction storage inside engine ctx cannot be nil")
+	}
+
+	if ctx.IdGen == nil {
+		log.Fatal("id generator inside engine ctx cannot be nil")
+	}
+
+	if ctx.EtherscanApiKeyMap == nil {
+		log.Fatal("etherscan api key map inside engine ctx cannot be nil")
+	}
+
+	if ctx.EtherscanUrlMap == nil {
+		log.Fatal("etherscan api url map inside engine ctx cannot be nil")
+	}
+
+	if ctx.NodesUrlMap == nil {
+		log.Fatal("nodes url map inside engine ctx cannot be nil")
+	}
+
 	return &T{
-		ScStorage:               ss,
-		transactionStorage:      ts,
+		ScStorage:               *ctx.SmartContractStorage,
+		transactionStorage:      *ctx.TransactionStorage,
 		Status:                  StatusIdle,
-		idGen:                   idGen,
-		NetworksEtherscanURL:    etherscanUrlMap,
-		NetworksEtherscanAPIKey: etherscanApiKeyMap,
-		NetworksNodesURL:        nodesUrlMap,
+		idGen:                   ctx.IdGen,
+		NetworksEtherscanURL:    ctx.EtherscanUrlMap,
+		NetworksEtherscanAPIKey: ctx.EtherscanApiKeyMap,
+		NetworksNodesURL:        ctx.NodesUrlMap,
 	}
 }
 
@@ -168,7 +205,7 @@ func (t *T) Run() error {
 
 		// Create an id per txs item
 		if len(transactions) < 25000 {
-			missingDataCTX := &util.MissingDataCTX{
+			missingDataCTX := &util.MissingDataCtx{
 				Transactions: transactions,
 				Contract:     contract,
 				Client:       client,
@@ -182,7 +219,7 @@ func (t *T) Run() error {
 			}
 
 		} else {
-			missingDataCTX := &util.MissingDataCTX{
+			missingDataCTX := &util.MissingDataCtx{
 				Transactions: transactions,
 				Contract:     contract,
 				Client:       nil,

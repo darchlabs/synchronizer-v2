@@ -14,7 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 )
 
-type MissingDataCTX struct {
+type MissingDataCtx struct {
 	Transactions []*transaction.Transaction
 	Contract     *smartcontract.SmartContract
 	Client       *ethclient.Client
@@ -22,7 +22,7 @@ type MissingDataCTX struct {
 }
 
 // TODO(nb): Manage getting the data in goroutines
-func CompleteContractTxsData(ctx *MissingDataCTX) ([]*transaction.Transaction, error) {
+func CompleteContractTxsData(ctx *MissingDataCtx) ([]*transaction.Transaction, error) {
 	id := ctx.Contract.ID
 	address := ctx.Contract.Address
 	chainID := fmt.Sprint(SupportedNetworks[string(ctx.Contract.Network)])
@@ -63,7 +63,7 @@ func CompleteContractTxsData(ctx *MissingDataCTX) ([]*transaction.Transaction, e
 	return ctx.Transactions, nil
 }
 
-func CompleteContractTxsDataWithoutBalance(ctx *MissingDataCTX) ([]*transaction.Transaction, error) {
+func CompleteContractTxsDataWithoutBalance(ctx *MissingDataCtx) ([]*transaction.Transaction, error) {
 	id := ctx.Contract.ID
 	chainID := fmt.Sprint(SupportedNetworks[string(ctx.Contract.Network)])
 

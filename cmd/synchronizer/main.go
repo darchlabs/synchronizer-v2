@@ -33,10 +33,11 @@ import (
 )
 
 var (
-	eventStorage        synchronizer.EventStorage
-	smartContactStorage synchronizer.SmartContractStorage
-	cronjobSvc          synchronizer.Cronjob
-	txsEngine           txsengine.TxsEngine
+	eventStorage         synchronizer.EventStorage
+	smartContractStorage synchronizer.SmartContractStorage
+	transactionStorage   synchronizer.TransactionStorage
+	cronjobSvc           synchronizer.Cronjob
+	txsEngine            txsengine.TxsEngine
 )
 
 func main() {
@@ -76,8 +77,8 @@ func main() {
 
 	// initialize storages
 	eventStorage = eventstorage.New(s)
-	smartContactStorage = smartcontractstorage.New(s)
-	transactionstorage := transactionstorage.New(s)
+	smartContractStorage = smartcontractstorage.New(s)
+	transactionStorage = transactionstorage.New(s)
 
 	// parse seconds from string to int64
 	seconds, err := strconv.ParseInt(env.IntervalSeconds, 10, 64)
@@ -99,11 +100,19 @@ func main() {
 	cronjobSvc = cronjob.New(seconds, eventStorage, &clients, env.Debug, uuid.NewString, time.Now)
 
 	// Initialize the transactions engine
-	txsEngine = txsengine.New(smartContactStorage, transactionstorage, uuid.NewString, networksEtherscanURL, networksEtherscanAPIKey, networksNodeURL)
+	engineCtx := &txsengine.EngineCtx{
+		SmartContractStorage: &smartContractStorage,
+		TransactionStorage:   &transactionStorage,
+		IdGen:                uuid.NewString,
+		EtherscanUrlMap:      networksEtherscanURL,
+		EtherscanApiKeyMap:   networksEtherscanAPIKey,
+		NodesUrlMap:          networksNodeURL,
+	}
+	txsEngine = txsengine.New(engineCtx)
 
 	// configure routers
 	smartcontractsAPI.Route(api, smartcontractsAPI.Context{
-		Storage:      smartContactStorage,
+		Storage:      smartContractStorage,
 		EventStorage: eventStorage,
 		IDGen:        uuid.NewString,
 		DateGen:      time.Now,
@@ -120,8 +129,8 @@ func main() {
 		Cronjob: cronjobSvc,
 	})
 	metrics.Route(api, metrics.Context{
-		SmartContractStorage: smartContactStorage,
-		TransactionStorage:   transactionstorage,
+		SmartContractStorage: smartContractStorage,
+		TransactionStorage:   transactionStorage,
 		EventStorage:         eventStorage,
 		Engine:               txsEngine,
 	})

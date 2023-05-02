@@ -223,7 +223,7 @@ func (s *Storage) InsertTxsByContract(transactions []*transaction.Transaction) e
 		return err
 	}
 
-	/* Prepare the query values */
+	// Prepare the query values
 	// Make an array of each field from the transactions array
 	var (
 		ids, contractIds, blockNumbers, hashes, chainIds, fromAddresses,
