@@ -12,7 +12,7 @@ type SmartContract struct {
 	Network           event.EventNetwork  `json:"network" db:"network" validate:"required"`
 	NodeURL           string              `json:"nodeURL" db:"node_url"`
 	Address           string              `json:"address" db:"address" validate:"required"`
-	LastTxBlockSynced int64               `json:"last_tx_block_synced" db:"last_tx_block_synced"`
+	LastTxBlockSynced int64               `json:"lastTxBlockSynced" db:"last_tx_block_synced"`
 	Status            SmartContractStatus `json:"status" db:"status"`
 	Error             *string             `json:"error" db:"error"`
 
@@ -26,10 +26,11 @@ type SmartContract struct {
 type SmartContractStatus string
 
 const (
-	StatusIdle     SmartContractStatus = "idle"
-	StatusRunning  SmartContractStatus = "running"
-	StatusStopping SmartContractStatus = "stopping"
-	StatusSynching SmartContractStatus = "synching"
-	StatusStopped  SmartContractStatus = "stopped"
-	StatusError    SmartContractStatus = "error"
+	StatusIdle          SmartContractStatus = "idle"
+	StatusRunning       SmartContractStatus = "running"
+	StatusStopping      SmartContractStatus = "stopping"
+	StatusSynching      SmartContractStatus = "synching"
+	StatusStopped       SmartContractStatus = "stopped"
+	StatusError         SmartContractStatus = "error"
+	StatusQuotaExceeded SmartContractStatus = "quota_exceeded"
 )
