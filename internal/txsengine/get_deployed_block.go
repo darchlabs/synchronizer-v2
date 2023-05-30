@@ -1,4 +1,4 @@
-package util
+package txsengine
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-func GetDeployedBlockNumber(client *ethclient.Client, address common.Address, toBlock uint64) (int64, error) {
+func getDeployedBlockNumber(client *ethclient.Client, address common.Address, toBlock uint64) (int64, error) {
 	startBlock := uint64(0) // Replace with a reasonable starting block number
 
 	// Iterate through blocks

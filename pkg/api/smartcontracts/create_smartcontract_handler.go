@@ -17,12 +17,8 @@ import (
 )
 
 type createSmartContractResponse struct {
-	Data  *smartcontract.SmartContract `json:"data,omitempty"`
-	Error string                       `json:"error,omitemty"`
-}
-
-type createEventResponse struct {
-	Data *event.Event `json:"data"`
+	Data  *smartcontract.SmartContract `json:"data"`
+	Error string                       `json:"error,omitempty"`
 }
 
 func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
@@ -55,18 +51,35 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 			)
 		}
 
-		// validate client works
-		client, err := ethclient.Dial(body.SmartContract.NodeURL)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(
+		// Get contract and check if already exist
+		dbContract, _ := ctx.Storage.GetSmartContractByAddress(body.SmartContract.Address)
+		if dbContract != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(
 				createSmartContractResponse{
-					Error: fmt.Sprintf("can't valid ethclient error=%s", err),
+					Error: fmt.Sprintf("smartcontract already exists with address=%s", body.SmartContract.Address),
 				},
 			)
 		}
 
-		// validate client is working correctly
-		_, err = client.ChainID(context.Background())
+		// get and validate node url
+		nodeUrl := body.SmartContract.NodeURL
+		network := string(body.SmartContract.Network)
+		err = util.NodeURLIsValid(nodeUrl, network)
+		if err != nil {
+			networksEtherscanURL, err := util.ParseStringifiedMap(ctx.Env.NetworksNodeURL)
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(
+					createSmartContractResponse{
+						Error: fmt.Sprintf("can't valid ethclient error=%s", err),
+					},
+				)
+			}
+
+			nodeUrl = networksEtherscanURL[network]
+		}
+
+		// instance client
+		client, err := ethclient.Dial(nodeUrl)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				createSmartContractResponse{
@@ -118,10 +131,8 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 					)
 				}
 
-				// CLIENTE NODEJS -> GOLANG
-
 				// send post to synchronizers
-				url := fmt.Sprintf("http://localhost:%s/api/v1/events/%s", ctx.Env.Port, body.SmartContract.Address)
+				url := fmt.Sprintf("%s/api/v1/events/%s", "http://localhost:5555", body.SmartContract.Address)
 				res, err := http.Post(url, "application/json", bytes.NewBuffer(b))
 				if err != nil {
 					return c.Status(fiber.StatusBadRequest).JSON(
@@ -133,8 +144,11 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 				defer res.Body.Close()
 
 				// parse response
-				response := &createEventResponse{}
-				err = json.NewDecoder(res.Body).Decode(response)
+				response := struct {
+					Data *event.Event `json:"data"`
+				}{}
+
+				err = json.NewDecoder(res.Body).Decode(&response)
 				if err != nil {
 					return c.Status(fiber.StatusBadRequest).JSON(
 						createSmartContractResponse{
@@ -157,10 +171,7 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 		body.SmartContract.UpdatedAt = ctx.DateGen()
 		body.SmartContract.Events = events
 		body.SmartContract.Status = smartcontract.StatusIdle
-
-		fmt.Println("body sc: ", body.SmartContract)
-		fmt.Println("body sc: upat", body.SmartContract.UpdatedAt)
-
+		body.SmartContract.LastTxBlockSynced = int64(0)
 		for _, input := range body.SmartContract.Abi {
 			input.ID = ctx.IDGen()
 		}
@@ -177,16 +188,6 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 
 		// update response
 		createdSmartContract.Events = events
-
-		// Get the deployed block number and updated it in the table
-		go func() {
-			toBlock, err := client.BlockNumber(context.Background())
-			if err != nil {
-				fmt.Println("err: ", err)
-				return
-			}
-			util.GetDeployedBlockNumber(client, common.HexToAddress(createdSmartContract.Address), toBlock)
-		}()
 
 		// prepare response
 		return c.Status(fiber.StatusOK).JSON(struct {

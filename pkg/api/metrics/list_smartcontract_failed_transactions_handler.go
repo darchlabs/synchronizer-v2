@@ -1,13 +1,16 @@
 package metrics
 
 import (
+	"fmt"
+
+	"github.com/darchlabs/synchronizer-v2"
 	"github.com/darchlabs/synchronizer-v2/internal/pagination"
 	"github.com/darchlabs/synchronizer-v2/pkg/transaction"
 	"github.com/gofiber/fiber/v2"
 )
 
 type listSmartContractFailedTransactionsRes struct {
-	Data  []*transaction.Transaction `json:"data,omitempty"`
+	Data  []*transaction.Transaction `json:"data"`
 	Meta  interface{}                `json:"meta,omitempty"`
 	Error string                     `json:"error,omitempty"`
 }
@@ -53,8 +56,26 @@ func listSmartContractFailedTransactions(ctx Context) func(c *fiber.Ctx) error {
 			)
 		}
 
-		// Get the transactions
-		failedTxs, err := ctx.TransactionStorage.ListContractFailedTxs(contract.ID, p.Sort, p.Limit, p.Offset)
+		// Prepare the query context
+		queryCtx := &synchronizer.ListItemsInRangeCtx{
+			StartTime: fmt.Sprint(p.StartTime),
+			EndTime:   fmt.Sprint(p.EndTime),
+			Sort:      p.Sort,
+			Limit:     p.Limit,
+			Offset:    p.Offset,
+		}
+		// List the failed transactions on the given range
+		failedTxs, err := ctx.TransactionStorage.ListFailedTxsById(contract.ID, queryCtx)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				listSmartContractFailedTransactionsRes{
+					Error: err.Error(),
+				},
+			)
+		}
+
+		// Get the total failed transactions
+		totalFailedTxs, err := ctx.TransactionStorage.GetFailedTxsCountById(contract.ID)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				listSmartContractFailedTransactionsRes{
@@ -65,7 +86,7 @@ func listSmartContractFailedTransactions(ctx Context) func(c *fiber.Ctx) error {
 
 		// define meta response with pagination
 		meta := make(map[string]interface{})
-		meta["pagination"] = p.GetPaginationMeta(int64(len(failedTxs)))
+		meta["pagination"] = p.GetPaginationMeta(totalFailedTxs)
 
 		// prepare response
 		return c.Status(fiber.StatusOK).JSON(listSmartContractFailedTransactionsRes{

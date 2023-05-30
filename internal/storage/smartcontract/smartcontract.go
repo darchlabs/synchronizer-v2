@@ -4,17 +4,22 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/darchlabs/synchronizer-v2"
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
 	"github.com/darchlabs/synchronizer-v2/pkg/smartcontract"
 )
 
 type Storage struct {
-	storage *storage.S
+	storage            *storage.S
+	eventStorage       synchronizer.EventStorage
+	transactionStorage synchronizer.TransactionStorage
 }
 
-func New(s *storage.S) *Storage {
+func New(s *storage.S, e synchronizer.EventStorage, t synchronizer.TransactionStorage) *Storage {
 	return &Storage{
-		storage: s,
+		storage:            s,
+		eventStorage:       e,
+		transactionStorage: t,
 	}
 }
 
@@ -35,7 +40,7 @@ func (s *Storage) InsertSmartContract(sc *smartcontract.SmartContract) (*smartco
 	}
 
 	// get created smartcontract
-	createdSmartcontract, err := s.GetSmartContractByID(smartcontractId)
+	createdSmartcontract, err := s.GetSmartContractById(smartcontractId)
 	if err != nil {
 		return nil, err
 	}
@@ -45,13 +50,10 @@ func (s *Storage) InsertSmartContract(sc *smartcontract.SmartContract) (*smartco
 
 func (s *Storage) UpdateLastBlockNumber(id string, blockNumber int64) error {
 	// get current sc
-	current, _ := s.GetSmartContractByID(id)
+	current, _ := s.GetSmartContractById(id)
 	if current == nil {
 		return fmt.Errorf("smartcontract does not exist")
 	}
-
-	fmt.Println("id: ", id)
-	fmt.Println("blockNumber: ", blockNumber)
 
 	// insert new smartcontract in database
 	query := `UPDATE smartcontracts SET last_tx_block_synced = $1, updated_at = $2  WHERE id = $3 RETURNING *`
@@ -65,14 +67,20 @@ func (s *Storage) UpdateLastBlockNumber(id string, blockNumber int64) error {
 
 func (s *Storage) UpdateStatusAndError(id string, status smartcontract.SmartContractStatus, err error) error {
 	// get current sc
-	current, _ := s.GetSmartContractByID(id)
+	current, _ := s.GetSmartContractById(id)
 	if current == nil {
 		return fmt.Errorf("smartcontract does not exist")
 	}
 
+	// If the err is nil, the update err will be an empty string
+	updateErr := ""
+	if err != nil {
+		updateErr = err.Error()
+	}
+
 	// update smartcontract status and error in database
-	query := fmt.Sprintf("UPDATE smartcontracts SET status = $1, error = $2, updated_at = $3 WHERE id = %s", current.ID)
-	_, err = s.storage.DB.Exec(query, status, err, time.Now())
+	query := "UPDATE smartcontracts SET status = $1, error = $2, updated_at = $3 WHERE id = $4"
+	_, err = s.storage.DB.Exec(query, status, updateErr, time.Now(), current.ID)
 	if err != nil {
 		return err
 	}
@@ -80,7 +88,7 @@ func (s *Storage) UpdateStatusAndError(id string, status smartcontract.SmartCont
 	return nil
 }
 
-func (s *Storage) GetSmartContractByID(id string) (*smartcontract.SmartContract, error) {
+func (s *Storage) GetSmartContractById(id string) (*smartcontract.SmartContract, error) {
 	// get smartcontract from db
 	sc := &smartcontract.SmartContract{}
 	err := s.storage.DB.Get(sc, "SELECT * FROM smartcontracts WHERE id = $1", id)
@@ -103,8 +111,36 @@ func (s *Storage) GetSmartContractByAddress(address string) (*smartcontract.Smar
 }
 
 func (s *Storage) DeleteSmartContractByAddress(address string) error {
-	// get smartcontract from db
-	_, err := s.storage.DB.Exec("DELETE FROM smartcontracts WHERE address = $1", address)
+	// list events by address from storage
+	events, err := s.eventStorage.ListAllEvents()
+	if err != nil {
+		return nil
+	}
+
+	// delete events from storage
+	for _, ev := range events {
+		if ev.Address == address {
+			err = s.eventStorage.DeleteEvent(address, ev.Abi.Name)
+			if err != nil {
+				return nil
+			}
+		}
+	}
+
+	// get smartcontract using the address
+	sc, err := s.GetSmartContractByAddress(address)
+	if err != nil {
+		return nil
+	}
+
+	// delete transactions from storage
+	err = s.transactionStorage.DeleteTransactionsByContractId(sc.ID)
+	if err != nil {
+		return nil
+	}
+
+	// delete smartcontract from db
+	_, err = s.storage.DB.Exec("DELETE FROM smartcontracts WHERE address = $1", address)
 	if err != nil {
 		return err
 	}
@@ -112,18 +148,53 @@ func (s *Storage) DeleteSmartContractByAddress(address string) error {
 	return nil
 }
 
+func (s *Storage) ListAllSmartContracts() ([]*smartcontract.SmartContract, error) {
+	// define smartcontracts response
+	smartcontracts := []*smartcontract.SmartContract{}
+
+	// get smartcontracts from db
+	scQuery := "SELECT * FROM smartcontracts"
+	err := s.storage.DB.Select(&smartcontracts, scQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	return smartcontracts, nil
+}
+
 func (s *Storage) ListSmartContracts(sort string, limit int64, offset int64) ([]*smartcontract.SmartContract, error) {
 	// define smartcontracts response
 	smartcontracts := []*smartcontract.SmartContract{}
 
-	fmt.Println("as: ")
 	// get smartcontracts from db
 	scQuery := fmt.Sprintf("SELECT * FROM smartcontracts ORDER BY created_at %s LIMIT $1 OFFSET $2", sort)
 	err := s.storage.DB.Select(&smartcontracts, scQuery, limit, offset)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("scscs: ", smartcontracts)
+
+	return smartcontracts, nil
+}
+
+func (s *Storage) ListUniqueSmartContractsByNetwork() ([]*smartcontract.SmartContract, error) {
+	// define smartcontracts response
+	smartcontracts := []*smartcontract.SmartContract{}
+
+	// get unique smartcontracts by network from db
+	/* @dev: It creates a sub table with a partition with only address and network fields.
+	 * This partition makes a counter for each row of smart contracts that has the same address
+	 * and network. Then from that partition we only get the first row, ensuring that we are not
+	 * getting any smart contract with this repeated info using the row number counter.
+	 */
+	scQuery := `SELECT id, name, network, node_url, address, last_tx_block_synced, status, error, created_at, updated_At FROM (
+					SELECT *, ROW_NUMBER() OVER (PARTITION BY address, network) AS rn
+					FROM smartcontracts
+				) AS sq
+			WHERE sq.rn = 1`
+	err := s.storage.DB.Select(&smartcontracts, scQuery)
+	if err != nil {
+		return nil, err
+	}
 
 	return smartcontracts, nil
 }

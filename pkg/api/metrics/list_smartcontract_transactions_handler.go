@@ -1,13 +1,16 @@
 package metrics
 
 import (
+	"fmt"
+
+	"github.com/darchlabs/synchronizer-v2"
 	"github.com/darchlabs/synchronizer-v2/internal/pagination"
 	"github.com/darchlabs/synchronizer-v2/pkg/transaction"
 	"github.com/gofiber/fiber/v2"
 )
 
 type listSmartContractTransactionsRes struct {
-	Data  []*transaction.Transaction `json:"data,omitempty"`
+	Data  []*transaction.Transaction `json:"data"`
 	Meta  interface{}                `json:"meta,omitempty"`
 	Error string                     `json:"error,omitempty"`
 }
@@ -53,8 +56,17 @@ func listSmartContractTransactions(ctx Context) func(c *fiber.Ctx) error {
 			)
 		}
 
+		// Prepare the query context
+		queryCtx := &synchronizer.ListItemsInRangeCtx{
+			StartTime: fmt.Sprint(p.StartTime),
+			EndTime:   fmt.Sprint(p.EndTime),
+			Sort:      p.Sort,
+			Limit:     p.Limit,
+			Offset:    p.Offset,
+		}
+
 		// Get the transactions
-		transactions, err := ctx.TransactionStorage.ListContractTxs(contract.ID, p.Sort, p.Limit, p.Offset)
+		transactions, err := ctx.TransactionStorage.ListTxsById(contract.ID, queryCtx)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				listSmartContractTransactionsRes{
@@ -63,9 +75,19 @@ func listSmartContractTransactions(ctx Context) func(c *fiber.Ctx) error {
 			)
 		}
 
+		// Get the number of transactions of the contract
+		totalTxs, err := ctx.TransactionStorage.GetTxsCountById(contract.ID)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				listSmartContractGasSpentRes{
+					Error: err.Error(),
+				},
+			)
+		}
+
 		// define meta response with pagination
 		meta := make(map[string]interface{})
-		meta["pagination"] = p.GetPaginationMeta(int64(len(transactions)))
+		meta["pagination"] = p.GetPaginationMeta(totalTxs)
 
 		// prepare response
 		return c.Status(fiber.StatusOK).JSON(listSmartContractTransactionsRes{

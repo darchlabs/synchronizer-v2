@@ -14,11 +14,18 @@ const SortAsc = "ASC"
 const SortDesc = "DESC"
 const DefaultSort = "DESC"
 
+const DefaultStartTime = 0
+const DefaultEndTime = 33239640619 // Year 3033 in UNIX format :)
+const DefaultInterval = 1
+
 type Pagination struct {
-	Page   int64  `json:"page" query:"page"`
-	Limit  int64  `json:"limit" query:"limit"`
-	Offset int64  `json:"offset"`
-	Sort   string `json:"sort" query:"sort"`
+	Page      int64  `json:"page" query:"page"`
+	Limit     int64  `json:"limit" query:"limit"`
+	Offset    int64  `json:"offset"`
+	Sort      string `json:"sort" query:"sort"`
+	StartTime int64  `json:"startTime" query:"startTime"`
+	EndTime   int64  `json:"endTime" query:"endTime"`
+	Interval  int64  `json:"interval" query:"interval"`
 }
 
 type PaginationMeta struct {
@@ -46,11 +53,23 @@ func (p *Pagination) GetPaginationFromFiber(c *fiber.Ctx) error {
 		p.Limit = DefaultLimit
 	}
 
+	if p.StartTime == 0 {
+		p.StartTime = DefaultStartTime
+	}
+
+	if p.EndTime == 0 {
+		p.EndTime = DefaultEndTime
+	}
+
 	// define default sort
 	if p.Sort == "" || !(strings.ToUpper(p.Sort) == SortAsc || strings.ToUpper(p.Sort) == SortDesc) {
 		p.Sort = strings.ToUpper(SortDesc)
 	} else {
 		p.Sort = strings.ToUpper(p.Sort)
+	}
+
+	if p.Interval == 0 {
+		p.Interval = DefaultInterval
 	}
 
 	// calculate offset
