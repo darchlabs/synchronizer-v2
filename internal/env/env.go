@@ -9,4 +9,5 @@ type Env struct {
 	NetworksEtherscanURL    string `envconfig:"networks_etherscan_url" required:"true"`
 	NetworksEtherscanAPIKey string `envconfig:"networks_etherscan_api_key" required:"true"`
 	NetworksNodeURL         string `envconfig:"networks_node_url" required:"true"`
+	MaxTransactions         int    `envconfig:"max_transactions" required:"true"`
 }
