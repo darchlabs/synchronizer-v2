@@ -138,7 +138,7 @@ func GetLogs(c Config) (int64, int64, error) {
 			if retry > c.MaxRetry {
 				return 0, 0, fmt.Errorf("max_retry, error=%s", err.Error())
 			} else {
-				fmt.Printf("Error: c.Client.FilterLogs(context.Background(), query), err%s \n", err.Error())
+				log.Printf("Error: c.Client.FilterLogs(context.Background(), query), err%s \n", err.Error())
 			}
 
 			continue
