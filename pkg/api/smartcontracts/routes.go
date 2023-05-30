@@ -5,7 +5,7 @@ import (
 
 	"github.com/darchlabs/synchronizer-v2"
 	"github.com/darchlabs/synchronizer-v2/internal/env"
-	txsengine "github.com/darchlabs/synchronizer-v2/internal/txs-engine"
+	txsengine "github.com/darchlabs/synchronizer-v2/internal/txsengine"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -24,6 +24,7 @@ type Context struct {
 
 func Route(app *fiber.App, ctx Context) {
 	app.Post("/api/v1/smartcontracts", insertSmartContractHandler(ctx))
+	app.Post("/api/v1/smartcontracts/:address/restart", restartSmartContractHandler(ctx))
 	app.Get("/api/v1/smartcontracts", listSmartContracts(ctx))
 	app.Delete("/api/v1/smartcontracts/:address", deleteSmartContractHandler(ctx))
 }

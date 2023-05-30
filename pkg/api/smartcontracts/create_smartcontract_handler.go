@@ -1,9 +1,11 @@
 package smartcontracts
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/darchlabs/synchronizer-v2/pkg/event"
 	"github.com/darchlabs/synchronizer-v2/pkg/smartcontract"
@@ -45,6 +47,16 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusBadRequest).JSON(
 				createSmartContractResponse{
 					Error: err.Error(),
+				},
+			)
+		}
+
+		// Get contract and check if already exist
+		dbContract, _ := ctx.Storage.GetSmartContractByAddress(body.SmartContract.Address)
+		if dbContract != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				createSmartContractResponse{
+					Error: fmt.Sprintf("smartcontract already exists with address=%s", body.SmartContract.Address),
 				},
 			)
 		}
@@ -94,18 +106,63 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 			)
 		}
 
-		// Declare variables that could be updated for the contract if it already exists
-		lastTxBlockSynced := int64(0)
-		var events []*event.Event
-		status := smartcontract.StatusIdle
+		// filter abi events from body
+		events := make([]*event.Event, 0)
+		for _, a := range body.SmartContract.Abi {
+			if a.Type == "event" {
+				// define new event
+				ev := struct {
+					Event *event.Event `json:"event"`
+				}{
+					Event: &event.Event{
+						Network: body.SmartContract.Network,
+						NodeURL: body.SmartContract.NodeURL,
+						Address: body.SmartContract.Address,
+						Abi:     a,
+					},
+				}
 
-		// Get contract
-		dbContract, _ := ctx.Storage.GetSmartContractByAddress(body.SmartContract.Address)
-		// if contract exists, update the variables with the ones we already have
-		if dbContract != nil {
-			lastTxBlockSynced = dbContract.LastTxBlockSynced
-			events = dbContract.Events
-			status = dbContract.Status
+				b, err := json.Marshal(ev)
+				if err != nil {
+					return c.Status(fiber.StatusBadRequest).JSON(
+						createSmartContractResponse{
+							Error: err.Error(),
+						},
+					)
+				}
+
+				// send post to synchronizers
+				url := fmt.Sprintf("%s/api/v1/events/%s", "http://localhost:5555", body.SmartContract.Address)
+				res, err := http.Post(url, "application/json", bytes.NewBuffer(b))
+				if err != nil {
+					return c.Status(fiber.StatusBadRequest).JSON(
+						createSmartContractResponse{
+							Error: err.Error(),
+						},
+					)
+				}
+				defer res.Body.Close()
+
+				// parse response
+				response := struct {
+					Data *event.Event `json:"data"`
+				}{}
+
+				err = json.NewDecoder(res.Body).Decode(&response)
+				if err != nil {
+					return c.Status(fiber.StatusBadRequest).JSON(
+						createSmartContractResponse{
+							Error: err.Error(),
+						},
+					)
+				}
+
+				fmt.Println("response.Data.Event", response.Data)
+
+				// add to event and append to slice
+				ev.Event = response.Data
+				events = append(events, ev.Event)
+			}
 		}
 
 		// Update smartcontract
@@ -113,9 +170,8 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 		body.SmartContract.CreatedAt = ctx.DateGen()
 		body.SmartContract.UpdatedAt = ctx.DateGen()
 		body.SmartContract.Events = events
-		body.SmartContract.Status = status
-		body.SmartContract.LastTxBlockSynced = lastTxBlockSynced
-
+		body.SmartContract.Status = smartcontract.StatusIdle
+		body.SmartContract.LastTxBlockSynced = int64(0)
 		for _, input := range body.SmartContract.Abi {
 			input.ID = ctx.IDGen()
 		}
@@ -129,31 +185,6 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 				},
 			)
 		}
-
-		// Get the contract txs once it is created
-		go func() {
-			// Check if the engine is not already synching it
-			contract, err := ctx.Storage.GetSmartContractByID(createdSmartContract.ID)
-			if err != nil {
-				return
-			}
-			// If it is being synced, is not necessary to execute the rest of the goroutine
-			if contract.Status == smartcontract.StatusSynching {
-				return
-			}
-
-			// First update status to synching
-			ctx.Storage.UpdateStatusAndError(body.SmartContract.ID, smartcontract.StatusSynching, nil)
-
-			// Get the contract txs
-			err = ctx.TxsEngine.GetContractTransactions(body.SmartContract)
-			if err != nil {
-				ctx.Storage.UpdateStatusAndError(body.SmartContract.ID, smartcontract.StatusError, err)
-			}
-
-			// Update status to running
-			ctx.Storage.UpdateStatusAndError(body.SmartContract.ID, smartcontract.StatusRunning, nil)
-		}()
 
 		// update response
 		createdSmartContract.Events = events
