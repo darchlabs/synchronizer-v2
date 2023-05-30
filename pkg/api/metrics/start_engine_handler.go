@@ -1,7 +1,7 @@
 package metrics
 
 import (
-	txsengine "github.com/darchlabs/synchronizer-v2/internal/txs-engine"
+	txsengine "github.com/darchlabs/synchronizer-v2/internal/txsengine"
 	"github.com/gofiber/fiber/v2"
 )
 

@@ -57,8 +57,7 @@ func listSmartContractFailedTransactions(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// Prepare the query context
-		queryCTX := &synchronizer.ListItemsInRangeCTX{
-			Id:        contract.ID,
+		queryCtx := &synchronizer.ListItemsInRangeCtx{
 			StartTime: fmt.Sprint(p.StartTime),
 			EndTime:   fmt.Sprint(p.EndTime),
 			Sort:      p.Sort,
@@ -66,7 +65,7 @@ func listSmartContractFailedTransactions(ctx Context) func(c *fiber.Ctx) error {
 			Offset:    p.Offset,
 		}
 		// List the failed transactions on the given range
-		failedTxs, err := ctx.TransactionStorage.ListContractFailedTxs(queryCTX)
+		failedTxs, err := ctx.TransactionStorage.ListFailedTxsById(contract.ID, queryCtx)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				listSmartContractFailedTransactionsRes{
@@ -76,7 +75,7 @@ func listSmartContractFailedTransactions(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// Get the total failed transactions
-		totalFailedTxs, err := ctx.TransactionStorage.GetContractTotalFailedTxsCount(contract.ID)
+		totalFailedTxs, err := ctx.TransactionStorage.GetFailedTxsCountById(contract.ID)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				listSmartContractFailedTransactionsRes{

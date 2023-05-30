@@ -56,8 +56,7 @@ func listSmartContractActiveAddresses(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// Prepare the query context
-		queryCTX := &synchronizer.ListItemsInRangeCTX{
-			Id:        contract.ID,
+		queryCtx := &synchronizer.ListItemsInRangeCtx{
 			StartTime: fmt.Sprint(p.StartTime),
 			EndTime:   fmt.Sprint(p.EndTime),
 			Sort:      p.Sort,
@@ -65,7 +64,7 @@ func listSmartContractActiveAddresses(ctx Context) func(c *fiber.Ctx) error {
 			Offset:    p.Offset,
 		}
 		// Get the array of unique adresses in the given range
-		activeAddresses, err := ctx.TransactionStorage.ListContractUniqueAddresses(queryCTX)
+		activeAddresses, err := ctx.TransactionStorage.ListUniqueAddresses(contract.ID, queryCtx)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				listSmartContractActiveAddressesRes{
@@ -75,7 +74,7 @@ func listSmartContractActiveAddresses(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// Get the total unique addresses
-		totalActiveAddresses, err := ctx.TransactionStorage.GetContractTotalAddressesCount(contract.ID)
+		totalActiveAddresses, err := ctx.TransactionStorage.GetAddressesCountById(contract.ID)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				listSmartContractActiveAddressesRes{

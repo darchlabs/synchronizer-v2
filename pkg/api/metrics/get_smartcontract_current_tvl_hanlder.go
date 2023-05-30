@@ -36,11 +36,10 @@ func getSmartContractCurrentTVL(ctx Context) func(c *fiber.Ctx) error {
 					Error: "smart contract not found in the given address",
 				},
 			)
-
 		}
 
 		// Get the transactions
-		currentTVL, err := ctx.TransactionStorage.GetContractCurrentTVL(contract.ID)
+		currentTVL, err := ctx.TransactionStorage.GetTvlById(contract.ID)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				getSmartContractCurrentTVLRes{

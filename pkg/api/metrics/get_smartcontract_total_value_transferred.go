@@ -40,7 +40,7 @@ func getSmartContractTotalValueTransferred(ctx Context) func(c *fiber.Ctx) error
 		}
 
 		// Get the total value transferred
-		totalTransactions, err := ctx.TransactionStorage.GetContractTotalValueTransferred(contract.ID)
+		totalTransactions, err := ctx.TransactionStorage.GetValueTransferredById(contract.ID)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				getSmartContractTotalValueTransferredRes{

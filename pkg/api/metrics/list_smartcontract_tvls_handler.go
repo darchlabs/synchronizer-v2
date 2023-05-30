@@ -56,8 +56,7 @@ func listSmartContractTVLs(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// Prepare the query context
-		queryCTX := &synchronizer.ListItemsInRangeCTX{
-			Id:        contract.ID,
+		queryCtx := &synchronizer.ListItemsInRangeCtx{
 			StartTime: fmt.Sprint(p.StartTime),
 			EndTime:   fmt.Sprint(p.EndTime),
 			Sort:      p.Sort,
@@ -65,7 +64,7 @@ func listSmartContractTVLs(ctx Context) func(c *fiber.Ctx) error {
 			Offset:    p.Offset,
 		}
 		// Get the transactions
-		tvlArr, err := ctx.TransactionStorage.ListContractTVLs(queryCTX)
+		tvlArr, err := ctx.TransactionStorage.ListTvlsById(contract.ID, queryCtx)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				listSmartContractTVLsRes{
@@ -75,7 +74,7 @@ func listSmartContractTVLs(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// Get the number of transactions of the contract
-		totalTxs, err := ctx.TransactionStorage.GetContractTotalTxsCount(contract.ID)
+		totalTxs, err := ctx.TransactionStorage.GetTxsCountById(contract.ID)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				listSmartContractGasSpentRes{

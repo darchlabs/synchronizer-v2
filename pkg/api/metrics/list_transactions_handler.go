@@ -38,7 +38,7 @@ func listTransactions(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// Get the number of transactions of the contract
-		totalTxs, err := ctx.TransactionStorage.GetTotalTxsCount()
+		totalTxs, err := ctx.TransactionStorage.GetTxsCount()
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				listSmartContractGasSpentRes{
