@@ -11,7 +11,7 @@ type EventStorage interface {
 	ListEvents(sort string, limit int64, offset int64) ([]*event.Event, error)
 	ListEventsByAddress(address string, sort string, limit int64, offset int64) ([]*event.Event, error)
 	GetEvent(address string, eventName string) (*event.Event, error)
-	GetEventByID(id string) (*event.Event, error)
+	GetEventById(id string) (*event.Event, error)
 	InsertEvent(e *event.Event) (*event.Event, error)
 	UpdateEvent(e *event.Event) error
 	DeleteEvent(address string, eventName string) error
@@ -40,7 +40,7 @@ type SmartContractStorage interface {
 	InsertSmartContract(s *smartcontract.SmartContract) (*smartcontract.SmartContract, error)
 	UpdateLastBlockNumber(id string, blockNumber int64) error
 	DeleteSmartContractByAddress(address string) error
-	GetSmartContractByID(id string) (*smartcontract.SmartContract, error)
+	GetSmartContractById(id string) (*smartcontract.SmartContract, error)
 	GetSmartContractByAddress(address string) (*smartcontract.SmartContract, error)
 	GetSmartContractsCount() (int64, error)
 	UpdateStatusAndError(id string, status smartcontract.SmartContractStatus, err error) error
@@ -48,29 +48,24 @@ type SmartContractStorage interface {
 }
 
 type TransactionStorage interface {
-	InsertTxsByContract([]*transaction.Transaction) error
-
+	InsertTxs([]*transaction.Transaction) error
+	DeleteTransactionsByContractId(Id string) error
 	ListTxs(sort string, limit int64, offset int64) ([]*transaction.Transaction, error)
-	GetTotalTxsCount() (int64, error)
-
-	ListContractTxs(ctx *ListItemsInRangeCTX) ([]*transaction.Transaction, error)
-	GetContractTotalTxsCount(id string) (int64, error)
-
-	ListContractFailedTxs(ctx *ListItemsInRangeCTX) ([]*transaction.Transaction, error)
-	GetContractTotalFailedTxsCount(id string) (int64, error)
-
-	ListContractUniqueAddresses(ctx *ListItemsInRangeCTX) ([]string, error)
-	GetContractTotalAddressesCount(id string) (int64, error)
-
-	ListContractTVLs(ctx *ListItemsInRangeCTX) ([][]string, error)
-	GetContractCurrentTVL(id string) (int64, error)
-
-	ListContractGasSpent(ctx *ListItemsInRangeCTX) ([][]string, error)
-	GetContractTotalValueTransferred(id string) (int64, error)
+	GetTxsCount() (int64, error)
+	ListTxsById(id string, ctx *ListItemsInRangeCtx) ([]*transaction.Transaction, error)
+	GetTxsCountById(id string) (int64, error)
+	ListFailedTxsById(id string, ctx *ListItemsInRangeCtx) ([]*transaction.Transaction, error)
+	GetFailedTxsCountById(id string) (int64, error)
+	ListUniqueAddresses(id string, ctx *ListItemsInRangeCtx) ([]string, error)
+	GetAddressesCountById(id string) (int64, error)
+	ListTvlsById(id string, ctx *ListItemsInRangeCtx) ([][]string, error)
+	GetTvlById(id string) (int64, error)
+	ListGasSpentById(id string, startTs int64, endTs int64, interval int64) ([][]string, error)
+	GetTotalGasSpentById(id string) (int64, error)
+	GetValueTransferredById(id string) (int64, error)
 }
 
-type ListItemsInRangeCTX struct {
-	Id        string
+type ListItemsInRangeCtx struct {
 	StartTime string
 	EndTime   string
 	Sort      string
@@ -79,8 +74,8 @@ type ListItemsInRangeCTX struct {
 }
 
 type GasTimestamp struct {
-	GasUsed   string `db:"gas_used"`
-	Timestamp string `db:"timestamp"`
+	GasUsed   int64 `db:"gas_used"`
+	Timestamp int64 `db:"timestamp"`
 }
 
 type ContractBalanceTimestamp struct {
