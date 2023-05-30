@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -12,11 +13,12 @@ import (
 	"github.com/darchlabs/synchronizer-v2"
 	"github.com/darchlabs/synchronizer-v2/internal/cronjob"
 	"github.com/darchlabs/synchronizer-v2/internal/env"
+	"github.com/darchlabs/synchronizer-v2/internal/httpclient"
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
 	eventstorage "github.com/darchlabs/synchronizer-v2/internal/storage/event"
 	smartcontractstorage "github.com/darchlabs/synchronizer-v2/internal/storage/smartcontract"
 	transactionstorage "github.com/darchlabs/synchronizer-v2/internal/storage/transaction"
-	txsengine "github.com/darchlabs/synchronizer-v2/internal/txs-engine"
+	txsengine "github.com/darchlabs/synchronizer-v2/internal/txsengine"
 	CronjobAPI "github.com/darchlabs/synchronizer-v2/pkg/api/cronjob"
 	EventAPI "github.com/darchlabs/synchronizer-v2/pkg/api/event"
 	"github.com/darchlabs/synchronizer-v2/pkg/api/metrics"
@@ -25,7 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/google/uuid"
+	uuid "github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/pressly/goose/v3"
 
@@ -77,8 +79,8 @@ func main() {
 
 	// initialize storages
 	eventStorage = eventstorage.New(s)
-	smartContactStorage = smartcontractstorage.New(s)
 	transactionStorage = transactionstorage.New(s)
+	smartContactStorage = smartcontractstorage.New(s, eventStorage, transactionStorage)
 
 	// parse seconds from string to int64
 	seconds, err := strconv.ParseInt(env.IntervalSeconds, 10, 64)
@@ -99,8 +101,24 @@ func main() {
 	// initialize the cronjob
 	cronjobSvc = cronjob.New(seconds, eventStorage, &clients, env.Debug, uuid.NewString, time.Now)
 
+	// initialize http client with rate limiter
+	client := httpclient.NewClient(&httpclient.Options{
+		MaxRetry:        2,
+		MaxRequest:      5,
+		WindowInSeconds: 1,
+	}, http.DefaultClient)
+
 	// Initialize the transactions engine
-	txsEngine = txsengine.New(&smartContactStorage, &transactionStorage, uuid.NewString, networksEtherscanURL, networksEtherscanAPIKey, networksNodeURL)
+	txsEngine = txsengine.New(txsengine.Config{
+		ContractStorage:    smartContactStorage,
+		TransactionStorage: transactionStorage,
+		IdGen:              uuid.NewString,
+		EtherscanUrlMap:    networksEtherscanURL,
+		ApiKeyMap:          networksEtherscanAPIKey,
+		NodesUrlMap:        networksNodeURL,
+		Client:             client,
+		MaxTransactions:    env.MaxTransactions,
+	})
 
 	// configure routers
 	smartcontractsAPI.Route(api, smartcontractsAPI.Context{
