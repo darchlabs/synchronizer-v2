@@ -4,17 +4,22 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/darchlabs/synchronizer-v2"
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
 	"github.com/darchlabs/synchronizer-v2/pkg/smartcontract"
 )
 
 type Storage struct {
-	storage *storage.S
+	storage            *storage.S
+	eventStorage       synchronizer.EventStorage
+	transactionStorage synchronizer.TransactionStorage
 }
 
-func New(s *storage.S) *Storage {
+func New(s *storage.S, e synchronizer.EventStorage, t synchronizer.TransactionStorage) *Storage {
 	return &Storage{
-		storage: s,
+		storage:            s,
+		eventStorage:       e,
+		transactionStorage: t,
 	}
 }
 
@@ -35,7 +40,7 @@ func (s *Storage) InsertSmartContract(sc *smartcontract.SmartContract) (*smartco
 	}
 
 	// get created smartcontract
-	createdSmartcontract, err := s.GetSmartContractByID(smartcontractId)
+	createdSmartcontract, err := s.GetSmartContractById(smartcontractId)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +50,7 @@ func (s *Storage) InsertSmartContract(sc *smartcontract.SmartContract) (*smartco
 
 func (s *Storage) UpdateLastBlockNumber(id string, blockNumber int64) error {
 	// get current sc
-	current, _ := s.GetSmartContractByID(id)
+	current, _ := s.GetSmartContractById(id)
 	if current == nil {
 		return fmt.Errorf("smartcontract does not exist")
 	}
@@ -62,7 +67,7 @@ func (s *Storage) UpdateLastBlockNumber(id string, blockNumber int64) error {
 
 func (s *Storage) UpdateStatusAndError(id string, status smartcontract.SmartContractStatus, err error) error {
 	// get current sc
-	current, _ := s.GetSmartContractByID(id)
+	current, _ := s.GetSmartContractById(id)
 	if current == nil {
 		return fmt.Errorf("smartcontract does not exist")
 	}
@@ -83,7 +88,7 @@ func (s *Storage) UpdateStatusAndError(id string, status smartcontract.SmartCont
 	return nil
 }
 
-func (s *Storage) GetSmartContractByID(id string) (*smartcontract.SmartContract, error) {
+func (s *Storage) GetSmartContractById(id string) (*smartcontract.SmartContract, error) {
 	// get smartcontract from db
 	sc := &smartcontract.SmartContract{}
 	err := s.storage.DB.Get(sc, "SELECT * FROM smartcontracts WHERE id = $1", id)
@@ -106,8 +111,36 @@ func (s *Storage) GetSmartContractByAddress(address string) (*smartcontract.Smar
 }
 
 func (s *Storage) DeleteSmartContractByAddress(address string) error {
-	// get smartcontract from db
-	_, err := s.storage.DB.Exec("DELETE FROM smartcontracts WHERE address = $1", address)
+	// list events by address from storage
+	events, err := s.eventStorage.ListAllEvents()
+	if err != nil {
+		return nil
+	}
+
+	// delete events from storage
+	for _, ev := range events {
+		if ev.Address == address {
+			err = s.eventStorage.DeleteEvent(address, ev.Abi.Name)
+			if err != nil {
+				return nil
+			}
+		}
+	}
+
+	// get smartcontract using the address
+	sc, err := s.GetSmartContractByAddress(address)
+	if err != nil {
+		return nil
+	}
+
+	// delete transactions from storage
+	err = s.transactionStorage.DeleteTransactionsByContractId(sc.ID)
+	if err != nil {
+		return nil
+	}
+
+	// delete smartcontract from db
+	_, err = s.storage.DB.Exec("DELETE FROM smartcontracts WHERE address = $1", address)
 	if err != nil {
 		return err
 	}

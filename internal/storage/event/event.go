@@ -65,7 +65,7 @@ func (s *Storage) InsertEvent(e *event.Event) (*event.Event, error) {
 	}
 
 	// get created event
-	createdEvent, err := s.GetEventByID(eventID)
+	createdEvent, err := s.GetEventById(eventID)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +229,7 @@ func (s *Storage) GetEvent(address string, eventName string) (*event.Event, erro
 	return e, nil
 }
 
-func (s *Storage) GetEventByID(id string) (*event.Event, error) {
+func (s *Storage) GetEventById(id string) (*event.Event, error) {
 	// get event from db
 	e := &event.Event{}
 	err := s.storage.DB.Get(e, "SELECT * FROM event WHERE id = $1", id)

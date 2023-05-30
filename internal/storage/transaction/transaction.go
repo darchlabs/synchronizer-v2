@@ -3,6 +3,7 @@ package transactionstorage
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"time"
 
@@ -42,7 +43,7 @@ func (s *Storage) ListTxs(sort string, limit int64, offset int64) ([]*transactio
 	return txs, nil
 }
 
-func (s *Storage) GetTotalTxsCount() (int64, error) {
+func (s *Storage) GetTxsCount() (int64, error) {
 	// define events response
 	var totalTxs []int64
 
@@ -56,13 +57,13 @@ func (s *Storage) GetTotalTxsCount() (int64, error) {
 	return totalTxs[0], nil
 }
 
-func (s *Storage) ListContractTxs(ctx *synchronizer.ListItemsInRangeCTX) ([]*transaction.Transaction, error) {
+func (s *Storage) ListTxsById(id string, ctx *synchronizer.ListItemsInRangeCtx) ([]*transaction.Transaction, error) {
 	// define events response
 	var txs []*transaction.Transaction
 
 	// get txs from db
 	eventQuery := fmt.Sprintf("SELECT * FROM transactions WHERE contract_id = $1 AND timestamp BETWEEN $2 AND $3 ORDER BY block_number %s LIMIT $4 OFFSET $5", ctx.Sort)
-	err := s.storage.DB.Select(&txs, eventQuery, ctx.Id, ctx.StartTime, ctx.EndTime, ctx.Limit, ctx.Offset)
+	err := s.storage.DB.Select(&txs, eventQuery, id, ctx.StartTime, ctx.EndTime, ctx.Limit, ctx.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +76,7 @@ func (s *Storage) ListContractTxs(ctx *synchronizer.ListItemsInRangeCTX) ([]*tra
 	return txs, nil
 }
 
-func (s *Storage) GetContractTotalTxsCount(id string) (int64, error) {
+func (s *Storage) GetTxsCountById(id string) (int64, error) {
 	// define events response
 	var totalTxsNum []int64
 
@@ -89,7 +90,7 @@ func (s *Storage) GetContractTotalTxsCount(id string) (int64, error) {
 	return totalTxsNum[0], nil
 }
 
-func (s *Storage) GetContractCurrentTVL(id string) (int64, error) {
+func (s *Storage) GetTvlById(id string) (int64, error) {
 	// define events response
 	var lastTVL []string
 
@@ -100,8 +101,8 @@ func (s *Storage) GetContractCurrentTVL(id string) (int64, error) {
 		return 0, err
 	}
 
-	// Return 0 if there is no registers
-	if lastTVL[0] == "" {
+	// Return an empty value in case there are no rows
+	if len(lastTVL) == 0 {
 		return 0, nil
 	}
 
@@ -113,13 +114,13 @@ func (s *Storage) GetContractCurrentTVL(id string) (int64, error) {
 	return currentTVL, nil
 }
 
-func (s *Storage) ListContractTVLs(ctx *synchronizer.ListItemsInRangeCTX) ([][]string, error) {
+func (s *Storage) ListTvlsById(id string, ctx *synchronizer.ListItemsInRangeCtx) ([][]string, error) {
 	// create an arr of ContractBalanceTimestamp
 	var balanceTimestamps []synchronizer.ContractBalanceTimestamp
 
 	// get txs from db
 	eventQuery := fmt.Sprintf("SELECT contract_balance, timestamp FROM transactions WHERE contract_id = $1 AND timestamp BETWEEN $2 AND $3 ORDER BY block_number %s LIMIT $4 OFFSET $5", ctx.Sort)
-	err := s.storage.DB.Select(&balanceTimestamps, eventQuery, ctx.Id, ctx.StartTime, ctx.EndTime, ctx.Limit, ctx.Offset)
+	err := s.storage.DB.Select(&balanceTimestamps, eventQuery, id, ctx.StartTime, ctx.EndTime, ctx.Limit, ctx.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -139,13 +140,13 @@ func (s *Storage) ListContractTVLs(ctx *synchronizer.ListItemsInRangeCTX) ([][]s
 	return tvlWithTimestampArr, nil
 }
 
-func (s *Storage) ListContractUniqueAddresses(ctx *synchronizer.ListItemsInRangeCTX) ([]string, error) {
+func (s *Storage) ListUniqueAddresses(id string, ctx *synchronizer.ListItemsInRangeCtx) ([]string, error) {
 	var uniqueAddresses []string
 
 	query := fmt.Sprintf("SELECT DISTINCT t.from FROM (SELECT t.from, t.block_number FROM transactions AS t WHERE contract_id = $1 AND timestamp BETWEEN $2 AND $3 ORDER BY t.block_number %s) t LIMIT $4 OFFSET $5", ctx.Sort)
 
 	// execute query and retrieve result
-	err := s.storage.DB.Select(&uniqueAddresses, query, ctx.Id, ctx.StartTime, ctx.EndTime, ctx.Limit, ctx.Offset)
+	err := s.storage.DB.Select(&uniqueAddresses, query, id, ctx.StartTime, ctx.EndTime, ctx.Limit, ctx.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -158,28 +159,27 @@ func (s *Storage) ListContractUniqueAddresses(ctx *synchronizer.ListItemsInRange
 	return uniqueAddresses, nil
 }
 
-func (s *Storage) GetContractTotalAddressesCount(id string) (int64, error) {
+func (s *Storage) GetAddressesCountById(id string) (int64, error) {
 	// define events response
-	var totalAddr []int64
-
+	var count int64
 	query := "SELECT COUNT(DISTINCT t.from) FROM transactions as T WHERE contract_id = $1"
 
 	// execute query and retrieve result
-	err := s.storage.DB.Select(&totalAddr, query, id)
+	err := s.storage.DB.Get(&count, query, id)
 	if err != nil {
 		return 0, err
 	}
 
-	return totalAddr[0], nil
+	return count, nil
 }
 
-func (s *Storage) ListContractFailedTxs(ctx *synchronizer.ListItemsInRangeCTX) ([]*transaction.Transaction, error) {
+func (s *Storage) ListFailedTxsById(id string, ctx *synchronizer.ListItemsInRangeCtx) ([]*transaction.Transaction, error) {
 	var failedTxs []*transaction.Transaction
 
 	query := fmt.Sprintf("SELECT * FROM transactions WHERE contract_id = $1 AND (is_error = '1' OR tx_receipt_status = '0') AND timestamp BETWEEN $2 AND $3 ORDER BY block_number %s LIMIT $4 OFFSET $5", ctx.Sort)
 
 	// execute query and retrieve result
-	err := s.storage.DB.Select(&failedTxs, query, ctx.Id, ctx.StartTime, ctx.EndTime, ctx.Limit, ctx.Offset)
+	err := s.storage.DB.Select(&failedTxs, query, id, ctx.StartTime, ctx.EndTime, ctx.Limit, ctx.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +192,7 @@ func (s *Storage) ListContractFailedTxs(ctx *synchronizer.ListItemsInRangeCTX) (
 	return failedTxs, nil
 }
 
-func (s *Storage) GetContractTotalFailedTxsCount(id string) (int64, error) {
+func (s *Storage) GetFailedTxsCountById(id string) (int64, error) {
 	var totalFailedTxs []int64
 
 	query := "SELECT COUNT(*) FROM transactions WHERE contract_id = $1 AND (is_error = '1' OR tx_receipt_status = '0')"
@@ -206,33 +206,79 @@ func (s *Storage) GetContractTotalFailedTxsCount(id string) (int64, error) {
 	return totalFailedTxs[0], nil
 }
 
-func (s *Storage) ListContractGasSpent(ctx *synchronizer.ListItemsInRangeCTX) ([][]string, error) {
+func (s *Storage) GetTotalGasSpentById(id string) (int64, error) {
+	var totalGasSpent int64
+
+	txs, err := s.GetTxsCountById(id)
+	if err != nil {
+		return 0, nil
+	}
+
+	// check if txs count is zero
+	if txs == 0 {
+		return 0, nil
+	}
+
+	// execute query and retrieve result
+	query := "SELECT SUM(CAST(gas_used AS bigint)) FROM transactions where contract_id = $1;"
+	err = s.storage.DB.Get(&totalGasSpent, query, id)
+	if err != nil {
+		return 0, err
+	}
+
+	return totalGasSpent, nil
+}
+
+func (s *Storage) ListGasSpentById(id string, startTs int64, endTs int64, interval int64) ([][]string, error) {
 	// Define array for the query
 	var gasUsedAndTimestamp []synchronizer.GasTimestamp
 
-	query := fmt.Sprintf("SELECT gas_used, timestamp FROM transactions WHERE contract_id = $1 AND timestamp BETWEEN $2 AND $3 ORDER BY block_number %s LIMIT $4 OFFSET $5", ctx.Sort)
-
 	// execute query and retrieve result
-	err := s.storage.DB.Select(&gasUsedAndTimestamp, query, ctx.Id, ctx.StartTime, ctx.EndTime, ctx.Limit, ctx.Offset)
+	query := "SELECT gas_used, timestamp FROM transactions WHERE contract_id = $1 AND timestamp BETWEEN $2 AND $3 ORDER BY block_number DESC"
+	err := s.storage.DB.Select(&gasUsedAndTimestamp, query, id, startTs, endTs)
 	if err != nil {
 		return nil, err
 	}
 
-	// Define array for parsing the query, joining each row of gas with its timestamp
-	var gasSpentWithTimestampArr [][]string
-	for _, item := range gasUsedAndTimestamp {
-		gasSpentWithTimestampArr = append(gasSpentWithTimestampArr, []string{item.GasUsed, item.Timestamp})
-	}
-
-	// Return an empty array and not null in case there are no rows
-	if len(gasSpentWithTimestampArr) == 0 {
+	// finish method when response is empty
+	if len(gasUsedAndTimestamp) == 0 {
 		return [][]string{}, nil
 	}
 
-	return gasSpentWithTimestampArr, nil
+	// Group the timestamps by interval and sum the gas used
+	intervalEnd := endTs
+	intervalStart := endTs - interval
+	var result [][]string
+	var sumGasUsed int64
+	for _, data := range gasUsedAndTimestamp {
+		if data.Timestamp >= intervalStart {
+			sumGasUsed += data.GasUsed
+		} else {
+			// Add the sum of gas used during the interval to the result
+			result = append(result, []string{strconv.FormatInt(sumGasUsed, 10), strconv.FormatInt(intervalEnd, 10)})
+			// Start a new interval
+			intervalEnd = intervalStart
+			intervalStart -= interval
+			sumGasUsed = data.GasUsed
+		}
+	}
+
+	// Add the last interval if any
+	if sumGasUsed > 0 {
+		result = append(result, []string{strconv.FormatInt(sumGasUsed, 10), strconv.FormatInt(intervalEnd, 10)})
+	}
+
+	// sort slice ASC
+	sort.Slice(result, func(i, j int) bool {
+		left, _ := strconv.ParseInt(result[i][1], 10, 64)
+		right, _ := strconv.ParseInt(result[j][1], 10, 64)
+		return left < right
+	})
+
+	return result, nil
 }
 
-func (s *Storage) GetContractTotalValueTransferred(id string) (int64, error) {
+func (s *Storage) GetValueTransferredById(id string) (int64, error) {
 	var totalValueTransferred []int64
 
 	query := "SELECT SUM(value::bigint) FROM transactions WHERE contract_id = $1"
@@ -247,7 +293,7 @@ func (s *Storage) GetContractTotalValueTransferred(id string) (int64, error) {
 }
 
 // get the last synced tx and its block before executing it
-func (s *Storage) InsertTxsByContract(transactions []*transaction.Transaction) error {
+func (s *Storage) InsertTxs(transactions []*transaction.Transaction) error {
 	// check it has enough len
 	if len(transactions) == 0 {
 		return errors.New("the transactions array to insert is empty")
@@ -334,6 +380,16 @@ func (s *Storage) InsertTxsByContract(transactions []*transaction.Transaction) e
 	err = tx.Commit()
 	if err != nil {
 		tx.Rollback()
+		return err
+	}
+
+	return nil
+}
+
+func (s *Storage) DeleteTransactionsByContractId(id string) error {
+	// delete transaction using id
+	_, err := s.storage.DB.Exec("DELETE FROM transactions WHERE contract_id = $1", id)
+	if err != nil {
 		return err
 	}
 
