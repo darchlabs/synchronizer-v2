@@ -61,6 +61,8 @@ func (t *T) getTransactionsFromEtherscan(apiURL string, apiKey string, address s
 		return nil, fmt.Errorf("failed to read response body: %v", err)
 	}
 
+	fmt.Println("Scan.response", string(b))
+
 	var body Response
 	err = json.Unmarshal(b, &body)
 	if err != nil {
