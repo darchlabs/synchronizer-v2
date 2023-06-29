@@ -116,9 +116,7 @@ func (ed *EventData) ToWebhookEvent(ID string, ev *Event, endpoint string, date 
 
 func IsValidEventNetwork(network EventNetwork) bool {
 	switch network {
-	case Ethereum:
-	case Polygon:
-	case Mumbai:
+	case Ethereum, Polygon, Mumbai:
 		return true
 	}
 

@@ -279,6 +279,8 @@ func (t *T) GetContractTransactions(contractId string, apiUrl string, apiKey str
 		to = int(math.Min(float64(t.maxTransactions), float64(to)))
 	}
 
+	_ = t.smartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusRunning, nil)
+
 	log.Println("contract finished at: ", contract.Name)
 	return nil
 }
