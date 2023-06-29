@@ -2,6 +2,8 @@ package smartcontractstorage
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/darchlabs/synchronizer-v2"
@@ -32,9 +34,9 @@ func (s *Storage) InsertSmartContract(sc *smartcontract.SmartContract) (*smartco
 
 	// insert new smartcontract in database
 	var smartcontractId string
-	query := "INSERT INTO smartcontracts ( id, name, network, node_url, address,last_tx_block_synced, status, error, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id"
+	query := "INSERT INTO smartcontracts ( id, name, network, node_url, address,last_tx_block_synced, status, error, webhook, created_at, updated_at, initial_block_number) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id"
 	err := s.storage.DB.Get(&smartcontractId, query, sc.ID, sc.Name, sc.Network, sc.NodeURL, sc.Address,
-		sc.LastTxBlockSynced, sc.Status, sc.Error, sc.CreatedAt, sc.UpdatedAt)
+		sc.LastTxBlockSynced, sc.Status, sc.Error, sc.Webhook, sc.CreatedAt, sc.UpdatedAt, sc.InitialBlockNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -46,6 +48,53 @@ func (s *Storage) InsertSmartContract(sc *smartcontract.SmartContract) (*smartco
 	}
 
 	return createdSmartcontract, nil
+}
+
+func (s *Storage) UpdateSmartContract(sc *smartcontract.SmartContract) (*smartcontract.SmartContract, error) {
+	// get current sc
+	current, err := s.GetSmartContractByAddress(sc.Address)
+	if err != nil {
+		return nil, fmt.Errorf("smartcontract not found with address=%s", sc.Address)
+	}
+
+	// prepare dinamic sql
+	query := "UPDATE smartcontracts SET "
+	args := []interface{}{}
+
+	// check if name is changed
+	if sc.Name != "" {
+		query += "name = $" + strconv.Itoa(len(args)+1) + ", "
+		args = append(args, sc.Name)
+	}
+
+	// check if nodeurl is changed
+	if sc.NodeURL != "" {
+		query += "node_url = $" + strconv.Itoa(len(args)+1) + ", "
+		args = append(args, sc.NodeURL)
+	}
+
+	// check if webhook is changed
+	query += "webhook = $" + strconv.Itoa(len(args)+1) + ", "
+	args = append(args, sc.Webhook)
+
+	// add where sql condition
+	query = strings.TrimSuffix(query, ", ")
+	query += " WHERE id = $" + strconv.Itoa(len(args)+1)
+	args = append(args, current.ID)
+
+	// execute query
+	_, err = s.storage.DB.Exec(query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	// get updated smartcontract
+	updatedSmartContract, err := s.GetSmartContractById(current.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return updatedSmartContract, nil
 }
 
 func (s *Storage) UpdateLastBlockNumber(id string, blockNumber int64) error {
