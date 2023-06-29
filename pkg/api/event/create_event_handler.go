@@ -4,9 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 
-	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
 	"github.com/darchlabs/synchronizer-v2/pkg/api"
 	"github.com/darchlabs/synchronizer-v2/pkg/event"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -53,7 +51,7 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 		body.Event.ID = ctx.IDGen()
 		body.Event.Abi.ID = ctx.IDGen()
 		body.Event.LatestBlockNumber = 0
-		body.Event.Status = event.StatusSynching
+		body.Event.Status = event.StatusRunning
 		body.Event.Error = ""
 		body.Event.CreatedAt = ctx.DateGen()
 		body.Event.UpdatedAt = ctx.DateGen()
@@ -112,133 +110,6 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 				},
 			)
 		}
-
-		// get initial logs in background
-		go func() {
-			// get created event from database
-			ev, err := ctx.Storage.GetEvent(body.Event.Address, body.Event.Abi.Name)
-			if err != nil {
-				// update event error
-				ev.Status = event.StatusError
-				ev.Error = err.Error()
-				ev.UpdatedAt = ctx.DateGen()
-				_ = ctx.Storage.UpdateEvent(ev)
-				return
-			}
-
-			// parse abi to string
-			b, err := json.Marshal(ev.Abi)
-			if err != nil {
-				// update event error
-				ev.Status = event.StatusError
-				ev.Error = err.Error()
-				ev.UpdatedAt = ctx.DateGen()
-				_ = ctx.Storage.UpdateEvent(ev)
-				return
-			}
-
-			// define and read channel with log data in go routine
-			logsChannel := make(chan []blockchain.LogData)
-			go func() {
-				for logs := range logsChannel {
-					log.Printf("received logs len_data=%+v \n", len(logs))
-
-					// parse each log to EventData
-					eventDatas := make([]*event.EventData, 0)
-					for _, log := range logs {
-						ed := &event.EventData{}
-						err := ed.FromLogData(log, ctx.IDGen(), ev.ID, ctx.DateGen())
-						if err != nil {
-							// update event error
-							ev.Status = event.StatusError
-							ev.Error = err.Error()
-							ev.UpdatedAt = ctx.DateGen()
-							_ = ctx.Storage.UpdateEvent(ev)
-							return
-						}
-
-						eventDatas = append(eventDatas, ed)
-					}
-
-					// insert logs data to event
-					err := ctx.Storage.InsertEventData(ev, eventDatas)
-					if err != nil {
-						// update event error
-						ev.Status = event.StatusError
-						ev.Error = err.Error()
-						ev.UpdatedAt = ctx.DateGen()
-						_ = ctx.Storage.UpdateEvent(ev)
-						return
-					}
-
-					// update latest block number using last dataLog
-					if len(logs) > 0 {
-						ev.LatestBlockNumber = int64(logs[len(logs)-1].BlockNumber)
-						ev.UpdatedAt = ctx.DateGen()
-						err = ctx.Storage.UpdateEvent(ev)
-						if err != nil {
-							// update event error
-							ev.Status = event.StatusError
-							ev.Error = err.Error()
-							ev.UpdatedAt = ctx.DateGen()
-							_ = ctx.Storage.UpdateEvent(ev)
-							return
-						}
-					}
-				}
-			}()
-
-			// get event logs from contract
-			count, latestBlockNumber, err := blockchain.GetLogs(blockchain.Config{
-				Client:          client,
-				ABI:             fmt.Sprintf("[%s]", string(b)),
-				EventName:       ev.Abi.Name,
-				Address:         ev.Address,
-				FromBlockNumber: &ev.LatestBlockNumber,
-				LogsChannel:     logsChannel,
-				Logger:          true,
-			})
-			if err != nil {
-				// update event error
-				ev.Status = event.StatusError
-				ev.Error = err.Error()
-				ev.UpdatedAt = ctx.DateGen()
-				_ = ctx.Storage.UpdateEvent(ev)
-				return
-			}
-
-			// finish when the contract dont have new events
-			if count > 0 {
-				log.Printf("%d new events have been inserted into the database with %d latest block number \n", count, latestBlockNumber)
-			}
-
-			// update latest block number in event
-			ev.LatestBlockNumber = latestBlockNumber
-			ev.UpdatedAt = ctx.DateGen()
-			err = ctx.Storage.UpdateEvent(ev)
-			if err != nil {
-				// update event error
-				ev.Status = event.StatusError
-				ev.Error = err.Error()
-				ev.UpdatedAt = ctx.DateGen()
-				_ = ctx.Storage.UpdateEvent(ev)
-				return
-			}
-
-			// update event status to running
-			ev.Status = event.StatusRunning
-			ev.Error = ""
-			ev.UpdatedAt = ctx.DateGen()
-			_ = ctx.Storage.UpdateEvent(ev)
-			if err != nil {
-				// update event error
-				ev.Status = event.StatusError
-				ev.Error = err.Error()
-				ev.UpdatedAt = ctx.DateGen()
-				_ = ctx.Storage.UpdateEvent(ev)
-				return
-			}
-		}()
 
 		// prepare response
 		return c.Status(fiber.StatusOK).JSON(api.Response{
