@@ -70,7 +70,7 @@ func insertEventHandler(ctx Context) func(c *fiber.Ctx) error {
 
 		// Validate network is one of the supported
 		network := body.Event.Network
-		if network != event.Ethereum && network != event.Polygon {
+		if !event.IsValidEventNetwork(network) {
 			return c.Status(fiber.StatusUnprocessableEntity).JSON(api.Response{
 				Error: "invalid network",
 			})
