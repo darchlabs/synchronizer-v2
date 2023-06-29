@@ -291,8 +291,13 @@ func (c *cronjob) job() error {
 				}
 			}()
 
+			// define context with timeout for getting log proccess
+			// TODO(ca): should to use env value
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second) // 10 minutos de límite
+			defer cancel()
+
 			// get event logs from contract
-			count, latestBlockNumber, err := blockchain.GetLogs(blockchain.Config{
+			count, latestBlockNumber, err := blockchain.GetLogs(ctx, blockchain.Config{
 				Client:          client,
 				ABI:             fmt.Sprintf("[%s]", string(b)),
 				EventName:       ev.Abi.Name,
@@ -301,7 +306,9 @@ func (c *cronjob) job() error {
 				LogsChannel:     logsChannel,
 				Logger:          c.debug,
 			})
-			if err != nil {
+			if err == context.Canceled || err == context.DeadlineExceeded {
+				log.Println("Warning: context was cancelled/deadline_exceeded")
+			} else if err != nil {
 				updateEventError(ev, err, c.dateGen(), c.storage)
 				return
 			}

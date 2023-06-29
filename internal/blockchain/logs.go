@@ -7,6 +7,9 @@ import (
 	"log"
 	"math/big"
 	"strings"
+	"time"
+
+	// "time"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -32,7 +35,7 @@ type LogData struct {
 	Data        map[string]interface{} `json:"data"`
 }
 
-func GetLogs(c Config) (int64, int64, error) {
+func GetLogs(ctx context.Context, c Config) (int64, int64, error) {
 	// check config params
 	if c.Client == nil {
 		return 0, 0, errors.New("invalid Client config param")
@@ -93,131 +96,143 @@ func GetLogs(c Config) (int64, int64, error) {
 		log.Printf("\nmaking batches requests for event_name%s", c.EventName)
 	}
 
+	// define values to manage the ticker
+	ticker := time.NewTicker(1 * time.Nanosecond)
+	defer ticker.Stop()
+
+loop:
 	for count := 0; ; count++ {
-		if c.Logger {
-			log.Printf("\naddress=%s event_name=%s iteration=%d from=%d to=%d interval=%d ", c.Address, c.EventName, count, fromBlock, temporalToBlock, interval)
-		}
-
-		// prepare query params
-		query := ethereum.FilterQuery{
-			FromBlock: big.NewInt(fromBlock),
-			ToBlock:   big.NewInt(temporalToBlock),
-			Addresses: []common.Address{
-				common.HexToAddress(c.Address),
-			},
-			Topics: [][]common.Hash{{event.ID}},
-		}
-
-		// get logs from contract
-		logs, err := c.Client.FilterLogs(context.Background(), query)
-		if err != nil {
-			// TODO(ca): should implement a better recongnition for node log limit error
-			//
-			// Infura(Polygon): query returned more than 10000 results
-			//
-			// Alchemy(Ethereum): Log response size exceeded. You can make eth_getLogs requests
-			// with up to a 2K block range and no limit on the response size, or you can request
-			// any block range with a cap of 10K logs in the response. Based on your parameters
-			// and the response size limit, this block range should work: [0x0, 0x88c025]
-			//
-			// Alchemy(Polygon): Query git out exceeded. Consider reducing your block range. Based
-			// on your parameters and the response size limit, this block range should work: [0x0, 0x1360b8a]
-			//
-			// QuickNode(Polygon): 413 Request Entity Too Large: {"jsonrpc":"2.0","id":2,"result":null,"error":
-			// {"code":-32602,"message":"eth_getLogs and eth_newFilter are limited to a 10,000 blocks range"}}
-			//
-			if strings.Contains(err.Error(), "returned") || strings.Contains(err.Error(), "exceeded") || strings.Contains(err.Error(), "reducing") || strings.Contains(err.Error(), "limited") {
-				interval = (temporalToBlock - fromBlock) / 2
-				temporalToBlock = temporalToBlock - interval
-
-				continue
+		select {
+		case <-ctx.Done():
+			fmt.Println("case when `<-ctx.Done()` with ctx:", ctx.Err())
+			// close log channel and finish
+			close(c.LogsChannel)
+			return logsCount, int64(temporalToBlock - interval), ctx.Err()
+		case <-ticker.C:
+			if c.Logger {
+				log.Printf("\naddress=%s event_name=%s iteration=%d from=%d to=%d interval=%d ", c.Address, c.EventName, count, fromBlock, temporalToBlock, interval)
 			}
 
-			// retry process
-			retry++
-			if retry > c.MaxRetry {
-				return 0, 0, fmt.Errorf("max_retry, error=%s", err.Error())
-			} else {
-				log.Printf("Error: c.Client.FilterLogs(context.Background(), query), err%s \n", err.Error())
+			// prepare query params
+			query := ethereum.FilterQuery{
+				FromBlock: big.NewInt(fromBlock),
+				ToBlock:   big.NewInt(temporalToBlock),
+				Addresses: []common.Address{
+					common.HexToAddress(c.Address),
+				},
+				Topics: [][]common.Hash{{event.ID}},
 			}
 
-			continue
-		}
-
-		// define reset and data log slice
-		retry = 0
-		data := make([]LogData, 0)
-
-		if c.Logger {
-			log.Printf("logs=%d\n", len(logs))
-		}
-
-		// iterate over logs
-		for _, vLog := range logs {
-			// continue if event data are empty
-			if len(vLog.Data) == 0 {
-				continue
-			}
-
-			// get event from contract log
-			eventData := make(map[string]interface{})
-			err := contractWithAbi.UnpackIntoMap(eventData, c.EventName, vLog.Data)
+			// get logs from contract
+			logs, err := c.Client.FilterLogs(context.Background(), query)
 			if err != nil {
-				return 0, 0, err
-			}
+				// TODO(ca): should implement a better recongnition for node log limit error
+				//
+				// Infura(Polygon): query returned more than 10000 results
+				//
+				// Alchemy(Ethereum): Log response size exceeded. You can make eth_getLogs requests
+				// with up to a 2K block range and no limit on the response size, or you can request
+				// any block range with a cap of 10K logs in the response. Based on your parameters
+				// and the response size limit, this block range should work: [0x0, 0x88c025]
+				//
+				// Alchemy(Polygon): Query git out exceeded. Consider reducing your block range. Based
+				// on your parameters and the response size limit, this block range should work: [0x0, 0x1360b8a]
+				//
+				// QuickNode(Polygon): 413 Request Entity Too Large: {"jsonrpc":"2.0","id":2,"result":null,"error":
+				// {"code":-32602,"message":"eth_getLogs and eth_newFilter are limited to a 10,000 blocks range"}}
+				//
+				if strings.Contains(err.Error(), "returned") || strings.Contains(err.Error(), "exceeded") || strings.Contains(err.Error(), "reducing") || strings.Contains(err.Error(), "limited") {
+					interval = (temporalToBlock - fromBlock) / 2
+					temporalToBlock = temporalToBlock - interval
 
-			// filter only indexed elements from events inputs
-			indexedInputs := make([]abi.Argument, 0)
-			for _, e := range contractWithAbi.Events[c.EventName].Inputs {
-				if e.Indexed {
-					indexedInputs = append(indexedInputs, e)
+					continue
 				}
+
+				// retry process
+				retry++
+				if retry > c.MaxRetry {
+					return 0, 0, fmt.Errorf("max_retry, error=%s", err.Error())
+				} else {
+					log.Printf("Error: c.Client.FilterLogs(context.Background(), query), err%s \n", err.Error())
+				}
+
+				continue
 			}
 
-			// get indexed topics from log and parse to map
-			topics := make(map[string]interface{})
-			err = abi.ParseTopicsIntoMap(topics, indexedInputs, vLog.Topics[1:])
-			if err != nil {
-				return 0, 0, err
+			// define reset and data log slice
+			retry = 0
+			data := make([]LogData, 0)
+
+			if c.Logger {
+				log.Printf("logs=%d\n", len(logs))
 			}
 
-			// iterate indexed topics and add to eventData map
-			for key, t := range topics {
-				eventData[key] = t
+			// iterate over logs
+			for _, vLog := range logs {
+				// continue if event data are empty
+				if len(vLog.Data) == 0 {
+					continue
+				}
+
+				// get event from contract log
+				eventData := make(map[string]interface{})
+				err := contractWithAbi.UnpackIntoMap(eventData, c.EventName, vLog.Data)
+				if err != nil {
+					return 0, 0, err
+				}
+
+				// filter only indexed elements from events inputs
+				indexedInputs := make([]abi.Argument, 0)
+				for _, e := range contractWithAbi.Events[c.EventName].Inputs {
+					if e.Indexed {
+						indexedInputs = append(indexedInputs, e)
+					}
+				}
+
+				// get indexed topics from log and parse to map
+				topics := make(map[string]interface{})
+				err = abi.ParseTopicsIntoMap(topics, indexedInputs, vLog.Topics[1:])
+				if err != nil {
+					return 0, 0, err
+				}
+
+				// iterate indexed topics and add to eventData map
+				for key, t := range topics {
+					eventData[key] = t
+				}
+
+				// prepare event data
+				d := LogData{
+					Tx:          vLog.TxHash,
+					BlockNumber: vLog.BlockNumber,
+					Data:        eventData,
+				}
+
+				// append log in data log slice and increase the counter
+				data = append(data, d)
+				logsCount++
 			}
 
-			// prepare event data
-			d := LogData{
-				Tx:          vLog.TxHash,
-				BlockNumber: vLog.BlockNumber,
-				Data:        eventData,
+			// send log data to channel
+			c.LogsChannel <- data
+
+			// condition for finish the bucle
+			if temporalToBlock == int64(toBlock) {
+				break loop
 			}
 
-			// append log in data log slice and increase the counter
-			data = append(data, d)
-			logsCount++
-		}
-
-		// send log data to channel
-		c.LogsChannel <- data
-
-		// condition for finish the bucle
-		if temporalToBlock == int64(toBlock) {
-			break
-		}
-
-		// add interval value to fromBlock and toBlock numbers
-		// TODO(ca): maybe is interval + 1
-		fromBlock = fromBlock + interval
-		if temporalToBlock+interval > int64(toBlock) {
-			temporalToBlock = int64(toBlock)
-		} else {
-			temporalToBlock = temporalToBlock + interval
+			// add interval value to fromBlock and toBlock numbers
+			// TODO(ca): maybe is interval + 1
+			fromBlock = fromBlock + interval
+			if temporalToBlock+interval > int64(toBlock) {
+				temporalToBlock = int64(toBlock)
+			} else {
+				temporalToBlock = temporalToBlock + interval
+			}
 		}
 	}
 
 	// close log channel
 	close(c.LogsChannel)
-
-	return logsCount, int64(toBlock), nil
+	return logsCount, int64(temporalToBlock), nil
 }
