@@ -97,7 +97,8 @@ func GetLogs(ctx context.Context, c Config) (int64, int64, error) {
 	}
 
 	// define values to manage the ticker
-	ticker := time.NewTicker(1 * time.Nanosecond)
+	// TODO(ca): should to implement rate limit approach
+	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 loop:
