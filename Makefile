@@ -19,6 +19,12 @@ build:
 	@docker build -t darchlabs/synchronizer-v2 -f ./Dockerfile --progress tty .
 	@echo "Build darchlabs/synchronizer-v2 docker image done ✔︎"
 
+build-local:
+	@echo "[build-local] Builing docker image locally..."
+	@go build -o bin/synchronizer/sync cmd/synchronizer/main.go
+	@echo "Build darchlabs/synchronizer-v2 local done ✔︎"
+
+
 linux: rm
 	@echo "[compile-linux] Compiling..."
 	@GOOS=linux GOARCH=amd64 go build -o $(BIN_FOLDER_PATH)/synchronizer-linux cmd/synchronizer/main.go
@@ -26,6 +32,11 @@ linux: rm
 dev:
 	@echo "[dev] Running..."
 	@go run cmd/synchronizer/main.go
+
+create-migration:
+	@echo "[create migration]"
+	@goose -dir=migrations/ create $(name)
+	@echo "migration migrations/$(name) created ✔︎"
 
 compose-dev:
 	@echo "[compose-dev]: Running docker compose dev mode..."
