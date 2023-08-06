@@ -25,6 +25,7 @@ const (
 
 type Event struct {
 	ID                string       `json:"id" db:"id"`
+	UserID            string       `json:"user_id" db:"user_id"`
 	Network           EventNetwork `json:"network" db:"network"`
 	NodeURL           string       `json:"nodeURL" db:"node_url"`
 	Address           string       `json:"address" db:"address"`
