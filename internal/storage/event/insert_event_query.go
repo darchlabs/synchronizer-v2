@@ -9,7 +9,7 @@ func (s *Storage) InsertEvent(e *event.Event) (_ *event.Event, err error) {
 	// check if event already exist and is using the same address and name
 	ev, _ := s.GetEvent(e.Address, e.Abi.Name)
 	if ev != nil {
-		return nil, errors.Errorf("eventstorage: Storage.InsertEvent  error. Already exist using address=%s and eventName=%s", e.Address, e.Abi.Name)
+		return nil, ErrEventAlreadyExist
 	}
 
 	// prepare transaction to create event on db
@@ -66,7 +66,18 @@ func (s *Storage) InsertEvent(e *event.Event) (_ *event.Event, err error) {
 	var eventID string
 	// TODO: this should be into its own method
 	err = tx.Get(&eventID, `
-		INSERT INTO event (id, network, node_url, address, latest_block_number, abi_id, status, error, created_at, updated_at)
+		INSERT INTO event (
+			id,
+			network,
+			node_url,
+			address,
+			latest_block_number,
+			abi_id,
+			status,
+			error,
+			created_at,
+			updated_at
+		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id;`,
 		e.ID,

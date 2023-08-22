@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	ErrEventNotFound = errors.New("event not found error")
+	ErrEventNotFound     = errors.New("event not found error")
+	ErrEventAlreadyExist = errors.New("event already exist")
 )
 
 type Storage struct {
