@@ -17,9 +17,12 @@ services:
       PGADMIN_DEFAULT_PASSWORD: root
     ports:
       - 5050:80
+    volumes:
+      - ./data/pgadmin-data:/var/lib/pgadmin
+
 
   synchronizer:
-    image: darchlabs/synchronizer-v2:1.9.0
+    image: darchlabs/synchronizer-v2
     ports:
       - 5555:5555
     env_file:
