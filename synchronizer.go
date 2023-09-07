@@ -4,6 +4,7 @@ import (
 	"github.com/darchlabs/synchronizer-v2/pkg/event"
 	"github.com/darchlabs/synchronizer-v2/pkg/smartcontract"
 	"github.com/darchlabs/synchronizer-v2/pkg/transaction"
+	"github.com/darchlabs/synchronizer-v2/pkg/webhook"
 )
 
 type EventStorage interface {
@@ -44,6 +45,7 @@ type SmartContractStorage interface {
 	GetSmartContractByAddress(address string) (*smartcontract.SmartContract, error)
 	GetSmartContractsCount() (int64, error)
 	UpdateStatusAndError(id string, status smartcontract.SmartContractStatus, err error) error
+	UpdateSmartContract(sc *smartcontract.SmartContract) (*smartcontract.SmartContract, error)
 	Stop() error
 }
 
@@ -63,6 +65,15 @@ type TransactionStorage interface {
 	ListGasSpentById(id string, startTs int64, endTs int64, interval int64) ([][]string, error)
 	GetTotalGasSpentById(id string) (int64, error)
 	GetValueTransferredById(id string) (int64, error)
+}
+
+type WebhookStorage interface {
+	CreateWebhook(wh *webhook.Webhook) (*webhook.Webhook, error)
+	UpdateWebhook(wh *webhook.Webhook) (*webhook.Webhook, error)
+	GetWebhookByID(id string) (*webhook.Webhook, error)
+	ListAllWebhooks() ([]*webhook.Webhook, error)
+	ListWebhooks(smartcontractID string) ([]*webhook.Webhook, error)
+	GetWebhooksForRetry() ([]*webhook.Webhook, error)
 }
 
 type ListItemsInRangeCtx struct {

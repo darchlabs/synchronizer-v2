@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
+	"github.com/darchlabs/synchronizer-v2/pkg/webhook"
 )
 
 type EventNetwork string
@@ -12,6 +13,7 @@ type EventNetwork string
 const (
 	Ethereum EventNetwork = "ethereum"
 	Polygon  EventNetwork = "polygon"
+	Mumbai   EventNetwork = "mumbai"
 )
 
 type EventStatus string
@@ -84,4 +86,40 @@ func (ed *EventData) FromLogData(logData blockchain.LogData, id string, eventID 
 	ed.CreatedAt = createdAt
 
 	return nil
+}
+
+func (ed *EventData) ToWebhookEvent(ID string, ev *Event, endpoint string, date time.Time) (*webhook.Webhook, error) {
+	// prepare event payload
+	payload := &webhook.WebhookEventPayload{
+		Id:          ev.ID,
+		Name:        ev.Abi.Name,
+		BlockNumber: ed.BlockNumber,
+		Tx:          ed.Tx,
+		Data:        ed.Data,
+	}
+
+	// parse payload to raw message
+	rawMessage, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	return &webhook.Webhook{
+		ID:         ID,
+		EntityType: webhook.WebhookEventType,
+		EntityID:   ev.ID,
+		Endpoint:   endpoint,
+		Payload:    rawMessage,
+		CreatedAt:  date,
+		UpdatedAt:  date,
+	}, nil
+}
+
+func IsValidEventNetwork(network EventNetwork) bool {
+	switch network {
+	case Ethereum, Polygon, Mumbai:
+		return true
+	}
+
+	return false
 }

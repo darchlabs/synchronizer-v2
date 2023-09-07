@@ -56,6 +56,7 @@ func restartSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 			if ev.Status == event.StatusError {
 				// if status is error, change to running and make update
 				ev.Status = event.StatusRunning
+				ev.Error = ""
 				err := ctx.EventStorage.UpdateEvent(ev)
 				if err != nil {
 					return c.Status(fiber.StatusBadRequest).JSON(

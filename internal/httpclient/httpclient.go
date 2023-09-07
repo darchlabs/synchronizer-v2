@@ -2,7 +2,6 @@ package httpclient
 
 import (
 	"context"
-	"io/ioutil"
 	"log"
 	http "net/http"
 
@@ -21,8 +20,6 @@ type Client struct {
 	rl         *rate.Limiter
 
 	maxRetry int
-
-	validate ValidatorFunc
 }
 
 type Options struct {
@@ -49,26 +46,6 @@ func (cl *Client) Do(req *http.Request) (res *http.Response, err error) {
 			continue
 		}
 
-		if cl.validate != nil {
-			res, err = cl.validate(res)
-			if err != nil {
-				defer res.Body.Close()
-				body, parseErr := ioutil.ReadAll(res.Body)
-				if parseErr != nil {
-					return nil, errors.Wrap(parseErr, "http: attempt [%d] Client.Do cl.validate ioutil.ReadAll error")
-				}
-
-				log.Printf(
-					"http: attempt [%d] Client.Do cl.validate error %s.\n Response payload %s.\n Endpoint: [%s]",
-					i,
-					err.Error(),
-					string(body),
-					req.URL.EscapedPath(),
-				)
-				continue
-			}
-		}
-
 		return res, nil
 	}
 
@@ -91,8 +68,4 @@ func (cl *Client) makeRequest(req *http.Request) (res *http.Response, err error)
 	}
 
 	return res, nil
-}
-
-func (cl *Client) RegisterValidate(fn ValidatorFunc) {
-	cl.validate = fn
 }
