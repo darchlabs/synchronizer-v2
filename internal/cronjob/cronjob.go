@@ -10,7 +10,10 @@ import (
 	"time"
 
 	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
+	"github.com/darchlabs/synchronizer-v2/internal/webhooksender"
 	"github.com/darchlabs/synchronizer-v2/pkg/event"
+	"github.com/darchlabs/synchronizer-v2/pkg/smartcontract"
+	"github.com/darchlabs/synchronizer-v2/pkg/webhook"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
@@ -21,6 +24,14 @@ type EventDataStorage interface {
 	ListAllEvents() ([]*event.Event, error)
 	InsertEventData(e *event.Event, data []*event.EventData) error
 	UpdateEvent(e *event.Event) error
+}
+
+type SmartContractStorage interface {
+	GetSmartContractByAddress(address string) (*smartcontract.SmartContract, error)
+}
+
+type WebhookSender interface {
+	CreateAndSendWebhook(wh *webhook.Webhook) error
 }
 
 type CronjobStatus string
@@ -38,26 +49,30 @@ type cronjob struct {
 	quit   chan struct{}
 	error  error
 
-	seconds int64
-	clients *map[string]*ethclient.Client
-	storage EventDataStorage
-	debug   bool
-	status  CronjobStatus
+	seconds       int64
+	clients       *map[string]*ethclient.Client
+	storage       EventDataStorage
+	scStorage     SmartContractStorage
+	debug         bool
+	status        CronjobStatus
+	webhookSender WebhookSender
 
 	idGen   idGenerator
 	dateGen dateGenerator
 }
 
-func New(seconds int64, storage EventDataStorage, clients *map[string]*ethclient.Client, debug bool, idGen idGenerator, dateGen dateGenerator) *cronjob {
+func New(seconds int64, storage EventDataStorage, scStorage SmartContractStorage, clients *map[string]*ethclient.Client, debug bool, idGen idGenerator, dateGen dateGenerator, webhookSender *webhooksender.WebhookSender) *cronjob {
 	return &cronjob{
 		seconds: seconds,
 		status:  StatusIdle,
 		clients: clients,
 
-		storage: storage,
-		debug:   debug,
-		idGen:   idGen,
-		dateGen: dateGen,
+		storage:       storage,
+		scStorage:     scStorage,
+		debug:         debug,
+		idGen:         idGen,
+		dateGen:       dateGen,
+		webhookSender: webhookSender,
 	}
 }
 
@@ -81,6 +96,9 @@ func (c *cronjob) Start() error {
 	// run gourutine associated to the ticker
 	go func() {
 		for {
+			log.Printf("===== \n")
+			log.Printf("Here inside for ticker \n")
+
 			select {
 			case <-c.ticker.C:
 				// call job method to run de ticker process
@@ -177,28 +195,22 @@ func (c *cronjob) job() error {
 	// iterate over events
 	for _, e := range runningEvents {
 		go func(ev *event.Event) {
+			defer wg.Done()
+
 			// get client from map or create and save
 			client, ok := (*c.clients)[ev.NodeURL]
 			if !ok {
 				// validate client works
 				client, err = ethclient.Dial(ev.NodeURL)
 				if err != nil {
-					// update event error
-					ev.Status = event.StatusError
-					ev.Error = err.Error()
-					ev.UpdatedAt = c.dateGen()
-					_ = c.storage.UpdateEvent(ev)
+					updateEventError(ev, err, c.dateGen(), c.storage)
 					return
 				}
 
 				// validate client is working correctly
 				_, err = client.ChainID(context.Background())
 				if err != nil {
-					// update event error
-					ev.Status = event.StatusError
-					ev.Error = err.Error()
-					ev.UpdatedAt = c.dateGen()
-					_ = c.storage.UpdateEvent(ev)
+					updateEventError(ev, err, c.dateGen(), c.storage)
 					return
 				}
 
@@ -209,11 +221,7 @@ func (c *cronjob) job() error {
 			// parse abi to string
 			b, err := json.Marshal(ev.Abi)
 			if err != nil {
-				// update event error
-				ev.Status = event.StatusError
-				ev.Error = err.Error()
-				ev.UpdatedAt = c.dateGen()
-				_ = c.storage.UpdateEvent(ev)
+				updateEventError(ev, err, c.dateGen(), c.storage)
 				return
 			}
 
@@ -227,11 +235,7 @@ func (c *cronjob) job() error {
 						ed := &event.EventData{}
 						err := ed.FromLogData(log, c.idGen(), ev.ID, c.dateGen())
 						if err != nil {
-							// update event error
-							ev.Status = event.StatusError
-							ev.Error = err.Error()
-							ev.UpdatedAt = c.dateGen()
-							_ = c.storage.UpdateEvent(ev)
+							updateEventError(ev, err, c.dateGen(), c.storage)
 							return
 						}
 
@@ -241,11 +245,7 @@ func (c *cronjob) job() error {
 					// insert logs data to event
 					err := c.storage.InsertEventData(ev, eventDatas)
 					if err != nil {
-						// update event error
-						ev.Status = event.StatusError
-						ev.Error = err.Error()
-						ev.UpdatedAt = c.dateGen()
-						_ = c.storage.UpdateEvent(ev)
+						updateEventError(ev, err, c.dateGen(), c.storage)
 						return
 					}
 
@@ -259,20 +259,45 @@ func (c *cronjob) job() error {
 							ev.UpdatedAt = c.dateGen()
 							err = c.storage.UpdateEvent(ev)
 							if err != nil {
-								// update event error
-								ev.Status = event.StatusError
-								ev.Error = err.Error()
-								ev.UpdatedAt = c.dateGen()
-								_ = c.storage.UpdateEvent(ev)
+								updateEventError(ev, err, c.dateGen(), c.storage)
 								return
+							}
+						}
+
+						// get sc for previous checks
+						sc, err := c.scStorage.GetSmartContractByAddress(ev.Address)
+						if err != nil {
+							updateEventError(ev, err, c.dateGen(), c.storage)
+							return
+						}
+
+						// check if sc is synced and has available webhook
+						if sc.Webhook != "" && sc.IsSynced() {
+							for _, evData := range eventDatas {
+								wh, err := evData.ToWebhookEvent(c.idGen(), ev, sc.Webhook, c.dateGen())
+								if err != nil {
+									updateEventError(ev, err, c.dateGen(), c.storage)
+									return
+								}
+
+								err = c.webhookSender.CreateAndSendWebhook(wh)
+								if err != nil {
+									updateEventError(ev, err, c.dateGen(), c.storage)
+									return
+								}
 							}
 						}
 					}
 				}
 			}()
 
+			// define context with timeout for getting log proccess
+			// TODO(ca): should to use env value
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second) // 10 minutos de límite
+			defer cancel()
+
 			// get event logs from contract
-			count, latestBlockNumber, err := blockchain.GetLogs(blockchain.Config{
+			count, latestBlockNumber, err := blockchain.GetLogs(ctx, blockchain.Config{
 				Client:          client,
 				ABI:             fmt.Sprintf("[%s]", string(b)),
 				EventName:       ev.Abi.Name,
@@ -281,12 +306,10 @@ func (c *cronjob) job() error {
 				LogsChannel:     logsChannel,
 				Logger:          c.debug,
 			})
-			if err != nil {
-				// update event error
-				ev.Status = event.StatusError
-				ev.Error = err.Error()
-				ev.UpdatedAt = c.dateGen()
-				_ = c.storage.UpdateEvent(ev)
+			if err == context.Canceled || err == context.DeadlineExceeded {
+				log.Println("Warning: context was cancelled/deadline_exceeded")
+			} else if err != nil {
+				updateEventError(ev, err, c.dateGen(), c.storage)
 				return
 			}
 
@@ -301,15 +324,10 @@ func (c *cronjob) job() error {
 
 			err = c.storage.UpdateEvent(ev)
 			if err != nil {
-				// update event error
-				ev.Status = event.StatusError
-				ev.Error = err.Error()
-				ev.UpdatedAt = c.dateGen()
-				_ = c.storage.UpdateEvent(ev)
+				updateEventError(ev, err, c.dateGen(), c.storage)
 				return
 			}
 
-			defer wg.Done()
 			return
 		}(e)
 	}
@@ -339,4 +357,12 @@ func (c *cronjob) GetError() string {
 	}
 
 	return ""
+}
+
+func updateEventError(ev *event.Event, err error, date time.Time, storage EventDataStorage) {
+	// update event error
+	ev.Status = event.StatusError
+	ev.Error = err.Error()
+	ev.UpdatedAt = date
+	_ = storage.UpdateEvent(ev)
 }

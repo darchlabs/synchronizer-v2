@@ -62,9 +62,9 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// get and validate node url
-		nodeUrl := body.SmartContract.NodeURL
+		nodeURL := body.SmartContract.NodeURL
 		network := string(body.SmartContract.Network)
-		err = util.NodeURLIsValid(nodeUrl, network)
+		err = util.NodeURLIsValid(nodeURL, network)
 		if err != nil {
 			networksEtherscanURL, err := util.ParseStringifiedMap(ctx.Env.NetworksNodeURL)
 			if err != nil {
@@ -75,11 +75,11 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 				)
 			}
 
-			nodeUrl = networksEtherscanURL[network]
+			nodeURL = networksEtherscanURL[network]
 		}
 
 		// instance client
-		client, err := ethclient.Dial(nodeUrl)
+		client, err := ethclient.Dial(nodeURL)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(
 				createSmartContractResponse{
@@ -143,6 +143,13 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 				}
 				defer res.Body.Close()
 
+				// check status code
+				if res.StatusCode != http.StatusOK {
+					return c.Status(res.StatusCode).JSON(createSmartContractResponse{
+						Error: fmt.Sprintf("error creating the event=%s with smartcontract=%s", a.Name, body.SmartContract.Name),
+					})
+				}
+
 				// parse response
 				response := struct {
 					Data *event.Event `json:"data"`
@@ -175,6 +182,17 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 		for _, input := range body.SmartContract.Abi {
 			input.ID = ctx.IDGen()
 		}
+
+		// get and set latest block number from node client
+		blockNumber, err := client.BlockNumber(context.Background())
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				createSmartContractResponse{
+					Error: err.Error(),
+				},
+			)
+		}
+		body.SmartContract.InitialBlockNumber = int64(blockNumber)
 
 		// save smartcontract struct on database
 		createdSmartContract, err := ctx.Storage.InsertSmartContract(body.SmartContract)
