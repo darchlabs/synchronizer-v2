@@ -27,4 +27,5 @@ func Route(app *fiber.App, ctx Context) {
 	app.Post("/api/v1/smartcontracts/:address/restart", restartSmartContractHandler(ctx))
 	app.Get("/api/v1/smartcontracts", listSmartContracts(ctx))
 	app.Delete("/api/v1/smartcontracts/:address", deleteSmartContractHandler(ctx))
+	app.Patch("/api/v1/smartcontracts/:address", updateSmartContractHandler(ctx))
 }

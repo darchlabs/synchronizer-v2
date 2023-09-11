@@ -7,12 +7,12 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-func NodeURLIsValid(nodeUrl string, network string) error {
+func NodeURLIsValid(nodeURL string, network string) error {
 	if network == "" {
 		return fmt.Errorf("\nthe network was not provided for checking the node url")
 	}
 
-	if nodeUrl == "" {
+	if nodeURL == "" {
 		return fmt.Errorf("\nthe node url is empty")
 	}
 
@@ -21,7 +21,7 @@ func NodeURLIsValid(nodeUrl string, network string) error {
 		return fmt.Errorf("\nthe network %s is not currently supported by darchlabs", network)
 	}
 
-	client, err := ethclient.Dial(nodeUrl)
+	client, err := ethclient.Dial(nodeURL)
 	if err != nil {
 		return err
 	}

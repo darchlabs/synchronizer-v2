@@ -82,16 +82,16 @@ func New(c Config) *T {
 func (t *T) Start(seconds int64) {
 	go func() {
 		for t.GetStatus() == StatusIdle || t.GetStatus() == StatusRunning {
-			log.Print("starting ...")
+			// log.Print("starting ...")
 			err := t.Run()
 			if err != nil {
 				t.SetStatus(StatusError)
 			}
-			log.Print("finished!")
+			// log.Print("finished!")
 
-			log.Print("sleeping ...")
+			// log.Print("sleeping ...")
 			time.Sleep(time.Duration(time.Duration(seconds) * time.Second))
-			log.Print("sleept!")
+			// log.Print("sleept!")
 		}
 	}()
 }
@@ -177,9 +177,9 @@ func (t *T) GetContractTransactions(contractId string, apiUrl string, apiKey str
 	}
 
 	// validate and get the node url if node url are not defined
-	nodeUrl := contract.NodeURL
+	nodeURL := contract.NodeURL
 	if contract.NodeURL == "" {
-		nodeUrl, err = checkAndGetNodeURL(contract, t.networksNodesURL)
+		nodeURL, err = checkAndGetNodeURL(contract, t.networksNodesURL)
 		if err != nil {
 			_ = t.smartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 			return err
@@ -187,7 +187,7 @@ func (t *T) GetContractTransactions(contractId string, apiUrl string, apiKey str
 	}
 
 	// create instance client with the node url
-	client, err := ethclient.Dial(nodeUrl)
+	client, err := ethclient.Dial(nodeURL)
 	if err != nil {
 		_ = t.smartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 		return err
@@ -278,6 +278,8 @@ func (t *T) GetContractTransactions(contractId string, apiUrl string, apiKey str
 		}
 		to = int(math.Min(float64(t.maxTransactions), float64(to)))
 	}
+
+	_ = t.smartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusRunning, nil)
 
 	log.Println("contract finished at: ", contract.Name)
 	return nil

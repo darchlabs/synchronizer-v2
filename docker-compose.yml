@@ -20,7 +20,6 @@ services:
     volumes:
       - ./data/pgadmin-data:/var/lib/pgadmin
 
-
   synchronizer:
     image: darchlabs/synchronizer-v2
     ports:

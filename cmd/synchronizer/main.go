@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
 
@@ -18,7 +17,9 @@ import (
 	eventstorage "github.com/darchlabs/synchronizer-v2/internal/storage/event"
 	smartcontractstorage "github.com/darchlabs/synchronizer-v2/internal/storage/smartcontract"
 	transactionstorage "github.com/darchlabs/synchronizer-v2/internal/storage/transaction"
+	webhookstorage "github.com/darchlabs/synchronizer-v2/internal/storage/webhook"
 	txsengine "github.com/darchlabs/synchronizer-v2/internal/txsengine"
+	"github.com/darchlabs/synchronizer-v2/internal/webhooksender"
 	CronjobAPI "github.com/darchlabs/synchronizer-v2/pkg/api/cronjob"
 	EventAPI "github.com/darchlabs/synchronizer-v2/pkg/api/event"
 	"github.com/darchlabs/synchronizer-v2/pkg/api/metrics"
@@ -81,12 +82,17 @@ func main() {
 	eventStorage = eventstorage.New(s)
 	transactionStorage = transactionstorage.New(s)
 	smartContactStorage = smartcontractstorage.New(s, eventStorage, transactionStorage)
+	webhookStorage := webhookstorage.New(s)
 
-	// parse seconds from string to int64
-	seconds, err := strconv.ParseInt(env.IntervalSeconds, 10, 64)
-	if err != nil {
-		log.Fatal(err)
+	// initialize webhook sender, start processing events and retrying failed webhooks
+	webhookSender := webhooksender.NewWebhookSender(webhookStorage, &http.Client{}, time.Duration(env.WebhooksIntervalSeconds+2))
+
+	// Inicializar los webhooks desde el almacenamiento persistente
+	if err := webhookSender.InitializeFromStorage(); err != nil {
+		log.Fatalf("Error initializing webhooks from storage: %v", err)
 	}
+	go webhookSender.ProcessWebhooks()
+	go webhookSender.StartRetries()
 
 	// initialize fiber
 	api := fiber.New()
@@ -99,7 +105,7 @@ func main() {
 	clients := make(map[string]*ethclient.Client)
 
 	// initialize the cronjob
-	cronjobSvc = cronjob.New(seconds, eventStorage, &clients, env.Debug, uuid.NewString, time.Now)
+	cronjobSvc = cronjob.New(env.CronjobIntervalSeconds, eventStorage, smartContactStorage, &clients, env.Debug, uuid.NewString, time.Now, webhookSender)
 
 	// initialize http client with rate limiter
 	client := httpclient.NewClient(&httpclient.Options{
@@ -156,7 +162,7 @@ func main() {
 	}()
 
 	// Run txs engine process
-	txsEngine.Start(seconds + 1)
+	txsEngine.Start(env.CronjobIntervalSeconds + 1)
 
 	// listen interrupt
 	quit := make(chan struct{})
