@@ -29,7 +29,7 @@ func listEventDataHandler(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// get event from storage
-		event, err := ctx.Storage.GetEvent(address, eventName)
+		event, err := ctx.EventStorage.GetEvent(address, eventName)
 		if err != nil {
 			return c.Status(fiber.StatusConflict).JSON(api.Response{
 				Error: err.Error(),
@@ -37,7 +37,7 @@ func listEventDataHandler(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// get event data from storage
-		data, err := ctx.Storage.ListEventData(address, eventName, pagination.Sort, pagination.Limit, pagination.Offset)
+		data, err := ctx.EventStorage.ListEventData(address, eventName, pagination.Sort, pagination.Limit, pagination.Offset)
 		if err != nil {
 			return c.Status(fiber.StatusConflict).JSON(api.Response{
 				Error: err.Error(),
@@ -45,7 +45,7 @@ func listEventDataHandler(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// get all events by address count from database
-		count, err := ctx.Storage.GetEventDataCount(address, eventName)
+		count, err := ctx.EventStorage.GetEventDataCount(address, eventName)
 		if err != nil {
 			return c.Status(fiber.StatusConflict).JSON(api.Response{
 				Error: err.Error(),

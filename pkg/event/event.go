@@ -42,10 +42,11 @@ type Event struct {
 }
 
 type Abi struct {
-	ID        string `id:"id" db:"id"`
-	Name      string `json:"name" db:"name"`
-	Type      string `json:"type" db:"type"`
-	Anonymous bool   `json:"anonymous" db:"anonymous"`
+	ID              string `json:"id" db:"id"`
+	SmartContractID string `json:"smartcontract_id" db:"smartcontract_id"`
+	Name            string `json:"name" db:"name"`
+	Type            string `json:"type" db:"type"`
+	Anonymous       bool   `json:"anonymous" db:"anonymous"`
 
 	Inputs []*Input `json:"inputs"`
 }

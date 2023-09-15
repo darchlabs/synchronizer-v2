@@ -3,6 +3,7 @@ package smartcontractstorage
 import (
 	"github.com/darchlabs/synchronizer-v2"
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
+	uuid "github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
@@ -10,17 +11,30 @@ var (
 	ErrSmartcontractNotFound = errors.New("smartcontract not found error")
 )
 
+type idGenerator func() string
+
 type Storage struct {
+	idGenerator        idGenerator
 	storage            *storage.S
 	eventStorage       synchronizer.EventStorage
 	transactionStorage synchronizer.TransactionStorage
+	scuserStorage      synchronizer.SmartcontractUserStorage
 }
 
-func New(s *storage.S, e synchronizer.EventStorage, t synchronizer.TransactionStorage) *Storage {
+type Config struct {
+	Storage       *storage.S
+	EventStorage  synchronizer.EventStorage
+	TxStorage     synchronizer.TransactionStorage
+	ScUserStorage synchronizer.SmartcontractUserStorage
+}
+
+func New(conf *Config) *Storage {
 	return &Storage{
-		storage:            s,
-		eventStorage:       e,
-		transactionStorage: t,
+		idGenerator:        uuid.NewString,
+		storage:            conf.Storage,
+		eventStorage:       conf.EventStorage,
+		transactionStorage: conf.TxStorage,
+		scuserStorage:      conf.ScUserStorage,
 	}
 }
 

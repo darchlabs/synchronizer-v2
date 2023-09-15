@@ -17,7 +17,7 @@ func upCreateTableSmartcontractUser(tx *sql.Tx) error {
 			id                  TEXT PRIMARY KEY NOT NULL,
 			user_id             TEXT NOT NULL,
 			smartcontract_id    TEXT REFERENCES smartcontracts(id) NOT NULL,
-			delted_at           TIMESTAMPTZ
+			deleted_at           TIMESTAMPTZ
 		);`)
 	if err != nil {
 		return err

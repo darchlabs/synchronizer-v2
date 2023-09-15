@@ -15,6 +15,7 @@ import (
 	"github.com/darchlabs/synchronizer-v2/internal/httpclient"
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
 	eventstorage "github.com/darchlabs/synchronizer-v2/internal/storage/event"
+	scuserstorage "github.com/darchlabs/synchronizer-v2/internal/storage/scuser"
 	smartcontractstorage "github.com/darchlabs/synchronizer-v2/internal/storage/smartcontract"
 	transactionstorage "github.com/darchlabs/synchronizer-v2/internal/storage/transaction"
 	webhookstorage "github.com/darchlabs/synchronizer-v2/internal/storage/webhook"
@@ -81,7 +82,14 @@ func main() {
 	// initialize storages
 	eventStorage = eventstorage.New(s)
 	transactionStorage = transactionstorage.New(s)
-	smartContactStorage = smartcontractstorage.New(s, eventStorage, transactionStorage)
+	scuStorage := scuserstorage.New(s)
+
+	smartContactStorage = smartcontractstorage.New(&smartcontractstorage.Config{
+		Storage:       s,
+		EventStorage:  eventStorage,
+		TxStorage:     transactionStorage,
+		ScUserStorage: scuStorage,
+	})
 	webhookStorage := webhookstorage.New(s)
 
 	// initialize webhook sender, start processing events and retrying failed webhooks
@@ -133,14 +141,17 @@ func main() {
 		TxsEngine:    txsEngine,
 		IDGen:        uuid.NewString,
 		DateGen:      time.Now,
-		Env:          env,
+		Env:          &env,
 	})
 	EventAPI.Route(api, EventAPI.Context{
-		Storage: eventStorage,
-		Cronjob: cronjobSvc,
-		Clients: &clients,
-		IDGen:   uuid.NewString,
-		DateGen: time.Now,
+		EventStorage: eventStorage,
+		ScStorage:    smartContactStorage,
+		Env:          &env,
+		TxsEngine:    txsEngine,
+		Cronjob:      cronjobSvc,
+		Clients:      &clients,
+		IDGen:        uuid.NewString,
+		DateGen:      time.Now,
 	})
 	CronjobAPI.Route(api, CronjobAPI.Context{
 		Cronjob: cronjobSvc,

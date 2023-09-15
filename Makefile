@@ -31,7 +31,7 @@ linux: rm
 
 dev:
 	@echo "[dev] Running..."
-	@go run cmd/synchronizer/main.go
+	@export $$(cat .env) && go run cmd/synchronizer/main.go
 
 create-migration:
 	@echo "[create migration]"

@@ -16,10 +16,10 @@ func getEventHandler(ctx Context) func(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusUnprocessableEntity).JSON(api.Response{
 				Error: "invalid params",
 			})
-		}	
-		
+		}
+
 		// get event from storage
-		event, err  := ctx.Storage.GetEvent(address, eventName)
+		event, err := ctx.EventStorage.GetEvent(address, eventName)
 		if err != nil {
 			return c.Status(fiber.StatusConflict).JSON(api.Response{
 				Error: err.Error(),
