@@ -22,12 +22,15 @@ func (s *Storage) InsertSmartContract(sc *smartcontract.SmartContract) (*smartco
 			name,
 			network,
 			node_url,
-			address,last_tx_block_synced,
+			address,
+			last_tx_block_synced,
 			status,
 			error,
+			webhook,
 			created_at,
 			updated_at,
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id;`,
+			initial_block_number
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id;`,
 		sc.ID,
 		sc.Name,
 		sc.Network,
@@ -36,8 +39,10 @@ func (s *Storage) InsertSmartContract(sc *smartcontract.SmartContract) (*smartco
 		sc.LastTxBlockSynced,
 		sc.Status,
 		sc.Error,
+		sc.Webhook,
 		sc.CreatedAt,
 		sc.UpdatedAt,
+		sc.InitialBlockNumber,
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "SmartContractstorage: Storage.InsertSmartContract s.storage.DB.Get error")
