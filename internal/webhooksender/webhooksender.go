@@ -76,9 +76,16 @@ func (s *WebhookSender) SendWebhook(wh *webhook.Webhook) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.HTTPClient.Do(req)
 
-	return err
+	// Set the Content-Type header to application/json
+	req.Header.Set("Content-Type", "application/json")
+
+	_, err = s.HTTPClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *WebhookSender) StartRetries() {
