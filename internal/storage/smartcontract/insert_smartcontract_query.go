@@ -16,6 +16,7 @@ BEGIN TX
 	5. insert input
 	3. insert events
 COMMIT
+
 */
 
 func (s *Storage) InsertSmartContractQuery(sc *smartcontract.SmartContract) (err error) {
@@ -66,9 +67,9 @@ func (s *Storage) InsertSmartContractQuery(sc *smartcontract.SmartContract) (err
 
 	// TODO: Add insert for smartcontract_user record
 	err = s.scuserStorage.InsertSmartContractUserQuery(s.storage.DB, &storage.SmartContractUserRecord{
-		ID:              s.idGenerator(),
-		UserID:          sc.UserID,
-		SmartContractID: sc.ID,
+		ID:                   s.idGenerator(),
+		UserID:               sc.UserID,
+		SmartContractAddress: sc.Address,
 	})
 	if err != nil {
 		return errors.Wrap(err, "smartcontractstorage: Storage.InsertSmartContractQuery s.scuserStorage.InsertSmartContractUserQuery error")
