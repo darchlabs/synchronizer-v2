@@ -8,8 +8,11 @@ import (
 	"github.com/darchlabs/backoffice/pkg/middleware"
 	"github.com/darchlabs/synchronizer-v2"
 	"github.com/darchlabs/synchronizer-v2/internal/env"
+	"github.com/darchlabs/synchronizer-v2/internal/storage"
+	"github.com/darchlabs/synchronizer-v2/internal/sync"
 	txsengine "github.com/darchlabs/synchronizer-v2/internal/txsengine"
 	"github.com/darchlabs/synchronizer-v2/pkg/api"
+	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -22,6 +25,8 @@ type Context struct {
 	Env          *env.Env
 	TxsEngine    txsengine.TxsEngine
 
+	Database storage.Database
+
 	IDGen   idGenerator
 	DateGen dateGenerator
 }
@@ -32,6 +37,7 @@ func Route(app *fiber.App, ctx Context) {
 		BaseURL: ctx.Env.BackofficeApiURL,
 	})
 
+	validate := validator.New()
 	auth := middleware.NewAuth(cl)
 
 	apiContext := &api.Context{
@@ -39,13 +45,29 @@ func Route(app *fiber.App, ctx Context) {
 		EventStorage: ctx.EventStorage,
 		Env:          ctx.Env,
 		TxsEngine:    ctx.TxsEngine,
-		IDGen:        api.IDGenerator(ctx.IDGen),
-		DateGen:      api.DateGenerator(ctx.DateGen),
+		SyncEngine: sync.NewEngine(&sync.EngineConfig{
+			Database: ctx.Database,
+		}),
+		IDGen:   api.IDGenerator(ctx.IDGen),
+		DateGen: api.DateGenerator(ctx.DateGen),
 	}
 
+	// V1 ROUTES
+	// routing
 	app.Post("/api/v1/smartcontracts", auth.Middleware, api.HandleFunc(apiContext, insertSmartContractHandler))
 	app.Post("/api/v1/smartcontracts/:address/restart", restartSmartContractHandler(ctx))
 	app.Get("/api/v1/smartcontracts", listSmartContracts(ctx))
 	app.Delete("/api/v1/smartcontracts/:address", deleteSmartContractHandler(ctx))
 	app.Patch("/api/v1/smartcontracts/:address", updateSmartContractHandler(ctx))
+
+	// V2 ROUTES
+	// handlers
+	postSmartContractV2Handler := &postSmartContractV2Handler{validate}
+
+	// routing
+	app.Post(
+		"/api/v2/smartcontracts",
+		auth.Middleware,
+		api.HandleFunc(apiContext, postSmartContractV2Handler.Invoke),
+	)
 }

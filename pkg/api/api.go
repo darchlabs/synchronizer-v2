@@ -6,6 +6,7 @@ import (
 
 	"github.com/darchlabs/synchronizer-v2"
 	"github.com/darchlabs/synchronizer-v2/internal/env"
+	"github.com/darchlabs/synchronizer-v2/internal/sync"
 	"github.com/darchlabs/synchronizer-v2/internal/txsengine"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
@@ -27,6 +28,9 @@ type Context struct {
 	TxsEngine    txsengine.TxsEngine
 	Clients      *map[string]*ethclient.Client
 
+	// Engine
+	SyncEngine sync.SyncEngine
+
 	Env     *env.Env
 	IDGen   IDGenerator
 	DateGen DateGenerator
@@ -36,6 +40,7 @@ type Handler func(*Context, *fiber.Ctx) (interface{}, interface{}, int, error)
 
 func HandleFunc(ctx *Context, fn Handler) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
+		c.Accepts("application/json")
 		data, meta, statusCode, err := fn(ctx, c)
 		if err != nil {
 			return c.Status(statusCode).JSON(&Response{

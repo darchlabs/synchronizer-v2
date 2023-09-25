@@ -9,11 +9,6 @@ func (sq *SmartContractUserQuerier) UpsertSmartContractUserQuery(
 	tx storage.Transaction,
 	input *storage.SmartContractUserRecord,
 ) error {
-	var whURL *string
-	if input.Webhook != "" {
-		whURL = &input.Webhook
-	}
-
 	err := tx.Get(input, `
 		INSERT INTO smartcontract_users (id, user_id, sc_address, webhook, node_url, status, created_at, name)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -25,7 +20,7 @@ func (sq *SmartContractUserQuerier) UpsertSmartContractUserQuery(
 		input.ID,
 		input.UserID,
 		input.SmartContractAddress,
-		whURL,
+		input.WebhookURL,
 		input.NodeURL,
 		input.Status,
 		input.CreatedAt,

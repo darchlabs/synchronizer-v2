@@ -7,13 +7,14 @@ import (
 
 func (aq *ABIQuerier) InsertABIQuery(qCtx storage.QueryContext, input *storage.ABIRecord) error {
 	_, err := qCtx.Exec(`
-		INSERT INTO abi (id, sc_address, name, type, anonymous)
-		VALUES ($1, $2, $3, $4, $5);`,
+		INSERT INTO abi (id, sc_address, name, type, anonymous, inputs)
+		VALUES ($1, $2, $3, $4, $5, $6);`,
 		input.ID,
 		input.SmartContractAddress,
 		input.Name,
 		input.Type,
 		input.Anonymous,
+		input.Inputs,
 	)
 	if err != nil {
 		return errors.Wrap(err, "query ABIQuerier.InsertABIQuery abi tx.Exec error")

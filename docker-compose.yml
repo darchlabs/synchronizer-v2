@@ -29,3 +29,29 @@ services:
     depends_on:
       - postgres
     restart: always
+
+  backoffice:
+    image: darchlabs/backoffice:0.0.2
+    depends_on:
+      - postgres_backoffice
+    ports:
+    - 9000:9000
+    restart: always
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./data/backoffice:/home/backoffice/data
+    environment:
+      - ENVIRONMENT=dev
+      - SECRET_KEY=this-is-secre-key
+      - DB_DRIVER=postgres
+      - DB_DSN=postgres://postgres:postgres@postgres_backoffice:5432/postgres?sslmode=disable
+      - DB_MIGRATIONS_DIR=migrations/
+      - API_SERVER_PORT=9000
+
+  postgres_backoffice:
+    image: postgres:13
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres

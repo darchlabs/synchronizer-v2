@@ -48,36 +48,26 @@ func main() {
 	// load env values
 	var env env.Env
 	err := envconfig.Process("", &env)
-	if err != nil {
-		log.Fatal("invalid env values, error: ", err)
-	}
+	check(err)
 
 	networksEtherscanURL, err := util.ParseStringifiedMap(env.NetworksEtherscanURL)
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 
 	networksEtherscanAPIKey, err := util.ParseStringifiedMap(env.NetworksEtherscanAPIKey)
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 
 	networksNodeURL, err := util.ParseStringifiedMap(env.NetworksNodeURL)
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 
 	// initialize storage
 	s, err := storage.New(env.DatabaseDSN)
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
+	store, err := storage.NewStorage(env.DatabaseDSN)
+	check(err)
 
 	// run migrations
 	err = goose.Up(s.DB.DB, env.MigrationDir)
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 
 	// initialize storages
 	eventStorage = eventstorage.New(s)
@@ -141,6 +131,7 @@ func main() {
 		TxsEngine:    txsEngine,
 		IDGen:        uuid.NewString,
 		DateGen:      time.Now,
+		Database:     store,
 		Env:          &env,
 	})
 	EventAPI.Route(api, EventAPI.Context{
@@ -165,9 +156,7 @@ func main() {
 
 	// run process
 	err = cronjobSvc.Start()
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 	go func() {
 		api.Listen(fmt.Sprintf(":%s", env.Port))
 	}()
@@ -207,5 +196,11 @@ func gracefullShutdown() {
 	err := eventStorage.Stop()
 	if err != nil {
 		log.Println(err)
+	}
+}
+
+func check(err error) {
+	if err != nil {
+		log.Fatal(err)
 	}
 }

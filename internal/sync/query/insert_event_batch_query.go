@@ -5,12 +5,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (eq *EventQuerier) InsertEventBatchQuery(qCtx storage.QueryContext, inputs []*storage.EventRecord, abiID, userID string) error {
+func (eq *EventQuerier) InsertEventBatchQuery(qCtx storage.QueryContext, inputs []*storage.EventRecord, scAddress string) error {
+	now := eq.dateGen()
 	for _, input := range inputs {
-		input.CreatedAt = eq.dateGen()
+		input.CreatedAt = now
 		input.ID = eq.idGen()
-		input.AbiID = abiID
-		input.UserID = userID
+		input.SmartContractAddress = scAddress
 		err := eq.InsertEventQuery(qCtx, input)
 		if err != nil {
 			return errors.Wrap(err, "query: EventQuerier.InsertEventQuery eq.InsertEventQuery error")

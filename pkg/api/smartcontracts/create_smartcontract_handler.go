@@ -157,9 +157,7 @@ func insertSmartContractHandler(ctx *api.Context, c *fiber.Ctx) (interface{}, in
 
 			// check status code
 			if res.StatusCode != http.StatusOK {
-				fmt.Println("STATUS RECEIVED ---> ", res.StatusCode)
 				io.Copy(os.Stdout, res.Body)
-				fmt.Println("----->")
 
 				return nil, nil, res.StatusCode, errors.Errorf(
 					"smartcontracts: insertSmartContractHandler error creating the event=%s with smartcontract=%s",

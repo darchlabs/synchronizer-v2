@@ -14,7 +14,7 @@ func (iq *InputQuerier) InsertInputBatchQuery(
 	for _, input := range inputs {
 		// TODO: this should be into its own method
 		input.ID = iq.idGen()
-		input.AbiID = abiID
+		input.SmartContractAddress = abiID
 		// input.CreatedAt = iq.dateGen()
 		err := iq.InsertInputQuery(qCtx, input)
 

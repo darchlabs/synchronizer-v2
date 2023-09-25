@@ -1,7 +1,6 @@
 package sync
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -25,7 +24,6 @@ func getEngineForTest() (*Engine, error) {
 		idGen:   uuid.NewString,
 		logger:  nil,
 	}
-	fmt.Println("ID -->", engine.idGen())
 
 	return engine, nil
 }
@@ -52,43 +50,22 @@ func Test_InsertAtomicSmartContract_FirstInsertion(t *testing.T) {
 				LastTxBlockSynced: 1212121,
 				CreatedAt:         time.Now(),
 			},
-			ABI: &storage.ABIRecord{
-				Name:      "abi-record-id",
-				Type:      "type1",
-				Anonymous: true,
-				Inputs: []*storage.InputRecord{
-					{
-						Indexed:      true,
-						InternalType: "internal-type-1",
-						Name:         "name-1",
-						Type:         "type-1",
-					},
-					{
-						Indexed:      true,
-						InternalType: "internal-type-2",
-						Name:         "name-2",
-						Type:         "type-2",
-					},
-				},
-			},
-			Events: []*storage.EventRecord{
+			ABI: []*storage.ABIRecord{
 				{
-					Network:           "test-net",
-					NodeURL:           "https://nodeurl.com",
-					Address:           "0x0000000000000000000000000000000000000002",
-					LatestBlockNumber: 10101010,
-					Status:            storage.EventStatusRunning,
+					Name:      "abi-record-id",
+					Type:      "type1",
+					Anonymous: true,
+					Inputs:    `[{"foo": "bar"}]`,
 				},
 				{
-					Network:           "test-net",
-					NodeURL:           "https://nodeurl.com",
-					Address:           "0x0000000000000000000000000000000000000003",
-					LatestBlockNumber: 10101010,
-					Status:            storage.EventStatusRunning,
+					Name:      "abi-record-id-2",
+					Type:      "event",
+					Anonymous: false,
+					Inputs:    `[{"foo": "bar"}]`,
 				},
 			},
 		}
-		out, err := ng.InserAtomicSmartContract(input)
+		out, err := ng.InsertAtomicSmartContract(input)
 
 		require.NoError(t, err)
 		require.NotNil(t, out)
@@ -118,43 +95,22 @@ func Test_InsertAtomicSmartContract_NthInsertion(t *testing.T) {
 				LastTxBlockSynced: 1212121,
 				CreatedAt:         time.Now(),
 			},
-			ABI: &storage.ABIRecord{
-				Name:      "abi-record-id",
-				Type:      "type1",
-				Anonymous: true,
-				Inputs: []*storage.InputRecord{
-					{
-						Indexed:      true,
-						InternalType: "internal-type-1",
-						Name:         "name-1",
-						Type:         "type-1",
-					},
-					{
-						Indexed:      true,
-						InternalType: "internal-type-2",
-						Name:         "name-2",
-						Type:         "type-2",
-					},
-				},
-			},
-			Events: []*storage.EventRecord{
+			ABI: []*storage.ABIRecord{
 				{
-					Network:           "test-net",
-					NodeURL:           "https://nodeurl.com",
-					Address:           "0x0000000000000000000000000000000000000002",
-					LatestBlockNumber: 10101010,
-					Status:            storage.EventStatusRunning,
+					Name:      "abi-record-id",
+					Type:      "type1",
+					Anonymous: true,
+					Inputs:    `[{"foo": "bar"}]`,
 				},
 				{
-					Network:           "test-net",
-					NodeURL:           "https://nodeurl.com",
-					Address:           "0x0000000000000000000000000000000000000003",
-					LatestBlockNumber: 10101010,
-					Status:            storage.EventStatusRunning,
+					Name:      "abi-record-id-2",
+					Type:      "event",
+					Anonymous: false,
+					Inputs:    `[{"foo": "bar"}]`,
 				},
 			},
 		}
-		out, err := ng.InserAtomicSmartContract(input)
+		out, err := ng.InsertAtomicSmartContract(input)
 
 		require.NoError(t, err)
 		require.NotNil(t, out)
@@ -172,44 +128,23 @@ func Test_InsertAtomicSmartContract_NthInsertion(t *testing.T) {
 				LastTxBlockSynced: 1212121,
 				CreatedAt:         time.Now(),
 			},
-			ABI: &storage.ABIRecord{
-				Name:      "abi-record-id",
-				Type:      "type1",
-				Anonymous: true,
-				Inputs: []*storage.InputRecord{
-					{
-						Indexed:      true,
-						InternalType: "internal-type-1",
-						Name:         "name-1",
-						Type:         "type-1",
-					},
-					{
-						Indexed:      true,
-						InternalType: "internal-type-2",
-						Name:         "name-2",
-						Type:         "type-2",
-					},
-				},
-			},
-			Events: []*storage.EventRecord{
+			ABI: []*storage.ABIRecord{
 				{
-					Network:           "test-net",
-					NodeURL:           "https://nodeurl.com",
-					Address:           "0x0000000000000000000000000000000000000002",
-					LatestBlockNumber: 10101010,
-					Status:            storage.EventStatusRunning,
+					Name:      "abi-record-id",
+					Type:      "type1",
+					Anonymous: true,
+					Inputs:    `[{"foo": "bar"}]`,
 				},
 				{
-					Network:           "test-net",
-					NodeURL:           "https://nodeurl.com",
-					Address:           "0x0000000000000000000000000000000000000003",
-					LatestBlockNumber: 10101010,
-					Status:            storage.EventStatusRunning,
+					Name:      "abi-record-id-2",
+					Type:      "event",
+					Anonymous: false,
+					Inputs:    `[{"foo": "bar"}]`,
 				},
 			},
 		}
 
-		out2, err := ng.InserAtomicSmartContract(input)
+		out2, err := ng.InsertAtomicSmartContract(input)
 
 		require.NoError(t, err)
 		require.Equal(t, out2.SmartContractUser.SmartContractAddress, out.SmartContract.Address)

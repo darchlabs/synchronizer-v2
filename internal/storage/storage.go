@@ -30,8 +30,8 @@ func New(dsn string) (*S, error) {
 	}, nil
 }
 
-func NewStorage(driver, dsn string) (*Store, error) {
-	db, err := sqlx.Open(driver, dsn)
+func NewStorage(dsn string) (*Store, error) {
+	db, err := sqlx.Open("postgres", dsn)
 	if err != nil {
 		return nil, err
 	}

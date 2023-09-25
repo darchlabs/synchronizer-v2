@@ -48,7 +48,7 @@ type SmartContractUserRecord struct {
 	SmartContractAddress string                  `db:"sc_address"`
 	Name                 string                  `db:"name"`
 	ErrorMessage         *string                 `db:"error"`
-	Webhook              string                  `db:"webhook"`
+	WebhookURL           string                  `db:"webhook"`
 	NodeURL              string                  `db:"node_url"`
 	Status               SmartContractUserStatus `db:"status"`
 	CreatedAt            time.Time               `db:"created_at"`
@@ -62,29 +62,28 @@ type ABIRecord struct {
 	Name                 string `db:"name"`
 	Type                 string `db:"type"`
 	Anonymous            bool   `db:"anonymous"`
-
-	Inputs []*InputRecord
+	Inputs               string `json:"inputs"`
 }
 
 type InputRecord struct {
-	ID           string `db:"id"`
-	Indexed      bool   `db:"indexed"`
-	InternalType string `db:"internal_type"`
-	Name         string `db:"name"`
-	Type         string `db:"type"`
-	AbiID        string `db:"abi_id"`
+	ID                   string `db:"id"`
+	Indexed              bool   `db:"indexed"`
+	InternalType         string `db:"internal_type"`
+	Name                 string `db:"name"`
+	Type                 string `db:"type"`
+	SmartContractAddress string `db:"sc_address"`
 }
 
 type EventRecord struct {
-	ID                string       `db:"id"`
-	UserID            string       `db:"user_id"`
-	Network           EventNetwork `db:"network"`
-	NodeURL           string       `db:"node_url"`
-	Address           string       `db:"address"`
-	LatestBlockNumber int64        `db:"latest_block_number"`
-	AbiID             string       `db:"abi_id"`
-	Status            EventStatus  `db:"status"`
-	Error             string       `db:"error"`
-	CreatedAt         time.Time    `db:"created_at"`
-	UpdatedAt         *time.Time   `db:"updated_at"`
+	ID                   string       `db:"id"`
+	UserID               string       `db:"user_id"`
+	Network              EventNetwork `db:"network"`
+	NodeURL              string       `db:"node_url"`
+	Address              string       `db:"address"`
+	LatestBlockNumber    int64        `db:"latest_block_number"`
+	SmartContractAddress string       `db:"sc_address"`
+	Status               EventStatus  `db:"status"`
+	Error                string       `db:"error"`
+	CreatedAt            time.Time    `db:"created_at"`
+	UpdatedAt            *time.Time   `db:"updated_at"`
 }

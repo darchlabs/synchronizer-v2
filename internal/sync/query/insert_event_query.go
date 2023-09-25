@@ -13,7 +13,7 @@ func (eq *EventQuerier) InsertEventQuery(qCtx storage.QueryContext, input *stora
 			node_url,
 			address,
 			latest_block_number,
-			abi_id,
+			sc_address,
 			status,
 			created_at
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`,
@@ -22,7 +22,7 @@ func (eq *EventQuerier) InsertEventQuery(qCtx storage.QueryContext, input *stora
 		input.NodeURL,
 		input.Address,
 		input.LatestBlockNumber,
-		input.AbiID,
+		input.SmartContractAddress,
 		input.Status,
 		input.CreatedAt,
 	)

@@ -10,8 +10,8 @@ type SmartContractQuerier interface {
 }
 
 type ABIQuerier interface {
-	InsertABIQuery(storage.QueryContext, *storage.ABIRecord) error
-	SelectABIByAddressQuery(storage.Transaction, string) (*storage.ABIRecord, error)
+	InsertABIBatchQuery(storage.QueryContext, []*storage.ABIRecord, string) error
+	SelectABIByAddressQuery(storage.Transaction, string) ([]*storage.ABIRecord, error)
 }
 
 type InputQuerier interface {
@@ -24,6 +24,6 @@ type SmartContractUserQuerier interface {
 }
 
 type EventQuerier interface {
-	InsertEventBatchQuery(storage.QueryContext, []*storage.EventRecord, string, string) error
+	InsertEventBatchQuery(storage.QueryContext, []*storage.EventRecord, string) error
 	SelectEventsByAddressQuery(storage.Transaction, string) ([]*storage.EventRecord, error)
 }
