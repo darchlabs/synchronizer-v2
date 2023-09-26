@@ -55,13 +55,13 @@ func Test_InsertAtomicSmartContract_FirstInsertion(t *testing.T) {
 					Name:      "abi-record-id",
 					Type:      "type1",
 					Anonymous: true,
-					Inputs:    `[{"foo": "bar"}]`,
+					Inputs:    `[{"indexed": false, "internalType": "it", "name": "foo", "type": "foo"}]`,
 				},
 				{
 					Name:      "abi-record-id-2",
 					Type:      "event",
 					Anonymous: false,
-					Inputs:    `[{"foo": "bar"}]`,
+					Inputs:    `[{"indexed": false, "internalType": "it2", "name": "bar", "type": "bar"}]`,
 				},
 			},
 		}
@@ -100,13 +100,13 @@ func Test_InsertAtomicSmartContract_NthInsertion(t *testing.T) {
 					Name:      "abi-record-id",
 					Type:      "type1",
 					Anonymous: true,
-					Inputs:    `[{"foo": "bar"}]`,
+					Inputs:    `[{"indexed": false, "internalType": "it", "name": "foo", "type": "foo"}]`,
 				},
 				{
 					Name:      "abi-record-id-2",
 					Type:      "event",
 					Anonymous: false,
-					Inputs:    `[{"foo": "bar"}]`,
+					Inputs:    `[{"indexed": false, "internalType": "it2", "name": "bar", "type": "bar"}]`,
 				},
 			},
 		}
@@ -133,13 +133,13 @@ func Test_InsertAtomicSmartContract_NthInsertion(t *testing.T) {
 					Name:      "abi-record-id",
 					Type:      "type1",
 					Anonymous: true,
-					Inputs:    `[{"foo": "bar"}]`,
+					Inputs:    `[{"indexed": false, "internalType": "it", "name": "foo", "type": "foo"}]`,
 				},
 				{
 					Name:      "abi-record-id-2",
 					Type:      "event",
 					Anonymous: false,
-					Inputs:    `[{"foo": "bar"}]`,
+					Inputs:    `[{"indexed": false, "internalType": "it2", "name": "bar", "type": "bar"}]`,
 				},
 			},
 		}

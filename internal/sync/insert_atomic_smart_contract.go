@@ -139,6 +139,7 @@ func (ng *Engine) insertAtomicSmartContract(input *InsertAtomicSmartContractInpu
 		for _, abi := range input.ABI {
 			if abi.Type == "event" {
 				events = append(events, &storage.EventRecord{
+					Name:                 abi.Name,
 					Network:              storage.EventNetwork(input.SmartContract.Network),
 					NodeURL:              input.NodeURL,
 					LatestBlockNumber:    int64(0), // For explicity since default value por numbers is 0

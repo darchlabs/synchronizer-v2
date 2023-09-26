@@ -15,8 +15,9 @@ func (eq *EventQuerier) InsertEventQuery(qCtx storage.QueryContext, input *stora
 			latest_block_number,
 			sc_address,
 			status,
-			created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`,
+			created_at,
+			name
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`,
 		input.ID,
 		input.Network,
 		input.NodeURL,
@@ -25,6 +26,7 @@ func (eq *EventQuerier) InsertEventQuery(qCtx storage.QueryContext, input *stora
 		input.SmartContractAddress,
 		input.Status,
 		input.CreatedAt,
+		input.Name,
 	)
 	if err != nil {
 		return errors.Wrap(err, "query: EventQuerier.InsertEventQuery qCtx.Exec error")

@@ -78,6 +78,7 @@ type EventRecord struct {
 	ID                   string       `db:"id"`
 	UserID               string       `db:"user_id"`
 	Network              EventNetwork `db:"network"`
+	Name                 string       `db:"name"`
 	NodeURL              string       `db:"node_url"`
 	Address              string       `db:"address"`
 	LatestBlockNumber    int64        `db:"latest_block_number"`
