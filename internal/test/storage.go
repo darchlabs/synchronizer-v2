@@ -82,7 +82,7 @@ func (tdb *TestDB) Rollback() error {
 	return tdb.tx.Rollback()
 }
 
-func GetTxCall(t *testing.T, call func(tx *sqlx.Tx, testData []interface{})) {
+func GetTxCall(t *testing.T, call func(tx *sqlx.Tx, testData interface{})) {
 	t.Helper()
 	conn, err := getDB()
 	require.NoError(t, err)
@@ -182,8 +182,18 @@ func PrepareDeleteFromDB(st *sqlx.DB, query string) error {
 }
 
 func CleanDB(st *sqlx.Tx) (err error) {
-	if st == nil {
-		return nil
+	dropQueries := []string{
+		"DELETE FROM event CASCADE;",
+		"DELETE FROM abi CASCADE;",
+		"DELETE FROM smartcontract_users CASCADE;",
+		"DELETE FROM smartcontracts CASCADE;",
+	}
+
+	for _, query := range dropQueries {
+		_, err := st.Exec(query)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

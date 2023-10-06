@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (e *Engine) WithTransaction(db storage.Transaction, fn func(txx *sqlx.Tx) error) (err error) {
+func (ng *Engine) WithTransaction(db storage.Transaction, fn func(txx *sqlx.Tx) error) (err error) {
 	ctx := context.Background()
 	var tx *sqlx.Tx
 
@@ -17,7 +17,7 @@ func (e *Engine) WithTransaction(db storage.Transaction, fn func(txx *sqlx.Tx) e
 		if err != nil {
 			if txErr := tx.Rollback(); txErr != nil {
 				err = errors.Wrapf(txErr, "sync: Engine.WithTransaction error %s", err)
-				e.logger.Infof("%s", err)
+				ng.logger.Infof("%s", err)
 			}
 		}
 	}()
@@ -29,17 +29,17 @@ func (e *Engine) WithTransaction(db storage.Transaction, fn func(txx *sqlx.Tx) e
 		})
 		if err != nil {
 			err = errors.Wrap(err, "sync: Engine.WithTransaction error")
-			e.logger.Infof("%s", err)
+			ng.logger.Infof("%s", err)
 			return err
 		}
 	case *sqlx.Tx:
 		tx = store
 
 	default:
-		Tx, err := e.database.BeginTx(ctx)
+		Tx, err := ng.database.BeginTx(ctx)
 		if err != nil {
 			err = errors.Wrap(err, "sync: Engine.WithTransaction w.db.BeginTx error")
-			e.logger.Infof("%s", err)
+			ng.logger.Infof("%s", err)
 			return err
 		}
 
@@ -51,4 +51,8 @@ func (e *Engine) WithTransaction(db storage.Transaction, fn func(txx *sqlx.Tx) e
 	}
 
 	return tx.Commit()
+}
+
+func (ng *Engine) InTransaction(fn func(txx *sqlx.Tx) error) error {
+	return ng.WithTransaction(ng.database, fn)
 }

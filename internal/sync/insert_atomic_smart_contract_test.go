@@ -14,11 +14,11 @@ import (
 
 func getEngineForTest() (*Engine, error) {
 	engine := &Engine{
-		abiQuerier:               query.NewABIQuerier(nil, uuid.NewString, time.Now),
-		smartContractQuerier:     query.NewSmartContractQuerier(nil, uuid.NewString, time.Now),
-		smartContractUserQuerier: query.NewSmartContractUserQuerier(nil, uuid.NewString, time.Now),
-		inputQuerier:             query.NewInputQuerier(nil, uuid.NewString, time.Now),
-		eventQuerier:             query.NewEventsQuerier(nil, uuid.NewString, time.Now),
+		ABIQuerier:               query.NewABIQuerier(nil, uuid.NewString, time.Now),
+		SmartContractQuerier:     query.NewSmartContractQuerier(nil, uuid.NewString, time.Now),
+		SmartContractUserQuerier: query.NewSmartContractUserQuerier(nil, uuid.NewString, time.Now),
+		InputQuerier:             query.NewInputQuerier(nil, uuid.NewString, time.Now),
+		EventQuerier:             query.NewEventsQuerier(nil, uuid.NewString, time.Now),
 
 		dateGen: time.Now,
 		idGen:   uuid.NewString,
@@ -55,13 +55,17 @@ func Test_InsertAtomicSmartContract_FirstInsertion(t *testing.T) {
 					Name:      "abi-record-id",
 					Type:      "type1",
 					Anonymous: true,
-					Inputs:    `[{"indexed": false, "internalType": "it", "name": "foo", "type": "foo"}]`,
+					Inputs: []map[string]interface{}{
+						{"indexed": false, "internalType": "it", "name": "foo", "type": "foo"},
+					},
 				},
 				{
 					Name:      "abi-record-id-2",
 					Type:      "event",
 					Anonymous: false,
-					Inputs:    `[{"indexed": false, "internalType": "it2", "name": "bar", "type": "bar"}]`,
+					Inputs: []map[string]interface{}{
+						{"indexed": false, "internalType": "it", "name": "foo", "type": "foo"},
+					},
 				},
 			},
 		}
@@ -100,13 +104,17 @@ func Test_InsertAtomicSmartContract_NthInsertion(t *testing.T) {
 					Name:      "abi-record-id",
 					Type:      "type1",
 					Anonymous: true,
-					Inputs:    `[{"indexed": false, "internalType": "it", "name": "foo", "type": "foo"}]`,
+					Inputs: []map[string]interface{}{
+						{"indexed": false, "internalType": "it", "name": "foo", "type": "foo"},
+					},
 				},
 				{
 					Name:      "abi-record-id-2",
 					Type:      "event",
 					Anonymous: false,
-					Inputs:    `[{"indexed": false, "internalType": "it2", "name": "bar", "type": "bar"}]`,
+					Inputs: []map[string]interface{}{
+						{"indexed": false, "internalType": "it", "name": "foo", "type": "foo"},
+					},
 				},
 			},
 		}
@@ -133,13 +141,17 @@ func Test_InsertAtomicSmartContract_NthInsertion(t *testing.T) {
 					Name:      "abi-record-id",
 					Type:      "type1",
 					Anonymous: true,
-					Inputs:    `[{"indexed": false, "internalType": "it", "name": "foo", "type": "foo"}]`,
+					Inputs: []map[string]interface{}{
+						{"indexed": false, "internalType": "it", "name": "foo", "type": "foo"},
+					},
 				},
 				{
 					Name:      "abi-record-id-2",
 					Type:      "event",
 					Anonymous: false,
-					Inputs:    `[{"indexed": false, "internalType": "it2", "name": "bar", "type": "bar"}]`,
+					Inputs: []map[string]interface{}{
+						{"indexed": false, "internalType": "it", "name": "foo", "type": "foo"},
+					},
 				},
 			},
 		}

@@ -14,11 +14,6 @@ type Context struct {
 }
 
 func Route(app *fiber.App, ctx Context) {
-	// Engine status related endpoints
-	app.Get("/api/v1/metrics/status", getEngineStatus(ctx))
-	app.Post("/api/v1/metrics/start", startEngine(ctx))
-	app.Post("/api/v1/metrics/stop", stopEngine(ctx))
-
 	// Transactions data related endpoints
 	app.Get("/api/v1/metrics/transactions", listTransactions(ctx))
 	app.Get("/api/v1/metrics/transactions/:address", listSmartContractTransactions(ctx))

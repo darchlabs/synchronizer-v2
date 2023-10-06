@@ -103,3 +103,18 @@ func NewSmartcontractUserQuerier(logger logger.Client, idGen wrapper.IDGenerator
 		logger:  logger,
 	}
 }
+
+// EVENT DATA
+type EventDataQuerier struct {
+	idGen   wrapper.IDGenerator
+	dateGen wrapper.DateGenerator
+	logger  logger.Client
+}
+
+func NewEventDataQuerier(logger logger.Client, idGen wrapper.IDGenerator, dateGen wrapper.DateGenerator) *EventDataQuerier {
+	return &EventDataQuerier{
+		idGen:   idGen,
+		dateGen: dateGen,
+		logger:  logger,
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -72,11 +73,16 @@ func (s *WebhookSender) SendWebhook(wh *webhook.Webhook) error {
 	}
 
 	// send POST using the webhook
+	fmt.Println("~~~~~ Before Send Webhook")
+	fmt.Println(" body: ", string(b))
 	req, err := http.NewRequest("POST", wh.Endpoint, bytes.NewBuffer(b))
 	if err != nil {
 		return err
 	}
+	req.Header.Add("Content-Type", "application/json")
+
 	_, err = s.HTTPClient.Do(req)
+	fmt.Println("~~~~~ After Webhook is sent")
 
 	return err
 }
@@ -116,6 +122,9 @@ func (s *WebhookSender) StartRetries() {
 func (s *WebhookSender) CreateAndSendWebhook(wh *webhook.Webhook) error {
 	// Create the webhook in the database
 	wh, err := s.WebhookStorage.CreateWebhook(wh)
+	if errors.Is(err, webhookstorage.DuplicatedWebhookErr) {
+		return nil
+	}
 	if err != nil {
 		return errors.Wrap(err, "webhooksender: error creating webhook")
 	}

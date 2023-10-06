@@ -17,7 +17,7 @@ type postSmartContractV2Handler struct {
 }
 
 type postSmartContractV2HandlerRequest struct {
-	SmartContract *smartContractReq `json:"smartcontract"`
+	SmartContract *SmartContractReq `json:"smartcontract"`
 }
 
 // HTTP SERVER LOGIC
@@ -83,13 +83,23 @@ func (h *postSmartContractV2Handler) invoke(ctx *api.Context, req *postSmartCont
 
 		}
 
+		ipts := make([]*storage.InputABI, 0)
+		err = json.Unmarshal(bytes, &ipts)
+		if err != nil {
+			return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+				err,
+				"smartcontracts: postSmartContractV2Handler.invoke json.Unmarshal input abi error",
+			)
+
+		}
+
 		// create ABI
 		abi = append(abi, &storage.ABIRecord{
 			SmartContractAddress: req.SmartContract.Address,
 			Name:                 a.Name,
 			Type:                 a.Type,
 			Anonymous:            a.Anonymous,
-			Inputs:               string(bytes),
+			Inputs:               ipts,
 		})
 	}
 
@@ -111,9 +121,9 @@ func (h *postSmartContractV2Handler) invoke(ctx *api.Context, req *postSmartCont
 		)
 	}
 
-	abiRes := make([]*abiReq, 0)
+	abiRes := make([]*AbiReq, 0)
 	for _, a := range output.ABI {
-		inputReq, err := transformInputsJsonToArray(a.Inputs)
+		inputReq, err := TransformInputsJsonToArray(a.Inputs)
 		if err != nil {
 			return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
 				err,
@@ -121,14 +131,14 @@ func (h *postSmartContractV2Handler) invoke(ctx *api.Context, req *postSmartCont
 			)
 		}
 
-		abiRes = append(abiRes, &abiReq{
+		abiRes = append(abiRes, &AbiReq{
 			Name:      a.Name,
 			Type:      a.Type,
 			Anonymous: a.Anonymous,
 			Inputs:    inputReq,
 		})
 	}
-	scRes := &smartContractReq{
+	scRes := &SmartContractReq{
 		Network:    string(output.SmartContract.Network),
 		Name:       output.SmartContractUser.Name,
 		Address:    output.SmartContract.Address,

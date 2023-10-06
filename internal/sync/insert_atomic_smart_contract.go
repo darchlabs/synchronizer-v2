@@ -60,7 +60,7 @@ func (ng *Engine) InsertAtomicSmartContract(input *InsertAtomicSmartContractInpu
 
 func (ng *Engine) checkBeforeInsertAtomicSmartcontract(input *InsertAtomicSmartContractInput) (*InsertAtomicSmartContractOutput, error) {
 	// select smartcontract
-	sc, err := ng.smartContractQuerier.SelectSmartContractByAddressQuery(ng.database, input.SmartContract.Address)
+	sc, err := ng.SmartContractQuerier.SelectSmartContractByAddressQuery(ng.database, input.SmartContract.Address)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -81,13 +81,13 @@ func (ng *Engine) checkBeforeInsertAtomicSmartcontract(input *InsertAtomicSmartC
 		CreatedAt:            now,
 		Name:                 input.Name,
 	}
-	err = ng.smartContractUserQuerier.UpsertSmartContractUserQuery(ng.database, scUser)
+	err = ng.SmartContractUserQuerier.UpsertSmartContractUserQuery(ng.database, scUser)
 	if err != nil {
 		return nil, errors.Wrap(err, "ng.smartContractUserQuerier.UpsertSmartContractUserQuery error")
 	}
 
 	//ABI               *storage.ABIRecord
-	abi, err := ng.abiQuerier.SelectABIByAddressQuery(ng.database, sc.Address)
+	abi, err := ng.ABIQuerier.SelectABIByAddressQuery(ng.database, sc.Address)
 	if err != nil {
 		return nil, errors.Wrap(err, "ng.ABIQuerier.SelectABIByAddressQuery error")
 	}
@@ -98,7 +98,7 @@ func (ng *Engine) checkBeforeInsertAtomicSmartcontract(input *InsertAtomicSmartC
 	//}
 	//abi.Inputs = inputs
 
-	events, err := ng.eventQuerier.SelectEventsByAddressQuery(ng.database, sc.Address)
+	events, err := ng.EventQuerier.SelectEventsByAddressQuery(ng.database, sc.Address)
 	if err != nil {
 		return nil, errors.Wrap(err, "ng.eventQuerier.SelectEventsByAddressQuery error")
 	}
@@ -123,13 +123,16 @@ func (ng *Engine) insertAtomicSmartContract(input *InsertAtomicSmartContractInpu
 		// Insert SmartContract
 		input.SmartContract.ID = smartContractID
 		input.SmartContract.CreatedAt = now
-		err := ng.smartContractQuerier.InsertSmartContractQuery(txx, input.SmartContract)
+		err := ng.SmartContractQuerier.InsertSmartContractQuery(txx, input.SmartContract)
 		if err != nil {
 			return errors.Wrap(err, "ng.smartContractQuerier.InsertSmartContractQuery error")
 		}
 
 		// Insert ABI and Input
-		err = ng.abiQuerier.InsertABIBatchQuery(txx, input.ABI, input.SmartContract.Address)
+		for _, abi := range input.ABI {
+			abi.ID = ng.idGen()
+		}
+		err = ng.ABIQuerier.InsertABIBatchQuery(txx, input.ABI, input.SmartContract.Address)
 		if err != nil {
 			return errors.Wrap(err, "ng.abiQuerier.InsertABIQuery error")
 		}
@@ -139,17 +142,18 @@ func (ng *Engine) insertAtomicSmartContract(input *InsertAtomicSmartContractInpu
 		for _, abi := range input.ABI {
 			if abi.Type == "event" {
 				events = append(events, &storage.EventRecord{
+					AbiID:                abi.ID,
 					Name:                 abi.Name,
 					Network:              storage.EventNetwork(input.SmartContract.Network),
 					NodeURL:              input.NodeURL,
 					LatestBlockNumber:    int64(0), // For explicity since default value por numbers is 0
-					Status:               storage.EventStatusSynching,
+					Status:               storage.EventStatusRunning,
 					Address:              input.SmartContract.Address,
 					SmartContractAddress: input.SmartContract.Address,
 				})
 			}
 		}
-		err = ng.eventQuerier.InsertEventBatchQuery(txx, events, input.SmartContract.Address)
+		err = ng.EventQuerier.InsertEventBatchQuery(txx, events, input.SmartContract.Address)
 		if err != nil {
 			return errors.Wrap(err, "ng.eventQuerier.InsertEventBatchQuery error")
 		}
@@ -165,7 +169,7 @@ func (ng *Engine) insertAtomicSmartContract(input *InsertAtomicSmartContractInpu
 			CreatedAt:            now,
 			Name:                 input.Name,
 		}
-		err = ng.smartContractUserQuerier.UpsertSmartContractUserQuery(txx, smartContractUserInput)
+		err = ng.SmartContractUserQuerier.UpsertSmartContractUserQuery(txx, smartContractUserInput)
 		if err != nil {
 			return errors.Wrap(err, "ng.smartContractUserQuerier.UpsertSmartContractUserQuery error")
 		}

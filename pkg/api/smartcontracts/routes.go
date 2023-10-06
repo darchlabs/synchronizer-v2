@@ -8,7 +8,6 @@ import (
 	"github.com/darchlabs/backoffice/pkg/middleware"
 	"github.com/darchlabs/synchronizer-v2"
 	"github.com/darchlabs/synchronizer-v2/internal/env"
-	"github.com/darchlabs/synchronizer-v2/internal/storage"
 	"github.com/darchlabs/synchronizer-v2/internal/sync"
 	txsengine "github.com/darchlabs/synchronizer-v2/internal/txsengine"
 	"github.com/darchlabs/synchronizer-v2/pkg/api"
@@ -25,7 +24,7 @@ type Context struct {
 	Env          *env.Env
 	TxsEngine    txsengine.TxsEngine
 
-	Database storage.Database
+	Engine *sync.Engine
 
 	IDGen   idGenerator
 	DateGen dateGenerator
@@ -45,11 +44,9 @@ func Route(app *fiber.App, ctx Context) {
 		EventStorage: ctx.EventStorage,
 		Env:          ctx.Env,
 		TxsEngine:    ctx.TxsEngine,
-		SyncEngine: sync.NewEngine(&sync.EngineConfig{
-			Database: ctx.Database,
-		}),
-		IDGen:   api.IDGenerator(ctx.IDGen),
-		DateGen: api.DateGenerator(ctx.DateGen),
+		SyncEngine:   ctx.Engine,
+		IDGen:        api.IDGenerator(ctx.IDGen),
+		DateGen:      api.DateGenerator(ctx.DateGen),
 	}
 
 	// V1 ROUTES

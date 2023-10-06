@@ -12,16 +12,18 @@ import (
 
 type SyncEngine interface {
 	InsertAtomicSmartContract(input *InsertAtomicSmartContractInput) (*InsertAtomicSmartContractOutput, error)
+	SelectEventsAndABI(input *SelectEventsAndABIInput) (*SelectEventsAndABIOutput, error)
 }
 
 type Engine struct {
 	database storage.Database
 
-	abiQuerier               ABIQuerier
-	smartContractQuerier     SmartContractQuerier
-	smartContractUserQuerier SmartContractUserQuerier
-	inputQuerier             InputQuerier
-	eventQuerier             EventQuerier
+	ABIQuerier               ABIQuerier
+	SmartContractQuerier     SmartContractQuerier
+	SmartContractUserQuerier SmartContractUserQuerier
+	InputQuerier             InputQuerier
+	EventQuerier             EventQuerier
+	EventDataQuerier         EventDataQuerier
 
 	dateGen wrapper.DateGenerator
 	idGen   wrapper.IDGenerator
@@ -41,10 +43,15 @@ func NewEngine(conf *EngineConfig) *Engine {
 		dateGen:  time.Now,
 		idGen:    uuid.NewString,
 
-		abiQuerier:               query.NewABIQuerier(nil, uuid.NewString, time.Now),
-		smartContractQuerier:     query.NewSmartContractQuerier(nil, uuid.NewString, time.Now),
-		smartContractUserQuerier: query.NewSmartContractUserQuerier(nil, uuid.NewString, time.Now),
-		inputQuerier:             query.NewInputQuerier(nil, uuid.NewString, time.Now),
-		eventQuerier:             query.NewEventsQuerier(nil, uuid.NewString, time.Now),
+		ABIQuerier:               query.NewABIQuerier(nil, uuid.NewString, time.Now),
+		SmartContractQuerier:     query.NewSmartContractQuerier(nil, uuid.NewString, time.Now),
+		SmartContractUserQuerier: query.NewSmartContractUserQuerier(nil, uuid.NewString, time.Now),
+		InputQuerier:             query.NewInputQuerier(nil, uuid.NewString, time.Now),
+		EventQuerier:             query.NewEventsQuerier(nil, uuid.NewString, time.Now),
+		EventDataQuerier:         query.NewEventDataQuerier(nil, uuid.NewString, time.Now),
 	}
+}
+
+func (ng *Engine) GetDatabase() storage.Database {
+	return ng.database
 }

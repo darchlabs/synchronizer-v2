@@ -8,6 +8,7 @@ import (
 type QueryContext interface {
 	Exec(query string, params ...interface{}) (sql.Result, error)
 	Query(query string, params ...interface{}) (*sql.Rows, error)
+	QueryRow(query string, args ...interface{}) *sql.Row
 }
 
 type Transaction interface {

@@ -7,7 +7,9 @@ import (
 
 func (aq *ABIQuerier) InsertABIBatchQuery(qCtx storage.QueryContext, inputs []*storage.ABIRecord, scAddress string) error {
 	for _, input := range inputs {
-		input.ID = aq.idGen()
+		if input.ID == "" {
+			input.ID = aq.idGen()
+		}
 		input.SmartContractAddress = scAddress
 		err := aq.InsertABIQuery(qCtx, input)
 		if err != nil {

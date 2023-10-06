@@ -36,6 +36,10 @@ dev:
 	@echo "[dev] Running..."
 	@export $$(cat .env) && go run cmd/synchronizer/main.go
 
+live:
+	@echo "[live] Running service in debug-hot-reload mode..."
+	@export $$(cat .env) && nodemon --exec go run cmd/synchronizer/main.go --signal SIGTERM
+
 create-migration:
 	@echo "[create migration]"
 	@goose -dir=migrations/ create $(name)

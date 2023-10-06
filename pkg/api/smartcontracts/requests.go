@@ -1,38 +1,43 @@
 package smartcontracts
 
-import "encoding/json"
+import (
+	"github.com/darchlabs/synchronizer-v2/internal/storage"
+)
 
-type smartContractReq struct {
+type SmartContractReq struct {
 	UserID     string    `json:"-"`
 	Network    string    `json:"network" validate:"required"`
 	Name       string    `json:"name" validate:"required"`
 	Address    string    `json:"address" validate:"required"`
 	NodeURL    string    `json:"nodeUrl"`
 	WebhookURL string    `json:"webhook"`
-	ABI        []*abiReq `json:"abi"`
+	ABI        []*AbiReq `json:"abi"`
 }
 
-type abiReq struct {
+type AbiReq struct {
 	Name      string `json:"name"`
 	Type      string `json:"type"`
 	Anonymous bool   `json:"anonymous"`
 
-	Inputs []inputReq `json:"inputs"`
+	Inputs []InputReq `json:"inputs"`
 }
 
-type inputReq struct {
+type InputReq struct {
 	Indexed      bool   `json:"indexed"`
 	InternalType string `json:"internalType"`
 	Name         string `json:"name"`
 	Type         string `json:"type"`
 }
 
-func transformInputsJsonToArray(jsonStr string) ([]inputReq, error) {
-	var inputReqs []inputReq
-
-	err := json.Unmarshal([]byte(jsonStr), &inputReqs)
-	if err != nil {
-		return nil, err
+func TransformInputsJsonToArray(inputs []*storage.InputABI) ([]InputReq, error) {
+	inputReqs := make([]InputReq, 0)
+	for _, i := range inputs {
+		inputReqs = append(inputReqs, InputReq{
+			Indexed:      i.Indexed,
+			InternalType: i.InternalType,
+			Name:         i.Name,
+			Type:         i.Type,
+		})
 	}
 
 	return inputReqs, nil
