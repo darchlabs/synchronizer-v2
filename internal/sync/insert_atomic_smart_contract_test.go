@@ -55,16 +55,26 @@ func Test_InsertAtomicSmartContract_FirstInsertion(t *testing.T) {
 					Name:      "abi-record-id",
 					Type:      "type1",
 					Anonymous: true,
-					Inputs: []map[string]interface{}{
-						{"indexed": false, "internalType": "it", "name": "foo", "type": "foo"},
+					Inputs: []*storage.InputABI{
+						{
+							Indexed:      false,
+							InternalType: "it",
+							Name:         "foo",
+							Type:         "foo",
+						},
 					},
 				},
 				{
 					Name:      "abi-record-id-2",
 					Type:      "event",
 					Anonymous: false,
-					Inputs: []map[string]interface{}{
-						{"indexed": false, "internalType": "it", "name": "foo", "type": "foo"},
+					Inputs: []*storage.InputABI{
+						{
+							Indexed:      false,
+							InternalType: "it",
+							Name:         "foo",
+							Type:         "foo",
+						},
 					},
 				},
 			},
@@ -104,16 +114,26 @@ func Test_InsertAtomicSmartContract_NthInsertion(t *testing.T) {
 					Name:      "abi-record-id",
 					Type:      "type1",
 					Anonymous: true,
-					Inputs: []map[string]interface{}{
-						{"indexed": false, "internalType": "it", "name": "foo", "type": "foo"},
+					Inputs: []*storage.InputABI{
+						{
+							Indexed:      false,
+							InternalType: "it",
+							Name:         "foo",
+							Type:         "foo",
+						},
 					},
 				},
 				{
 					Name:      "abi-record-id-2",
 					Type:      "event",
 					Anonymous: false,
-					Inputs: []map[string]interface{}{
-						{"indexed": false, "internalType": "it", "name": "foo", "type": "foo"},
+					Inputs: []*storage.InputABI{
+						{
+							Indexed:      false,
+							InternalType: "it",
+							Name:         "foo",
+							Type:         "foo",
+						},
 					},
 				},
 			},
@@ -141,16 +161,26 @@ func Test_InsertAtomicSmartContract_NthInsertion(t *testing.T) {
 					Name:      "abi-record-id",
 					Type:      "type1",
 					Anonymous: true,
-					Inputs: []map[string]interface{}{
-						{"indexed": false, "internalType": "it", "name": "foo", "type": "foo"},
+					Inputs: []*storage.InputABI{
+						{
+							Indexed:      false,
+							InternalType: "it",
+							Name:         "foo",
+							Type:         "foo",
+						},
 					},
 				},
 				{
 					Name:      "abi-record-id-2",
 					Type:      "event",
 					Anonymous: false,
-					Inputs: []map[string]interface{}{
-						{"indexed": false, "internalType": "it", "name": "foo", "type": "foo"},
+					Inputs: []*storage.InputABI{
+						{
+							Indexed:      false,
+							InternalType: "it",
+							Name:         "foo",
+							Type:         "foo",
+						},
 					},
 				},
 			},

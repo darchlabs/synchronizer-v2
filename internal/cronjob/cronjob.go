@@ -144,8 +144,6 @@ func (c *cronjob) Start() error {
 }
 
 func (c *cronjob) Restart() error {
-	log.Println("Restarting ticker")
-
 	if c.status == StatusIdle {
 		return errors.New("cronjob isn't ready yet, wait few seconds")
 	}
@@ -254,7 +252,6 @@ func (c *cronjob) job() (err error) {
 				}()
 
 				for logs := range logsChannel {
-					fmt.Println("this are the logs -> ", logs)
 					c.syncEngine.InTransaction(func(txx *sqlx.Tx) error {
 
 						// parse each log to EventData
@@ -295,25 +292,14 @@ func (c *cronjob) job() (err error) {
 						}
 
 						// webhook related
-						fmt.Println("ARRAY SCU ", e.SmartContractUsers)
-						for idx, scu := range e.SmartContractUsers {
+						for _, scu := range e.SmartContractUsers {
 							if scu.WebhookURL != "" && logBlockNumber >= e.SmartContract.InitialBlockNumber {
-								fmt.Printf("LEN %d ITERATION %d\n", len(e.SmartContractUsers), idx)
-								fmt.Printf("============================= \n")
-								fmt.Printf("Smart Contract Users--%+v\n", scu.UserID)
-								fmt.Printf("============================= \n")
-
 								for _, evData := range eventDatas {
-									fmt.Printf("............................. \n")
-									fmt.Printf("Event Data--%+v\n", evData)
-									fmt.Printf("............................. \n")
-
 									wh, err := evData.ToWebhookEvent(c.idGen(), e, scu.WebhookURL, now)
 									if err != nil {
 										return err
 									}
 
-									fmt.Println("Initializing webhook activity... for ", scu.UserID, scu.SmartContractAddress)
 									err = c.webhookSender.CreateAndSendWebhook(&webhook.Webhook{
 										ID:          wh.ID,
 										Tx:          wh.Tx,
@@ -347,8 +333,6 @@ func (c *cronjob) job() (err error) {
 			// TODO(ca): should to use env value
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second) // 10 minutos de límite
 			defer cancel()
-
-			fmt.Println("==========> from block number ", ev.LatestBlockNumber)
 
 			// get event logs from contract
 			cf := blockchain.Config{
