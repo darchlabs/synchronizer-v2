@@ -17,7 +17,11 @@ type postSmartContractV2Handler struct {
 }
 
 type postSmartContractV2HandlerRequest struct {
-	SmartContract *SmartContractReq `json:"smartcontract"`
+	SmartContract *SmartContractRequest `json:"smartcontract"`
+}
+
+type postSmartContractV2HandlerResponse struct {
+	SmartContract *SmartContractRequest `json:"smartcontract"`
 }
 
 // HTTP SERVER LOGIC
@@ -121,30 +125,16 @@ func (h *postSmartContractV2Handler) invoke(ctx *api.Context, req *postSmartCont
 		)
 	}
 
-	abiRes := make([]*AbiReq, 0)
-	for _, a := range output.ABI {
-		inputReq, err := TransformInputsJsonToArray(a.Inputs)
-		if err != nil {
-			return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
-				err,
-				"smartcontracts: postSmartContractV2Handler.invoke transformInputsJsonToArray error",
-			)
-		}
-
-		abiRes = append(abiRes, &AbiReq{
-			Name:      a.Name,
-			Type:      a.Type,
-			Anonymous: a.Anonymous,
-			Inputs:    inputReq,
-		})
-	}
-	scRes := &SmartContractReq{
-		Network:    string(output.SmartContract.Network),
-		Name:       output.SmartContractUser.Name,
-		Address:    output.SmartContract.Address,
-		NodeURL:    output.SmartContractUser.NodeURL,
-		WebhookURL: output.SmartContractUser.WebhookURL,
-		ABI:        abiRes,
+	scRes := &SmartContractResponse{
+		ID:                 output.SmartContract.ID,
+		Network:            string(output.SmartContract.Network),
+		Name:               output.SmartContractUser.Name,
+		Address:            output.SmartContract.Address,
+		NodeURL:            output.SmartContractUser.NodeURL,
+		WebhookURL:         output.SmartContractUser.WebhookURL,
+		LastTxBlockSynced:  output.SmartContract.LastTxBlockSynced,
+		InitialBlockNumber: output.SmartContract.InitialBlockNumber,
+		Error:              output.SmartContractUser.ErrorMessage,
 	}
 
 	return scRes, nil, fiber.StatusCreated, nil
