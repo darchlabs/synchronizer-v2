@@ -132,6 +132,7 @@ func (h *postSmartContractV2Handler) invoke(ctx *api.Context, req *postSmartCont
 		Address:            output.SmartContract.Address,
 		NodeURL:            output.SmartContractUser.NodeURL,
 		WebhookURL:         output.SmartContractUser.WebhookURL,
+		Status:             string(output.SmartContractUser.Status),
 		LastTxBlockSynced:  output.SmartContract.LastTxBlockSynced,
 		InitialBlockNumber: output.SmartContract.InitialBlockNumber,
 		Error:              output.SmartContractUser.ErrorMessage,
