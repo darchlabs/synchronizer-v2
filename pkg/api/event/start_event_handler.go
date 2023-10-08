@@ -20,7 +20,7 @@ func startEventHandler(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// get event from storage
-		e, err := ctx.Storage.GetEvent(address, eventName)
+		e, err := ctx.EventStorage.GetEvent(address, eventName)
 		if err != nil {
 			return c.Status(fiber.StatusConflict).JSON(api.Response{
 				Error: err.Error(),
@@ -31,7 +31,7 @@ func startEventHandler(ctx Context) func(c *fiber.Ctx) error {
 		e.Status = event.StatusRunning
 		e.Error = ""
 		e.UpdatedAt = ctx.DateGen()
-		err = ctx.Storage.UpdateEvent(e)
+		err = ctx.EventStorage.UpdateEvent(e)
 		if err != nil {
 			return c.Status(fiber.StatusConflict).JSON(api.Response{
 				Error: err.Error(),

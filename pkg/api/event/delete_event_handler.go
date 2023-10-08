@@ -19,7 +19,7 @@ func deleteEventHandler(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// delete event from storage
-		err := ctx.Storage.DeleteEvent(address, eventName)
+		err := ctx.EventStorage.DeleteEvent(address, eventName)
 		if err != nil {
 			return c.Status(fiber.StatusConflict).JSON(api.Response{
 				Error: err.Error(),

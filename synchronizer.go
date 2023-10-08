@@ -1,6 +1,7 @@
 package synchronizer
 
 import (
+	"github.com/darchlabs/synchronizer-v2/internal/storage"
 	"github.com/darchlabs/synchronizer-v2/pkg/event"
 	"github.com/darchlabs/synchronizer-v2/pkg/smartcontract"
 	"github.com/darchlabs/synchronizer-v2/pkg/transaction"
@@ -38,7 +39,7 @@ type SmartContractStorage interface {
 	ListAllSmartContracts() ([]*smartcontract.SmartContract, error)
 	ListSmartContracts(sort string, limit int64, offset int64) ([]*smartcontract.SmartContract, error)
 	ListUniqueSmartContractsByNetwork() ([]*smartcontract.SmartContract, error)
-	InsertSmartContract(s *smartcontract.SmartContract) (*smartcontract.SmartContract, error)
+	InsertSmartContractQuery(s *smartcontract.SmartContract) error
 	UpdateLastBlockNumber(id string, blockNumber int64) error
 	DeleteSmartContractByAddress(address string) error
 	GetSmartContractById(id string) (*smartcontract.SmartContract, error)
@@ -74,6 +75,10 @@ type WebhookStorage interface {
 	ListAllWebhooks() ([]*webhook.Webhook, error)
 	ListWebhooks(smartcontractID string) ([]*webhook.Webhook, error)
 	GetWebhooksForRetry() ([]*webhook.Webhook, error)
+}
+
+type SmartcontractUserStorage interface {
+	InsertSmartContractUserQuery(tx storage.Transaction, input *storage.SmartContractUserRecord) error
 }
 
 type ListItemsInRangeCtx struct {

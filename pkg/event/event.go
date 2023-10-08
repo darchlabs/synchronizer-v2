@@ -27,6 +27,7 @@ const (
 
 type Event struct {
 	ID                string       `json:"id" db:"id"`
+	UserID            string       `json:"user_id" db:"user_id"`
 	Network           EventNetwork `json:"network" db:"network"`
 	NodeURL           string       `json:"nodeURL" db:"node_url"`
 	Address           string       `json:"address" db:"address"`
@@ -41,10 +42,11 @@ type Event struct {
 }
 
 type Abi struct {
-	ID        string `id:"id" db:"id"`
-	Name      string `json:"name" db:"name"`
-	Type      string `json:"type" db:"type"`
-	Anonymous bool   `json:"anonymous" db:"anonymous"`
+	ID              string `json:"id" db:"id"`
+	SmartContractID string `json:"smartcontract_id" db:"smartcontract_id"`
+	Name            string `json:"name" db:"name"`
+	Type            string `json:"type" db:"type"`
+	Anonymous       bool   `json:"anonymous" db:"anonymous"`
 
 	Inputs []*Input `json:"inputs"`
 }

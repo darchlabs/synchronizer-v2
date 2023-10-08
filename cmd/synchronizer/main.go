@@ -9,23 +9,24 @@ import (
 	"syscall"
 	"time"
 
+	syncpkg "sync"
+
 	"github.com/darchlabs/synchronizer-v2"
 	"github.com/darchlabs/synchronizer-v2/internal/cronjob"
 	"github.com/darchlabs/synchronizer-v2/internal/env"
 	"github.com/darchlabs/synchronizer-v2/internal/httpclient"
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
 	eventstorage "github.com/darchlabs/synchronizer-v2/internal/storage/event"
+	scuserstorage "github.com/darchlabs/synchronizer-v2/internal/storage/scuser"
 	smartcontractstorage "github.com/darchlabs/synchronizer-v2/internal/storage/smartcontract"
 	transactionstorage "github.com/darchlabs/synchronizer-v2/internal/storage/transaction"
 	webhookstorage "github.com/darchlabs/synchronizer-v2/internal/storage/webhook"
+	"github.com/darchlabs/synchronizer-v2/internal/sync"
 	txsengine "github.com/darchlabs/synchronizer-v2/internal/txsengine"
 	"github.com/darchlabs/synchronizer-v2/internal/webhooksender"
-	CronjobAPI "github.com/darchlabs/synchronizer-v2/pkg/api/cronjob"
-	EventAPI "github.com/darchlabs/synchronizer-v2/pkg/api/event"
 	"github.com/darchlabs/synchronizer-v2/pkg/api/metrics"
 	smartcontractsAPI "github.com/darchlabs/synchronizer-v2/pkg/api/smartcontracts"
 	"github.com/darchlabs/synchronizer-v2/pkg/util"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	uuid "github.com/google/uuid"
@@ -47,41 +48,43 @@ func main() {
 	// load env values
 	var env env.Env
 	err := envconfig.Process("", &env)
-	if err != nil {
-		log.Fatal("invalid env values, error: ", err)
-	}
+	check(err)
 
 	networksEtherscanURL, err := util.ParseStringifiedMap(env.NetworksEtherscanURL)
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 
 	networksEtherscanAPIKey, err := util.ParseStringifiedMap(env.NetworksEtherscanAPIKey)
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 
 	networksNodeURL, err := util.ParseStringifiedMap(env.NetworksNodeURL)
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 
 	// initialize storage
 	s, err := storage.New(env.DatabaseDSN)
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
+	store, err := storage.NewStorage(env.DatabaseDSN)
+	check(err)
 
 	// run migrations
 	err = goose.Up(s.DB.DB, env.MigrationDir)
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
+
+	// initialize sync engine
+	syncEngine := sync.NewEngine(&sync.EngineConfig{
+		Database: store,
+	})
 
 	// initialize storages
 	eventStorage = eventstorage.New(s)
 	transactionStorage = transactionstorage.New(s)
-	smartContactStorage = smartcontractstorage.New(s, eventStorage, transactionStorage)
+	scuStorage := scuserstorage.New(s)
+
+	smartContactStorage = smartcontractstorage.New(&smartcontractstorage.Config{
+		Storage:       s,
+		EventStorage:  eventStorage,
+		TxStorage:     transactionStorage,
+		ScUserStorage: scuStorage,
+	})
 	webhookStorage := webhookstorage.New(s)
 
 	// initialize webhook sender, start processing events and retrying failed webhooks
@@ -102,10 +105,21 @@ func main() {
 	}))
 
 	// create clients map
-	clients := make(map[string]*ethclient.Client)
+	var clients syncpkg.Map
 
 	// initialize the cronjob
-	cronjobSvc = cronjob.New(env.CronjobIntervalSeconds, eventStorage, smartContactStorage, &clients, env.Debug, uuid.NewString, time.Now, webhookSender)
+	//cronjobSvc = cronjob.New(env.CronjobIntervalSeconds, eventStorage, smartContactStorage, &clients, env.Debug, uuid.NewString, time.Now, webhookSender)
+	cronjobSvc = cronjob.New(&cronjob.Config{
+		Seconds:          env.CronjobIntervalSeconds,
+		EventDataStorage: eventStorage,
+		SCStorage:        smartContactStorage,
+		Clients:          &clients,
+		Debug:            env.Debug,
+		IDGen:            uuid.NewString,
+		DateGen:          time.Now,
+		WebhookSender:    webhookSender,
+		Engine:           syncEngine,
+	})
 
 	// initialize http client with rate limiter
 	client := httpclient.NewClient(&httpclient.Options{
@@ -133,18 +147,22 @@ func main() {
 		TxsEngine:    txsEngine,
 		IDGen:        uuid.NewString,
 		DateGen:      time.Now,
-		Env:          env,
+		Engine:       syncEngine,
+		Env:          &env,
 	})
-	EventAPI.Route(api, EventAPI.Context{
-		Storage: eventStorage,
-		Cronjob: cronjobSvc,
-		Clients: &clients,
-		IDGen:   uuid.NewString,
-		DateGen: time.Now,
-	})
-	CronjobAPI.Route(api, CronjobAPI.Context{
-		Cronjob: cronjobSvc,
-	})
+	//EventAPI.Route(api, EventAPI.Context{
+	//EventStorage: eventStorage,
+	//ScStorage:    smartContactStorage,
+	//Env:          &env,
+	//TxsEngine:    txsEngine,
+	//Cronjob:      cronjobSvc,
+	//Clients:      &clients,
+	//IDGen:        uuid.NewString,
+	//DateGen:      time.Now,
+	//})
+	//CronjobAPI.Route(api, CronjobAPI.Context{
+	//Cronjob: cronjobSvc,
+	//})
 	metrics.Route(api, metrics.Context{
 		SmartContractStorage: smartContactStorage,
 		TransactionStorage:   transactionStorage,
@@ -154,9 +172,7 @@ func main() {
 
 	// run process
 	err = cronjobSvc.Start()
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 	go func() {
 		api.Listen(fmt.Sprintf(":%s", env.Port))
 	}()
@@ -196,5 +212,11 @@ func gracefullShutdown() {
 	err := eventStorage.Stop()
 	if err != nil {
 		log.Println(err)
+	}
+}
+
+func check(err error) {
+	if err != nil {
+		log.Fatal(err)
 	}
 }

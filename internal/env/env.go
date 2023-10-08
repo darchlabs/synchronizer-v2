@@ -11,4 +11,5 @@ type Env struct {
 	NetworksNodeURL         string `envconfig:"networks_node_url" required:"true"`
 	MaxTransactions         int    `envconfig:"max_transactions" required:"true"`
 	WebhooksIntervalSeconds int64  `envconfig:"webhooks_interval_seconds" required:"true"`
+	BackofficeApiURL        string `envconfig:"backoffice_api_url" required:"true"`
 }

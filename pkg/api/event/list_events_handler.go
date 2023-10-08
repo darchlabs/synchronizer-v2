@@ -26,7 +26,7 @@ func listEvents(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// get elements from database
-		events, err := ctx.Storage.ListEvents(pagination.Sort, pagination.Limit, pagination.Offset)
+		events, err := ctx.EventStorage.ListEvents(pagination.Sort, pagination.Limit, pagination.Offset)
 		if err != nil {
 			return c.Status(fiber.StatusConflict).JSON(api.Response{
 				Error: err.Error(),
@@ -34,7 +34,7 @@ func listEvents(ctx Context) func(c *fiber.Ctx) error {
 		}
 
 		// get all events count from database
-		count, err := ctx.Storage.GetEventsCount()
+		count, err := ctx.EventStorage.GetEventsCount()
 		if err != nil {
 			return c.Status(fiber.StatusConflict).JSON(api.Response{
 				Error: err.Error(),

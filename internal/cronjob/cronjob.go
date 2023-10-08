@@ -2,19 +2,23 @@ package cronjob
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"sync"
 	"time"
 
 	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
+	"github.com/darchlabs/synchronizer-v2/internal/storage"
+	syncng "github.com/darchlabs/synchronizer-v2/internal/sync"
+	"github.com/darchlabs/synchronizer-v2/internal/sync/query"
 	"github.com/darchlabs/synchronizer-v2/internal/webhooksender"
+	"github.com/darchlabs/synchronizer-v2/internal/wrapper"
 	"github.com/darchlabs/synchronizer-v2/pkg/event"
 	"github.com/darchlabs/synchronizer-v2/pkg/smartcontract"
 	"github.com/darchlabs/synchronizer-v2/pkg/webhook"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 )
 
 type idGenerator func() string
@@ -50,29 +54,45 @@ type cronjob struct {
 	error  error
 
 	seconds       int64
-	clients       *map[string]*ethclient.Client
+	clients       *sync.Map
 	storage       EventDataStorage
 	scStorage     SmartContractStorage
 	debug         bool
 	status        CronjobStatus
 	webhookSender WebhookSender
 
-	idGen   idGenerator
-	dateGen dateGenerator
+	// sync engine
+	syncEngine *syncng.Engine
+
+	idGen   wrapper.IDGenerator
+	dateGen wrapper.DateGenerator
 }
 
-func New(seconds int64, storage EventDataStorage, scStorage SmartContractStorage, clients *map[string]*ethclient.Client, debug bool, idGen idGenerator, dateGen dateGenerator, webhookSender *webhooksender.WebhookSender) *cronjob {
-	return &cronjob{
-		seconds: seconds,
-		status:  StatusIdle,
-		clients: clients,
+type Config struct {
+	Seconds          int64
+	EventDataStorage EventDataStorage
+	SCStorage        SmartContractStorage
+	Clients          *sync.Map
+	Debug            bool
+	IDGen            wrapper.IDGenerator
+	DateGen          wrapper.DateGenerator
+	WebhookSender    *webhooksender.WebhookSender
+	Engine           *syncng.Engine
+}
 
-		storage:       storage,
-		scStorage:     scStorage,
-		debug:         debug,
-		idGen:         idGen,
-		dateGen:       dateGen,
-		webhookSender: webhookSender,
+func New(config *Config) *cronjob {
+	return &cronjob{
+		seconds: config.Seconds,
+		status:  StatusIdle,
+		clients: config.Clients,
+
+		storage:       config.EventDataStorage,
+		scStorage:     config.SCStorage,
+		debug:         config.Debug,
+		idGen:         config.IDGen,
+		dateGen:       config.DateGen,
+		webhookSender: config.WebhookSender,
+		syncEngine:    config.Engine,
 	}
 }
 
@@ -124,8 +144,6 @@ func (c *cronjob) Start() error {
 }
 
 func (c *cronjob) Restart() error {
-	log.Println("Restarting ticker")
-
 	if c.status == StatusIdle {
 		return errors.New("cronjob isn't ready yet, wait few seconds")
 	}
@@ -173,123 +191,143 @@ func (c *cronjob) Stop() error {
 	return nil
 }
 
-func (c *cronjob) job() error {
-	// get all events from storage
-	events, err := c.storage.ListAllEvents()
+func (c *cronjob) job() (err error) {
+	output, err := c.syncEngine.SelectEventsAndABI(&syncng.SelectEventsAndABIInput{
+		EventStatus: string(storage.EventStatusRunning),
+	})
 	if err != nil {
-		return err
-	}
-
-	// filter by only for running events
-	runningEvents := make([]*event.Event, 0)
-	for _, e := range events {
-		if e.Status == event.StatusRunning {
-			runningEvents = append(runningEvents, e)
-		}
+		return errors.Wrap(err, "cronjob: cronjob.job c.syncEngine.SelectEventsAndABI error")
 	}
 
 	// define waitgroup for proccessing the events logs
 	var wg sync.WaitGroup
-	wg.Add(len(runningEvents))
+	wg.Add(len(output.Events))
 
 	// iterate over events
-	for _, e := range runningEvents {
-		go func(ev *event.Event) {
+	for _, e := range output.Events {
+		go func(ev *storage.EventRecord) {
+			now := c.dateGen()
+			var err error
 			defer wg.Done()
+			defer func() {
+				if err != nil {
+					c.updateEventError(ev.ID, err, now)
+				}
+			}()
 
+			log.Printf("conjob.job getting client")
 			// get client from map or create and save
-			client, ok := (*c.clients)[ev.NodeURL]
+			cl, ok := c.clients.Load(ev.NodeURL)
+			var client *ethclient.Client
+			//client, ok := (*c.clients)[ev.NodeURL]
 			if !ok {
+				log.Printf("conjob.job client not found")
 				// validate client works
 				client, err = ethclient.Dial(ev.NodeURL)
 				if err != nil {
-					updateEventError(ev, err, c.dateGen(), c.storage)
-					return
-				}
-
-				// validate client is working correctly
-				_, err = client.ChainID(context.Background())
-				if err != nil {
-					updateEventError(ev, err, c.dateGen(), c.storage)
 					return
 				}
 
 				// save client in map
-				(*c.clients)[ev.NodeURL] = client
+				c.clients.Store(ev.NodeURL, client)
+				log.Printf("conjob.job client created")
+			} else {
+				client = cl.(*ethclient.Client)
 			}
 
 			// parse abi to string
-			b, err := json.Marshal(ev.Abi)
+			b, err := ev.ABI.MarshalJson()
 			if err != nil {
-				updateEventError(ev, err, c.dateGen(), c.storage)
 				return
 			}
 
 			// define and read channel with log data in go routine
 			logsChannel := make(chan []blockchain.LogData)
-			go func() {
-				for logs := range logsChannel {
-					// parse each log to EventData
-					eventDatas := make([]*event.EventData, 0)
-					for _, log := range logs {
-						ed := &event.EventData{}
-						err := ed.FromLogData(log, c.idGen(), ev.ID, c.dateGen())
-						if err != nil {
-							updateEventError(ev, err, c.dateGen(), c.storage)
-							return
-						}
-
-						eventDatas = append(eventDatas, ed)
-					}
-
-					// insert logs data to event
-					err := c.storage.InsertEventData(ev, eventDatas)
+			go func(e *storage.EventRecord) {
+				now := c.dateGen()
+				defer func() {
 					if err != nil {
-						updateEventError(ev, err, c.dateGen(), c.storage)
-						return
+						c.updateEventError(e.ID, err, now)
 					}
+				}()
 
-					// update latest block number using last dataLog
-					if len(logs) > 0 {
-						logBlockNumber := int64(logs[len(logs)-1].BlockNumber)
+				for logs := range logsChannel {
+					c.syncEngine.InTransaction(func(txx *sqlx.Tx) error {
 
-						// update only when log_block_number is greater than event block number
-						if logBlockNumber > ev.LatestBlockNumber {
-							ev.LatestBlockNumber = logBlockNumber
-							ev.UpdatedAt = c.dateGen()
-							err = c.storage.UpdateEvent(ev)
+						// parse each log to EventData
+						eventDatas := make([]*storage.EventDataRecord, 0)
+						for _, log := range logs {
+							ed := &storage.EventDataRecord{}
+							err := ed.FromLogData(&log, c.idGen(), e.ID, now)
 							if err != nil {
-								updateEventError(ev, err, c.dateGen(), c.storage)
-								return
+								return err
 							}
+
+							eventDatas = append(eventDatas, ed)
 						}
 
-						// get sc for previous checks
-						sc, err := c.scStorage.GetSmartContractByAddress(ev.Address)
+						// insert logs data to event
+						err := c.syncEngine.EventDataQuerier.InsertEventDataBatchQuery(txx, eventDatas)
 						if err != nil {
-							updateEventError(ev, err, c.dateGen(), c.storage)
-							return
+							return err
 						}
 
-						// check if sc is synced and has available webhook
-						if sc.Webhook != "" && sc.IsSynced() {
-							for _, evData := range eventDatas {
-								wh, err := evData.ToWebhookEvent(c.idGen(), ev, sc.Webhook, c.dateGen())
-								if err != nil {
-									updateEventError(ev, err, c.dateGen(), c.storage)
-									return
-								}
+						// update latest block number using last dataLog
+						var logBlockNumber int64
+						if len(logs) > 0 {
+							logBlockNumber = int64(logs[len(logs)-1].BlockNumber)
 
-								err = c.webhookSender.CreateAndSendWebhook(wh)
+							// update only when log_block_number is greater than event block number
+							if logBlockNumber > e.LatestBlockNumber {
+
+								_, err = c.syncEngine.EventQuerier.UpdateEventQuery(txx, &query.UpdateEventQueryInput{
+									ID:                &e.ID,
+									LatestBlockNumber: &logBlockNumber,
+									UpdatedAt:         &now,
+								})
 								if err != nil {
-									updateEventError(ev, err, c.dateGen(), c.storage)
-									return
+									return err
 								}
 							}
 						}
-					}
+
+						// webhook related
+						for _, scu := range e.SmartContractUsers {
+							if scu.WebhookURL != "" && logBlockNumber >= e.SmartContract.InitialBlockNumber {
+								for _, evData := range eventDatas {
+									wh, err := evData.ToWebhookEvent(c.idGen(), e, scu.WebhookURL, now)
+									if err != nil {
+										return err
+									}
+
+									err = c.webhookSender.CreateAndSendWebhook(&webhook.Webhook{
+										ID:          wh.ID,
+										Tx:          wh.Tx,
+										UserID:      scu.UserID,
+										EntityType:  webhook.WebhookEntityType(wh.EntityType),
+										EntityID:    wh.EntityID,
+										Endpoint:    wh.Endpoint,
+										Payload:     wh.Payload,
+										MaxAttempts: wh.MaxAttempts,
+										CreatedAt:   wh.CreatedAt,
+										UpdatedAt:   wh.UpdatedAt,
+										SentAt:      wh.SentAt,
+										Attempts:    wh.Attempts,
+										NextRetryAt: wh.NextRetryAt,
+										Status:      webhook.WebhookStatus(wh.Status),
+									})
+									if err != nil {
+										return err
+									}
+								}
+							}
+						}
+
+						return nil
+					})
+
 				}
-			}()
+			}(ev)
 
 			// define context with timeout for getting log proccess
 			// TODO(ca): should to use env value
@@ -297,19 +335,19 @@ func (c *cronjob) job() error {
 			defer cancel()
 
 			// get event logs from contract
-			count, latestBlockNumber, err := blockchain.GetLogs(ctx, blockchain.Config{
+			cf := blockchain.Config{
 				Client:          client,
 				ABI:             fmt.Sprintf("[%s]", string(b)),
-				EventName:       ev.Abi.Name,
+				EventName:       ev.Name,
 				Address:         ev.Address,
 				FromBlockNumber: &ev.LatestBlockNumber,
 				LogsChannel:     logsChannel,
 				Logger:          c.debug,
-			})
+			}
+			count, latestBlockNumber, err := blockchain.GetLogs(ctx, cf)
 			if err == context.Canceled || err == context.DeadlineExceeded {
-				log.Println("Warning: context was cancelled/deadline_exceeded")
 			} else if err != nil {
-				updateEventError(ev, err, c.dateGen(), c.storage)
+				c.updateEventError(ev.ID, err, now)
 				return
 			}
 
@@ -319,12 +357,13 @@ func (c *cronjob) job() error {
 			}
 
 			// update latest block number
-			ev.LatestBlockNumber = latestBlockNumber
-			ev.UpdatedAt = c.dateGen()
-
-			err = c.storage.UpdateEvent(ev)
+			_, err = c.syncEngine.EventQuerier.UpdateEventQuery(c.syncEngine.GetDatabase(), &query.UpdateEventQueryInput{
+				ID:                &ev.ID,
+				LatestBlockNumber: &latestBlockNumber,
+				UpdatedAt:         &now,
+			}) // TODO: update this
 			if err != nil {
-				updateEventError(ev, err, c.dateGen(), c.storage)
+				c.updateEventError(ev.ID, err, now)
 				return
 			}
 
@@ -359,10 +398,20 @@ func (c *cronjob) GetError() string {
 	return ""
 }
 
-func updateEventError(ev *event.Event, err error, date time.Time, storage EventDataStorage) {
+func (c *cronjob) updateEventError(id string, err error, date time.Time) {
+
+	ev := &syncng.UpdateEventInput{
+		ID:        &id,
+		UpdatedAt: date,
+	}
+	if err != nil {
+		errString := err.Error()
+		ev.Error = &errString
+	}
+
 	// update event error
-	ev.Status = event.StatusError
-	ev.Error = err.Error()
-	ev.UpdatedAt = date
-	_ = storage.UpdateEvent(ev)
+	_, err = c.syncEngine.UpdateEvent(ev)
+	if err != nil {
+		fmt.Printf("ERROR UPDATING EVENT FAILED\nevent.ID = %s | error = %s \n", id, err.Error())
+	}
 }

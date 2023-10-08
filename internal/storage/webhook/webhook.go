@@ -9,6 +9,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+var DuplicatedWebhookErr = errors.New("webhookstorage: duplicated webhook")
+
 type Storage struct {
 	storage *storage.S
 }
@@ -20,13 +22,21 @@ func New(s *storage.S) *Storage {
 }
 
 func (s *Storage) CreateWebhook(wh *webhook.Webhook) (*webhook.Webhook, error) {
-	query := `
-		INSERT INTO webhooks (id, entity_type, entity_id, endpoint, payload, created_at, updated_at, sent_at, next_retry_at) 
-		VALUES (:id, :entity_type, :entity_id, :endpoint, :payload, :created_at, :updated_at, :sent_at, :next_retry_at)
+	selectWebhookQuery := `SELECT * FROM webhooks WHERE user_id = $1 AND tx = $2`
+	whs := make([]*webhook.Webhook, 0)
+	s.storage.DB.Select(&whs, selectWebhookQuery, wh.UserID, wh.Tx)
+	// by the moment we can omit the error because is used as check for dup webhooks
+	if len(whs) > 0 {
+		return nil, DuplicatedWebhookErr
+	}
+
+	inserWebhookQuery := `
+		INSERT INTO webhooks (id, user_id, tx, entity_type, entity_id, endpoint, payload, created_at, updated_at, sent_at, next_retry_at) 
+		VALUES (:id, :user_id, :tx, :entity_type, :entity_id, :endpoint, :payload, :created_at, :updated_at, :sent_at, :next_retry_at)
 		RETURNING id
 	`
 
-	rows, err := s.storage.DB.NamedQuery(query, wh)
+	rows, err := s.storage.DB.NamedQuery(inserWebhookQuery, wh)
 	if err != nil {
 		return nil, errors.Wrap(err, "webhookstorage: error creating webhook")
 	}

@@ -23,6 +23,7 @@ const (
 
 type Webhook struct {
 	ID          string            `db:"id" json:"id"`
+	UserID      string            `db:"user_id" json:"user_id"`
 	EntityType  WebhookEntityType `db:"entity_type" json:"entity_type"`
 	EntityID    string            `db:"entity_id" json:"entity_id"`
 	Endpoint    string            `db:"endpoint" json:"endpoint" validate:"url"`
@@ -34,6 +35,7 @@ type Webhook struct {
 	Attempts    int               `db:"attempts" json:"attempts"`
 	NextRetryAt sql.NullTime      `db:"next_retry_at" json:"next_retry_at"`
 	Status      WebhookStatus     `db:"status" json:"status"`
+	Tx          string            `db:"tx" json:"-"`
 }
 
 func (w *Webhook) ToWebhookEventResponse() *WebhookResponse {
