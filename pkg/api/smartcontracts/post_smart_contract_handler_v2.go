@@ -1,12 +1,15 @@
 package smartcontracts
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
 	"github.com/darchlabs/synchronizer-v2/internal/sync"
 	"github.com/darchlabs/synchronizer-v2/pkg/api"
 	"github.com/darchlabs/synchronizer-v2/pkg/util"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
 	"github.com/pkg/errors"
@@ -73,9 +76,42 @@ func (h *postSmartContractV2Handler) invoke(ctx *api.Context, req *postSmartCont
 		nodeURL = networksEtherscanURL[network]
 	}
 
-	abi := make([]*storage.ABIRecord, 0)
+	// instance client
+	client, err := ethclient.Dial(nodeURL)
+	if err != nil {
+		return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+			err,
+			"smartcontracts: postSmartContractV2Handler.invoke ethclient.Dial can't valid ethclient error",
+		)
+	}
+
+	// validate contract exists at the given address
+	code, err := client.CodeAt(context.Background(), common.HexToAddress(req.SmartContract.Address), nil)
+	if err != nil {
+		return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+			err,
+			"smartcontracts: postSmartContractV2Handler.invoke clien.CodeAt can't valid ethclient error",
+		)
+	}
+
+	// check if contract exists
+	if len(code) == 0 {
+		return nil, nil, fiber.StatusInternalServerError, errors.New(
+			"smartcontracts: postSmartContractV2Handler.invoke contract does not exist at the given address",
+		)
+	}
+
+	// get and set latest block number from node client
+	blockNumber, err := client.BlockNumber(context.Background())
+	if err != nil {
+		return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+			err,
+			"smartcontracts: postSmartContractV2Handler.invoke client.BlockNumber error",
+		)
+	}
 
 	// Loop over ABI
+	abi := make([]*storage.ABIRecord, 0)
 	for _, a := range req.SmartContract.ABI {
 		// input
 		bytes, err := json.Marshal(a.Inputs)
@@ -113,8 +149,9 @@ func (h *postSmartContractV2Handler) invoke(ctx *api.Context, req *postSmartCont
 		NodeURL:    nodeURL,
 		WebhookURL: req.SmartContract.WebhookURL,
 		SmartContract: &storage.SmartContractRecord{
-			Address: req.SmartContract.Address,
-			Network: storage.Network(req.SmartContract.Network),
+			Address:            req.SmartContract.Address,
+			Network:            storage.Network(req.SmartContract.Network),
+			InitialBlockNumber: int64(blockNumber),
 		},
 		ABI: abi,
 	})

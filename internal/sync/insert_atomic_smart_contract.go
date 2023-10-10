@@ -33,14 +33,15 @@ type InsertAtomicSmartContractOutput struct {
 //
 // the custom logic meant to this is as follows
 // Pre:
-//			Validate if SmartContract is already inserted.
-//			If so, insert only smartcontract_users table record
 //
-//1. insert abi
-//2. insert n inputs (from abi)
-//3. insert event ()
-//4. insert smartcontract
-//5. insert smart_contract_user
+//	Validate if SmartContract is already inserted.
+//	If so, insert only smartcontract_users table record
+//
+// 1. insert abi
+// 2. insert n inputs (from abi)
+// 3. insert event ()
+// 4. insert smartcontract
+// 5. insert smart_contract_user
 func (ng *Engine) InsertAtomicSmartContract(input *InsertAtomicSmartContractInput) (*InsertAtomicSmartContractOutput, error) {
 	output, err := ng.checkBeforeInsertAtomicSmartcontract(input)
 	if err != nil {
