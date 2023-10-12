@@ -51,13 +51,13 @@ func Route(app *fiber.App, ctx Context) {
 	// routing
 	app.Post("/api/v1/smartcontracts", auth.Middleware, api.HandleFunc(apiContext, insertSmartContractHandler))
 	app.Post("/api/v1/smartcontracts/:address/restart", restartSmartContractHandler(ctx))
-	app.Get("/api/v1/smartcontracts", listSmartContracts(ctx))
-	app.Delete("/api/v1/smartcontracts/:address", deleteSmartContractHandler(ctx))
+	// app.Delete("/api/v1/smartcontracts/:address", deleteSmartContractHandler(ctx))
 	app.Patch("/api/v1/smartcontracts/:address", updateSmartContractHandler(ctx))
 
 	// V2 ROUTES
 	// handlers
 	postSmartContractV2Handler := &postSmartContractV2Handler{validate}
+	listSmartContractV2Handler := &listSmartContractV2Handler{}
 
 	// routing
 	app.Post(
@@ -65,4 +65,5 @@ func Route(app *fiber.App, ctx Context) {
 		auth.Middleware,
 		api.HandleFunc(apiContext, postSmartContractV2Handler.Invoke),
 	)
+	app.Get("/api/v2/smartcontracts", auth.Middleware, api.HandleFunc(apiContext, listSmartContractV2Handler.Invoke))
 }

@@ -21,12 +21,14 @@ func (sc *SmartContractQuerier) InsertSmartContractQuery(
 			network,
 			address,
 			last_tx_block_synced,
+			initial_block_number,
 			created_at
-		) VALUES ($1, $2, $3, $4, $5);`,
+		) VALUES ($1, $2, $3, $4, $5, $6);`,
 		input.ID,
 		input.Network,
 		input.Address,
 		input.LastTxBlockSynced,
+		input.InitialBlockNumber,
 		input.CreatedAt,
 	)
 	if err != nil {

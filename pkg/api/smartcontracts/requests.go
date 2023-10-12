@@ -1,16 +1,18 @@
 package smartcontracts
 
 import (
+	"time"
+
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
 )
 
-type SmartContractReq struct {
+type SmartContractRequest struct {
 	UserID     string    `json:"-"`
 	Network    string    `json:"network" validate:"required"`
 	Name       string    `json:"name" validate:"required"`
 	Address    string    `json:"address" validate:"required"`
 	NodeURL    string    `json:"nodeUrl"`
-	WebhookURL string    `json:"webhook"`
+	WebhookURL string    `json:"webhook" validate:"omitempty,url"`
 	ABI        []*AbiReq `json:"abi"`
 }
 
@@ -41,4 +43,28 @@ func TransformInputsJsonToArray(inputs []*storage.InputABI) ([]InputReq, error) 
 	}
 
 	return inputReqs, nil
+}
+
+type EventResponse struct {
+	ID     string              `json:"id"`
+	Status storage.EventStatus `json:"status"`
+	Error  string              `json:"error"`
+}
+
+type SmartContractResponse struct {
+	ID                 string  `json:"id"`
+	Network            string  `json:"network"`
+	Name               string  `json:"name"`
+	Address            string  `json:"address"`
+	NodeURL            string  `json:"nodeUrl"`
+	Status             string  `json:"status"`
+	WebhookURL         string  `json:"webhook"`
+	LastTxBlockSynced  int64   `json:"lastTxBlockSynced"`
+	InitialBlockNumber int64   `json:"initialBlockNumber"`
+	Error              *string `json:"error"`
+
+	Events []*EventResponse `json:"events,omitempty"`
+
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
 }
