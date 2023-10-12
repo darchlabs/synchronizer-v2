@@ -37,12 +37,15 @@ type SmartContractUserQuerier interface {
 type EventQuerier interface {
 	InsertEventBatchQuery(storage.QueryContext, []*storage.EventRecord, string) error
 	SelectEventsByAddressQuery(storage.Transaction, string) ([]*storage.EventRecord, error)
-	SelectEventsByAddressesListQuery(tx storage.Transaction, addresses []string) ([]*storage.EventRecord, error)
+	SelectEventsByAddressesListQuery(storage.Transaction, []string) ([]*storage.EventRecord, error)
 	SelectEventsQuery(storage.Transaction, *query.SelectEventsQueryFilters) ([]*storage.EventRecord, error)
-	UpdateEventQuery(tx storage.Transaction, input *query.UpdateEventQueryInput) (*storage.EventRecord, error)
+	UpdateEventQuery(storage.Transaction, *query.UpdateEventQueryInput) (*storage.EventRecord, error)
+	SelectCountEventsQuery(storage.Transaction, *query.SelectEventsQueryFilters) (int64, error)
 }
 
 type EventDataQuerier interface {
 	InsertEventDataQuery(storage.QueryContext, *storage.EventDataRecord) error
 	InsertEventDataBatchQuery(storage.Transaction, []*storage.EventDataRecord) error
+	SelectCountEventDataQuery(tx storage.Transaction, input *query.SelectCountEventDataQueryFilters) (int64, error)
+	SelectEventDataQuery(tx storage.Transaction, input *query.SelectEventDataQueryFilters) ([]*storage.EventDataRecord, error)
 }

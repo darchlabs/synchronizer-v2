@@ -45,10 +45,11 @@ func Test_InsertAtomicSmartContract_FirstInsertion(t *testing.T) {
 			NodeURL:    "https://nodeurl.com",
 
 			SmartContract: &storage.SmartContractRecord{
-				Network:           "test-net",
-				Address:           "0x0000000000000000000000000000000000000001",
-				LastTxBlockSynced: 1212121,
-				CreatedAt:         time.Now(),
+				Network:            "test-net",
+				Address:            "0x0000000000000000000000000000000000000001",
+				LastTxBlockSynced:  1212121,
+				InitialBlockNumber: 1,
+				CreatedAt:          time.Now(),
 			},
 			ABI: []*storage.ABIRecord{
 				{
@@ -104,10 +105,11 @@ func Test_InsertAtomicSmartContract_NthInsertion(t *testing.T) {
 			NodeURL:    "https://nodeurl.com",
 
 			SmartContract: &storage.SmartContractRecord{
-				Network:           "test-net",
-				Address:           "0x0000000000000000000000000000000000000001",
-				LastTxBlockSynced: 1212121,
-				CreatedAt:         time.Now(),
+				Network:            "test-net",
+				Address:            "0x0000000000000000000000000000000000000001",
+				LastTxBlockSynced:  1212121,
+				InitialBlockNumber: 1,
+				CreatedAt:          time.Now(),
 			},
 			ABI: []*storage.ABIRecord{
 				{
@@ -151,10 +153,11 @@ func Test_InsertAtomicSmartContract_NthInsertion(t *testing.T) {
 			NodeURL:    "https://nodeurl.com",
 
 			SmartContract: &storage.SmartContractRecord{
-				Network:           "test-net",
-				Address:           "0x0000000000000000000000000000000000000001",
-				LastTxBlockSynced: 1212121,
-				CreatedAt:         time.Now(),
+				Network:            "test-net",
+				Address:            "0x0000000000000000000000000000000000000001",
+				LastTxBlockSynced:  1212121,
+				InitialBlockNumber: 1,
+				CreatedAt:          time.Now(),
 			},
 			ABI: []*storage.ABIRecord{
 				{

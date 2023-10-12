@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"github.com/darchlabs/synchronizer-v2/internal/pagination"
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
 	"github.com/darchlabs/synchronizer-v2/internal/sync/query"
 	"github.com/pkg/errors"
@@ -9,16 +10,20 @@ import (
 type SelectEventsAndABIInput struct {
 	SmartContractAddress string
 	EventStatus          string
+	Pagination           *pagination.Pagination
 }
 
 type SelectEventsAndABIOutput struct {
-	Events []*storage.EventRecord
+	Events        []*storage.EventRecord
+	TotalElements int64
 }
 
 func (ng *Engine) SelectEventsAndABI(input *SelectEventsAndABIInput) (*SelectEventsAndABIOutput, error) {
 	// Select events by status
 	events, err := ng.EventQuerier.SelectEventsQuery(ng.database, &query.SelectEventsQueryFilters{
-		Status: input.EventStatus,
+		Status:               input.EventStatus,
+		SmartContractAddress: input.SmartContractAddress,
+		Pagination:           input.Pagination,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "sync: Engine.SelectEventsAndABI ng.eventQuerier.SelectEventsQuery error")
@@ -33,7 +38,7 @@ func (ng *Engine) SelectEventsAndABI(input *SelectEventsAndABIInput) (*SelectEve
 	}
 	abi, err := ng.ABIQuerier.SelectABIByIDs(ng.database, abiIDs)
 	if err != nil {
-		return nil, errors.Wrap(err, "sync: Engine.SelectEventsAndABI ng.eventQuerier.SelectEventsQuery error")
+		return nil, errors.Wrap(err, "sync: Engine.SelectEventsAndABI ng.eventQuerier.SelectABIByIDs error")
 	}
 
 	// Select smart contract
@@ -47,7 +52,7 @@ func (ng *Engine) SelectEventsAndABI(input *SelectEventsAndABIInput) (*SelectEve
 		scAddresses,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "sync: Engine.SelectEventsAndABI ng.SmartContractQuerier.SelectSmartContractsByAddressesList error")
+		return nil, errors.Wrap(err, "sync: Engine.SelectEventsAndABI ng.SmartContractQuerier.SmartContractUsersByIDListQuery error")
 	}
 
 	// mapping of abis and smart contracts
@@ -74,7 +79,20 @@ func (ng *Engine) SelectEventsAndABI(input *SelectEventsAndABIInput) (*SelectEve
 		ev.SmartContractUsers = scuMap[ev.SmartContractAddress]
 	}
 
+	// Count total elements if pagination is defined
+	var totalElements int64
+	if input.Pagination != nil {
+		totalElements, err = ng.EventQuerier.SelectCountEventsQuery(ng.database, &query.SelectEventsQueryFilters{
+			Status:               input.EventStatus,
+			SmartContractAddress: input.SmartContractAddress,
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "sync: Engine.SelectEventsAndABI ng.eventQuerier.CountEventsQuery error")
+		}
+	}
+
 	return &SelectEventsAndABIOutput{
-		Events: events,
+		Events:        events,
+		TotalElements: totalElements,
 	}, nil
 }
