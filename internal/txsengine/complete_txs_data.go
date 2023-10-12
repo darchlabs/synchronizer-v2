@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/darchlabs/synchronizer-v2/pkg/smartcontract"
+	"github.com/darchlabs/synchronizer-v2/internal/sync/query"
 	"github.com/darchlabs/synchronizer-v2/pkg/transaction"
 	"github.com/darchlabs/synchronizer-v2/pkg/util"
 	"github.com/ethereum/go-ethereum/common"
@@ -25,7 +25,7 @@ const (
 
 // TODO(ca): Implement limit below code because has request to the node
 // TODO(ca): Implement logic to manage all "continue" cases
-func completeContractTxsData(client EthClient, contract *smartcontract.SmartContract, transactions []*transaction.Transaction, idGen func() string) ([]*transaction.Transaction, error) {
+func completeContractTxsData(client EthClient, contract *query.SelectSmartContractQueryOutput, transactions []*transaction.Transaction, idGen func() string) ([]*transaction.Transaction, error) {
 	// define channels
 	jobs := make(chan *transaction.Transaction, len(transactions))
 	results := make(chan *transaction.Transaction, len(transactions))

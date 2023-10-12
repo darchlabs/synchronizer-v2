@@ -144,7 +144,6 @@ func main() {
 	smartcontractsAPI.Route(api, smartcontractsAPI.Context{
 		Storage:      smartContactStorage,
 		EventStorage: eventStorage,
-		TxsEngine:    txsEngine,
 		IDGen:        uuid.NewString,
 		DateGen:      time.Now,
 		Engine:       syncEngine,

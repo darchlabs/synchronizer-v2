@@ -9,7 +9,6 @@ import (
 	"github.com/darchlabs/synchronizer-v2"
 	"github.com/darchlabs/synchronizer-v2/internal/env"
 	"github.com/darchlabs/synchronizer-v2/internal/sync"
-	txsengine "github.com/darchlabs/synchronizer-v2/internal/txsengine"
 	"github.com/darchlabs/synchronizer-v2/pkg/api"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
@@ -22,7 +21,6 @@ type Context struct {
 	Storage      synchronizer.SmartContractStorage
 	EventStorage synchronizer.EventStorage
 	Env          *env.Env
-	TxsEngine    txsengine.TxsEngine
 
 	Engine *sync.Engine
 
@@ -43,7 +41,7 @@ func Route(app *fiber.App, ctx Context) {
 		ScStorage:    ctx.Storage,
 		EventStorage: ctx.EventStorage,
 		Env:          ctx.Env,
-		TxsEngine:    ctx.TxsEngine,
+		TxsEngine:    nil, // TODO: verify if is used outside of smartcontracts.
 		SyncEngine:   ctx.Engine,
 		IDGen:        api.IDGenerator(ctx.IDGen),
 		DateGen:      api.DateGenerator(ctx.DateGen),
