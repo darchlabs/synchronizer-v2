@@ -11,7 +11,7 @@ rm:
 	@rm -rf bin
 
 test:
-	@export $$(cat .env) && go test -p 1 -failfast -cover -race -v -count=1 ./...
+	@go test -p 1 -failfast -cover -race -v -count=1 ./...
 
 compile: rm
 	@echo "[compile] Compiling..."
