@@ -28,11 +28,11 @@ type postSmartContractV2HandlerResponse struct {
 }
 
 // HTTP SERVER LOGIC
-func (h *postSmartContractV2Handler) Invoke(ctx *api.Context, c *fiber.Ctx) (interface{}, interface{}, int, error) {
+func (h *postSmartContractV2Handler) Invoke(ctx *api.Context, c *fiber.Ctx) (interface{}, int, error) {
 	var req postSmartContractV2HandlerRequest
 	err := c.BodyParser(&req)
 	if err != nil {
-		return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+		return nil, fiber.StatusInternalServerError, errors.Wrap(
 			err,
 			"smartcontracts: postSmartContractV2Handler.Invoke c.BodyParser error",
 		)
@@ -40,7 +40,7 @@ func (h *postSmartContractV2Handler) Invoke(ctx *api.Context, c *fiber.Ctx) (int
 
 	err = h.validate.Struct(req.SmartContract)
 	if err != nil {
-		return nil, nil, fiber.StatusBadRequest, errors.Wrap(
+		return nil, fiber.StatusBadRequest, errors.Wrap(
 			err,
 			"smartcontracts: postSmartContractV2HandlerRequest.Invoke h.validate.Struct error",
 		)
@@ -48,7 +48,7 @@ func (h *postSmartContractV2Handler) Invoke(ctx *api.Context, c *fiber.Ctx) (int
 
 	req.SmartContract.UserID, err = api.GetUserIDFromRequestCtx(c)
 	if err != nil {
-		return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+		return nil, fiber.StatusInternalServerError, errors.Wrap(
 			err,
 			"smartcontracts: postSmartContractV2Handler.Invoke c.api.GetUserIDFromRequestCtx error",
 		)
@@ -58,7 +58,7 @@ func (h *postSmartContractV2Handler) Invoke(ctx *api.Context, c *fiber.Ctx) (int
 }
 
 // BUSINESS LOGIC
-func (h *postSmartContractV2Handler) invoke(ctx *api.Context, req *postSmartContractV2HandlerRequest) (interface{}, interface{}, int, error) {
+func (h *postSmartContractV2Handler) invoke(ctx *api.Context, req *postSmartContractV2HandlerRequest) (interface{}, int, error) {
 	// get and validate node url
 	nodeURL := req.SmartContract.NodeURL
 	network := string(req.SmartContract.Network)
@@ -67,7 +67,7 @@ func (h *postSmartContractV2Handler) invoke(ctx *api.Context, req *postSmartCont
 		networksEtherscanURL, err := util.ParseStringifiedMap(ctx.Env.NetworksNodeURL)
 		if err != nil {
 			// CHECKPOINT
-			return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+			return nil, fiber.StatusInternalServerError, errors.Wrap(
 				err,
 				"smartcontracts: postSmartContractV2Handler.invoke util.ParseStringifiedMap can't valid ethclient error",
 			)
@@ -79,7 +79,7 @@ func (h *postSmartContractV2Handler) invoke(ctx *api.Context, req *postSmartCont
 	// instance client
 	client, err := ethclient.Dial(nodeURL)
 	if err != nil {
-		return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+		return nil, fiber.StatusInternalServerError, errors.Wrap(
 			err,
 			"smartcontracts: postSmartContractV2Handler.invoke ethclient.Dial can't valid ethclient error",
 		)
@@ -88,7 +88,7 @@ func (h *postSmartContractV2Handler) invoke(ctx *api.Context, req *postSmartCont
 	// validate contract exists at the given address
 	code, err := client.CodeAt(context.Background(), common.HexToAddress(req.SmartContract.Address), nil)
 	if err != nil {
-		return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+		return nil, fiber.StatusInternalServerError, errors.Wrap(
 			err,
 			"smartcontracts: postSmartContractV2Handler.invoke clien.CodeAt can't valid ethclient error",
 		)
@@ -96,7 +96,7 @@ func (h *postSmartContractV2Handler) invoke(ctx *api.Context, req *postSmartCont
 
 	// check if contract exists
 	if len(code) == 0 {
-		return nil, nil, fiber.StatusInternalServerError, errors.New(
+		return nil, fiber.StatusInternalServerError, errors.New(
 			"smartcontracts: postSmartContractV2Handler.invoke contract does not exist at the given address",
 		)
 	}
@@ -104,7 +104,7 @@ func (h *postSmartContractV2Handler) invoke(ctx *api.Context, req *postSmartCont
 	// get and set latest block number from node client
 	blockNumber, err := client.BlockNumber(context.Background())
 	if err != nil {
-		return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+		return nil, fiber.StatusInternalServerError, errors.Wrap(
 			err,
 			"smartcontracts: postSmartContractV2Handler.invoke client.BlockNumber error",
 		)
@@ -116,7 +116,7 @@ func (h *postSmartContractV2Handler) invoke(ctx *api.Context, req *postSmartCont
 		// input
 		bytes, err := json.Marshal(a.Inputs)
 		if err != nil {
-			return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+			return nil, fiber.StatusInternalServerError, errors.Wrap(
 				err,
 				"smartcontracts: postSmartContractV2Handler.invoke json.Marshal input abi error",
 			)
@@ -126,7 +126,7 @@ func (h *postSmartContractV2Handler) invoke(ctx *api.Context, req *postSmartCont
 		ipts := make([]*storage.InputABI, 0)
 		err = json.Unmarshal(bytes, &ipts)
 		if err != nil {
-			return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+			return nil, fiber.StatusInternalServerError, errors.Wrap(
 				err,
 				"smartcontracts: postSmartContractV2Handler.invoke json.Unmarshal input abi error",
 			)
@@ -156,9 +156,9 @@ func (h *postSmartContractV2Handler) invoke(ctx *api.Context, req *postSmartCont
 		ABI: abi,
 	})
 	if err != nil {
-		return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+		return nil, fiber.StatusInternalServerError, errors.Wrap(
 			err,
-			"smartcontracts: postSmartContractV2Handler.invoke syncEngine.InsertAtomicSmartContract  error",
+			"smartcontracts: postSmartContractV2Handler.invoke syncEngine.InsertAtomicSmartContract error",
 		)
 	}
 
@@ -175,5 +175,5 @@ func (h *postSmartContractV2Handler) invoke(ctx *api.Context, req *postSmartCont
 		Error:              output.SmartContractUser.ErrorMessage,
 	}
 
-	return scRes, nil, fiber.StatusCreated, nil
+	return scRes, fiber.StatusCreated, nil
 }

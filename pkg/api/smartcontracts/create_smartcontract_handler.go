@@ -25,7 +25,7 @@ type createSmartContractResponse struct {
 	Error string                       `json:"error,omitempty"`
 }
 
-func insertSmartContractHandler(ctx *api.Context, c *fiber.Ctx) (interface{}, interface{}, int, error) {
+func insertSmartContractHandler(ctx *api.Context, c *fiber.Ctx) (interface{}, int, error) {
 	c.Accepts("application/json")
 
 	// prepate body request struct
@@ -36,7 +36,7 @@ func insertSmartContractHandler(ctx *api.Context, c *fiber.Ctx) (interface{}, in
 	// parse body to smartcontract struct
 	err := c.BodyParser(&body)
 	if err != nil {
-		return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+		return nil, fiber.StatusInternalServerError, errors.Wrap(
 			err,
 			"smartcontracts: insertSmartContractHandler json.Unmarshal error",
 		)
@@ -46,7 +46,7 @@ func insertSmartContractHandler(ctx *api.Context, c *fiber.Ctx) (interface{}, in
 	validate := validator.New()
 	err = validate.Struct(body.SmartContract)
 	if err != nil {
-		return nil, nil, fiber.StatusBadRequest, errors.Wrap(
+		return nil, fiber.StatusBadRequest, errors.Wrap(
 			err,
 			"smartcontracts: insertSmartContractHandler validate.Struct error",
 		)
@@ -57,7 +57,7 @@ func insertSmartContractHandler(ctx *api.Context, c *fiber.Ctx) (interface{}, in
 
 	userID, err := api.GetUserIDFromRequestCtx(c)
 	if err != nil {
-		return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+		return nil, fiber.StatusInternalServerError, errors.Wrap(
 			err,
 			"smartcontracts: insertSmartContractHandler api.GetUserIDFromRequestCtx error",
 		)
@@ -66,7 +66,7 @@ func insertSmartContractHandler(ctx *api.Context, c *fiber.Ctx) (interface{}, in
 	// Get contract and check if already exist
 	dbContract, _ := ctx.ScStorage.GetSmartContractByAddress(body.SmartContract.Address)
 	if dbContract != nil {
-		return nil, nil, fiber.StatusBadRequest, errors.Errorf(
+		return nil, fiber.StatusBadRequest, errors.Errorf(
 			"smartcontracts: insertSmartContractHandler ctx.Storage.GetSmartContractByAddress smartcontract already exists with address=%s error",
 			body.SmartContract.Address,
 		)
@@ -80,7 +80,7 @@ func insertSmartContractHandler(ctx *api.Context, c *fiber.Ctx) (interface{}, in
 		networksEtherscanURL, err := util.ParseStringifiedMap(ctx.Env.NetworksNodeURL)
 		if err != nil {
 			// CHECKPOINT
-			return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+			return nil, fiber.StatusInternalServerError, errors.Wrap(
 				err,
 				"smartcontracts: insertSmartContractHandler util.ParseStringifiedMap can't valid ethclient error",
 			)
@@ -92,7 +92,7 @@ func insertSmartContractHandler(ctx *api.Context, c *fiber.Ctx) (interface{}, in
 	// instance client
 	client, err := ethclient.Dial(nodeURL)
 	if err != nil {
-		return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+		return nil, fiber.StatusInternalServerError, errors.Wrap(
 			err,
 			"smartcontracts: insertSmartContractHandler ethclient.Dial can't valid ethclient error",
 		)
@@ -101,14 +101,14 @@ func insertSmartContractHandler(ctx *api.Context, c *fiber.Ctx) (interface{}, in
 	// validate contract exists at the given address
 	code, err := client.CodeAt(context.Background(), common.HexToAddress(body.SmartContract.Address), nil)
 	if err != nil {
-		return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+		return nil, fiber.StatusInternalServerError, errors.Wrap(
 			err,
 			"smartcontracts: insertSmartContractHandler clien.CodeAt can't valid ethclient error",
 		)
 	}
 
 	if len(code) == 0 {
-		return nil, nil, fiber.StatusInternalServerError, errors.New(
+		return nil, fiber.StatusInternalServerError, errors.New(
 			"smartcontracts: insertSmartContractHandler contract does not exist at the given address",
 		)
 	}
@@ -138,7 +138,7 @@ func insertSmartContractHandler(ctx *api.Context, c *fiber.Ctx) (interface{}, in
 
 			b, err := json.Marshal(ev)
 			if err != nil {
-				return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+				return nil, fiber.StatusInternalServerError, errors.Wrap(
 					err,
 					"smartcontracts: insertSmartContractHandler json.Marshal event error",
 				)
@@ -148,7 +148,7 @@ func insertSmartContractHandler(ctx *api.Context, c *fiber.Ctx) (interface{}, in
 			url := fmt.Sprintf("%s/api/v1/events/%s", "http://localhost:5555", body.SmartContract.Address)
 			res, err := http.Post(url, "application/json", bytes.NewBuffer(b))
 			if err != nil {
-				return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+				return nil, fiber.StatusInternalServerError, errors.Wrap(
 					err,
 					"smartcontracts: insertSmartContractHandler http.Post error",
 				)
@@ -159,7 +159,7 @@ func insertSmartContractHandler(ctx *api.Context, c *fiber.Ctx) (interface{}, in
 			if res.StatusCode != http.StatusOK {
 				io.Copy(os.Stdout, res.Body)
 
-				return nil, nil, res.StatusCode, errors.Errorf(
+				return nil, res.StatusCode, errors.Errorf(
 					"smartcontracts: insertSmartContractHandler error creating the event=%s with smartcontract=%s",
 					a.Name,
 					body.SmartContract.Name,
@@ -172,7 +172,7 @@ func insertSmartContractHandler(ctx *api.Context, c *fiber.Ctx) (interface{}, in
 			}{}
 			err = json.NewDecoder(res.Body).Decode(&response)
 			if err != nil {
-				return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+				return nil, fiber.StatusInternalServerError, errors.Wrap(
 					err,
 					"smartcontracts: insertSmartContractHandler json.NewDecoder.Decode error",
 				)
@@ -202,7 +202,7 @@ func insertSmartContractHandler(ctx *api.Context, c *fiber.Ctx) (interface{}, in
 	// get and set latest block number from node client
 	blockNumber, err := client.BlockNumber(context.Background())
 	if err != nil {
-		return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+		return nil, fiber.StatusInternalServerError, errors.Wrap(
 			err,
 			"smartcontracts: insertSmartContractHandler client.BlockNumber error",
 		)
@@ -212,7 +212,7 @@ func insertSmartContractHandler(ctx *api.Context, c *fiber.Ctx) (interface{}, in
 	// save smartcontract struct on database
 	err = ctx.ScStorage.InsertSmartContractQuery(smartContract)
 	if err != nil {
-		return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+		return nil, fiber.StatusInternalServerError, errors.Wrap(
 			err,
 			"smartcontracts: insertSmartContractHandler ctx.Storage.InsertSmartContractQuery error",
 		)
@@ -223,5 +223,5 @@ func insertSmartContractHandler(ctx *api.Context, c *fiber.Ctx) (interface{}, in
 
 	// prepare response
 	// TODO: Check impact of changing StatusOK to StatusCreated since we are creating the smart contract
-	return smartContract, nil, fiber.StatusOK, nil
+	return smartContract, fiber.StatusOK, nil
 }
