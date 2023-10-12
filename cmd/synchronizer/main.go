@@ -24,6 +24,8 @@ import (
 	"github.com/darchlabs/synchronizer-v2/internal/sync"
 	txsengine "github.com/darchlabs/synchronizer-v2/internal/txsengine"
 	"github.com/darchlabs/synchronizer-v2/internal/webhooksender"
+	"github.com/darchlabs/synchronizer-v2/pkg/api"
+	EventAPI "github.com/darchlabs/synchronizer-v2/pkg/api/events"
 	"github.com/darchlabs/synchronizer-v2/pkg/api/metrics"
 	smartcontractsAPI "github.com/darchlabs/synchronizer-v2/pkg/api/smartcontracts"
 	"github.com/darchlabs/synchronizer-v2/pkg/util"
@@ -98,9 +100,9 @@ func main() {
 	go webhookSender.StartRetries()
 
 	// initialize fiber
-	api := fiber.New()
-	api.Use(logger.New())
-	api.Use(logger.New(logger.Config{
+	server := fiber.New()
+	server.Use(logger.New())
+	server.Use(logger.New(logger.Config{
 		Format: "[${ip}]:${port} ${status} - ${method} ${path}\n",
 	}))
 
@@ -141,7 +143,7 @@ func main() {
 	})
 
 	// configure routers
-	smartcontractsAPI.Route(api, smartcontractsAPI.Context{
+	smartcontractsAPI.Route(server, smartcontractsAPI.Context{
 		Storage:      smartContactStorage,
 		EventStorage: eventStorage,
 		TxsEngine:    txsEngine,
@@ -150,20 +152,11 @@ func main() {
 		Engine:       syncEngine,
 		Env:          &env,
 	})
-	//EventAPI.Route(api, EventAPI.Context{
-	//EventStorage: eventStorage,
-	//ScStorage:    smartContactStorage,
-	//Env:          &env,
-	//TxsEngine:    txsEngine,
-	//Cronjob:      cronjobSvc,
-	//Clients:      &clients,
-	//IDGen:        uuid.NewString,
-	//DateGen:      time.Now,
-	//})
-	//CronjobAPI.Route(api, CronjobAPI.Context{
-	//Cronjob: cronjobSvc,
-	//})
-	metrics.Route(api, metrics.Context{
+	EventAPI.Route(server, &api.Context{
+		Env:        &env,
+		SyncEngine: syncEngine,
+	})
+	metrics.Route(server, metrics.Context{
 		SmartContractStorage: smartContactStorage,
 		TransactionStorage:   transactionStorage,
 		EventStorage:         eventStorage,
@@ -174,7 +167,7 @@ func main() {
 	err = cronjobSvc.Start()
 	check(err)
 	go func() {
-		api.Listen(fmt.Sprintf(":%s", env.Port))
+		server.Listen(fmt.Sprintf(":%s", env.Port))
 	}()
 
 	// Run txs engine process
