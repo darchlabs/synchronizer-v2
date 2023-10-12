@@ -11,7 +11,8 @@ type SmartContractQuerier interface {
 	InsertSmartContractQuery(storage.QueryContext, *storage.SmartContractRecord) error
 	SelectSmartContractByAddressQuery(storage.Transaction, string) (*storage.SmartContractRecord, error)
 	SelectSmartContractsByAddressesList(tx storage.Transaction, addresses []string) ([]*storage.SmartContractRecord, error)
-	SelectUserSmartContractsQuery(tx storage.Transaction, userID string, p *pagination.Pagination) ([]*query.UserSmartContractOutput, error)
+	SelectSmartContractsQuery(tx storage.Transaction) ([]*query.SelectSmartContractQueryOutput, error)
+	SelectSmartContractUserQuery(tx storage.Transaction, userID string, p *pagination.Pagination) ([]*query.SelectSmartContractUserQueryOutput, error)
 	SelectCountUserSmartContractsQuery(db storage.Database, userID string) (int64, error)
 }
 
@@ -32,6 +33,8 @@ type SmartContractUserQuerier interface {
 	UpsertSmartContractUserQuery(storage.Transaction, *storage.SmartContractUserRecord) error
 	SelectSmartContractUserQuery(storage.Transaction, string) ([]*storage.SmartContractUserRecord, error)
 	SmartContractUsersByIDListQuery(storage.Transaction, []string) ([]*storage.SmartContractUserRecord, error)
+
+	UpdateSmartContractUserQuery(storage.Transaction, *query.UpdateSmartContractUserQueryInput) (*storage.SmartContractUserRecord, error)
 }
 
 type EventQuerier interface {

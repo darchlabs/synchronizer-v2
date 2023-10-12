@@ -135,6 +135,7 @@ func main() {
 		ContractStorage:    smartContactStorage,
 		TransactionStorage: transactionStorage,
 		IdGen:              uuid.NewString,
+		SyncEngine:         syncEngine,
 		EtherscanUrlMap:    networksEtherscanURL,
 		ApiKeyMap:          networksEtherscanAPIKey,
 		NodesUrlMap:        networksNodeURL,
@@ -146,7 +147,6 @@ func main() {
 	smartcontractsAPI.Route(server, smartcontractsAPI.Context{
 		Storage:      smartContactStorage,
 		EventStorage: eventStorage,
-		TxsEngine:    txsEngine,
 		IDGen:        uuid.NewString,
 		DateGen:      time.Now,
 		Engine:       syncEngine,

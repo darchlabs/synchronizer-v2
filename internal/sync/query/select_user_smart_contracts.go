@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type UserSmartContractOutput struct {
+type SelectSmartContractUserQueryOutput struct {
 	ID                 string                `db:"id"`
 	Name               string                `db:"name"`
 	Status             string                `db:"status"`
@@ -24,13 +24,23 @@ type UserSmartContractOutput struct {
 	Events             []storage.EventRecord `db:"-"`
 }
 
-func (sq *SmartContractQuerier) SelectUserSmartContractsQuery(tx storage.Transaction, userID string, p *pagination.Pagination) ([]*UserSmartContractOutput, error) {
-	records := make([]*UserSmartContractOutput, 0)
+func (sq *SmartContractQuerier) SelectSmartContractUserQuery(tx storage.Transaction, userID string, p *pagination.Pagination) ([]*SelectSmartContractUserQueryOutput, error) {
+	records := make([]*SelectSmartContractUserQueryOutput, 0)
 
 	err := tx.Select(
 		&records,
 		fmt.Sprintf(`
-			SELECT sc.id as id, scu.name as name, scu.status as status, scu.error as error, scu.webhook as webhook, sc.network as network, sc.address as address, sc.last_tx_block_synced as last_tx_block_synced, sc.initial_block_number as initial_block_number, sc.created_at as created_at
+			SELECT
+				sc.id as id,
+				scu.name as name,
+				scu.status as status,
+				scu.error as error,
+				scu.webhook as webhook,
+				sc.network as network,
+				sc.address as address,
+				sc.last_tx_block_synced as last_tx_block_synced,
+				sc.initial_block_number as initial_block_number,
+				sc.created_at as created_at
 			FROM smartcontracts sc
 			JOIN smartcontract_users scu
 			ON sc.address = scu.sc_address
@@ -43,7 +53,7 @@ func (sq *SmartContractQuerier) SelectUserSmartContractsQuery(tx storage.Transac
 		userID,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "query: SmartcontractQuerier.SelectUserSmartContractsQuery tx.Get error")
+		return nil, errors.Wrap(err, "query: SmartcontractQuerier.SelectSmartContractUserQuery tx.Get error")
 	}
 
 	return records, nil
