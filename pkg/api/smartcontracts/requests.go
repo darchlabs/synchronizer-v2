@@ -47,6 +47,7 @@ func TransformInputsJsonToArray(inputs []*storage.InputABI) ([]InputReq, error) 
 
 type EventResponse struct {
 	ID     string              `json:"id"`
+	Name   string              `json:"name"`
 	Status storage.EventStatus `json:"status"`
 	Error  string              `json:"error"`
 }

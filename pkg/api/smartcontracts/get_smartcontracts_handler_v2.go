@@ -8,37 +8,39 @@ import (
 	"github.com/pkg/errors"
 )
 
-type listSmartContractV2Handler struct{}
+type getSmartContractV2Handler struct{}
 
-type listSmartContractV2HandlerRequest struct {
+type getSmartContractV2HandlerRequest struct {
 	UserID     string
 	Pagination *pagination.Pagination
 }
 
-// type listSmartContractV2HandlerResponse struct {
-// 	SmartContracts []*SmartContractRequest `json:"smartcontracts"`
-// }
+type getSmartContractV2HandlerResponse struct {
+	SmartContracts []*SmartContractResponse   `json:"contracts"`
+	Pagination     *pagination.PaginationMeta `json:"pagination,omitempty"`
+}
 
-func (h *listSmartContractV2Handler) Invoke(ctx *api.Context, c *fiber.Ctx) (interface{}, interface{}, int, error) {
+func (h *getSmartContractV2Handler) Invoke(ctx *api.Context, c *fiber.Ctx) (interface{}, int, error) {
 	// define request
-	req := &listSmartContractV2HandlerRequest{}
+	req := &getSmartContractV2HandlerRequest{}
 
 	// get pagination
 	p := &pagination.Pagination{}
 	err := p.GetPaginationFromFiber(c)
 	if err != nil {
-		return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+		return nil, fiber.StatusInternalServerError, errors.Wrap(
 			err,
-			"smartcontracts: postSmartContractV2Handler.Invoke p.GetPaginationFromFiber error",
+			"smartcontracts: getSmartContractV2Handler.Invoke p.GetPaginationFromFiber error",
 		)
 	}
 	req.Pagination = p
 
+	// get user id
 	req.UserID, err = api.GetUserIDFromRequestCtx(c)
 	if err != nil {
-		return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+		return nil, fiber.StatusInternalServerError, errors.Wrap(
 			err,
-			"smartcontracts: postSmartContractV2Handler.Invoke c.api.GetUserIDFromRequestCtx error",
+			"smartcontracts: getSmartContractV2Handler.Invoke c.api.GetUserIDFromRequestCtx error",
 		)
 	}
 
@@ -46,20 +48,24 @@ func (h *listSmartContractV2Handler) Invoke(ctx *api.Context, c *fiber.Ctx) (int
 }
 
 // BUSINESS LOGIC
-func (h *listSmartContractV2Handler) invoke(ctx *api.Context, req *listSmartContractV2HandlerRequest) (interface{}, interface{}, int, error) {
+func (h *getSmartContractV2Handler) invoke(ctx *api.Context, req *getSmartContractV2HandlerRequest) (interface{}, int, error) {
 	output, err := ctx.SyncEngine.SelectUserSmartContractsWithEvents(&sync.SelectUserSmartContractsWithEventsInput{
 		UserID:     req.UserID,
 		Pagination: req.Pagination,
 	})
 	if err != nil {
-		return nil, nil, fiber.StatusInternalServerError, errors.Wrap(
+		return nil, fiber.StatusInternalServerError, errors.Wrap(
 			err,
-			"smartcontracts: postSmartContractV2Handler.invoke syncEngine.InsertAtomicSmartContract  error",
+			"smartcontracts: getSmartContractV2Handler.invoke syncEngine.InsertAtomicSmartContract error",
 		)
 	}
 
+	// define response
+	res := &getSmartContractV2HandlerResponse{
+		SmartContracts: make([]*SmartContractResponse, 0),
+	}
+
 	// parse smart contracts
-	contractsRes := make([]*SmartContractResponse, 0)
 	for _, sc := range output.SmartContracts {
 		scRes := &SmartContractResponse{
 			ID:                 sc.ID,
@@ -78,6 +84,7 @@ func (h *listSmartContractV2Handler) invoke(ctx *api.Context, req *listSmartCont
 		for _, e := range sc.Events {
 			eventRes := &EventResponse{
 				ID:     e.ID,
+				Name:   e.Name,
 				Status: e.Status,
 				Error:  e.Error,
 			}
@@ -85,13 +92,13 @@ func (h *listSmartContractV2Handler) invoke(ctx *api.Context, req *listSmartCont
 		}
 
 		scRes.Events = events
-		contractsRes = append(contractsRes, scRes)
+		res.SmartContracts = append(res.SmartContracts, scRes)
 	}
 
-	// define meta response
-	meta := make(map[string]interface{})
-	meta["pagination"] = req.Pagination.GetPaginationMeta(output.TotalElements)
+	// define pagination
+	pagination := req.Pagination.GetPaginationMeta(output.TotalElements)
+	res.Pagination = &pagination
 
 	// prepare response
-	return contractsRes, meta, fiber.StatusOK, nil
+	return res, fiber.StatusOK, nil
 }

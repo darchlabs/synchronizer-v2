@@ -12,12 +12,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-type Response struct {
-	Data  interface{} `json:"data,omitempty"`
-	Meta  interface{} `json:"meta,omitempty"`
-	Error interface{} `json:"error,omitempty"`
-}
-
 type IDGenerator func() string
 type DateGenerator func() time.Time
 
@@ -36,19 +30,21 @@ type Context struct {
 	DateGen DateGenerator
 }
 
-type Handler func(*Context, *fiber.Ctx) (interface{}, interface{}, int, error)
+type Handler func(*Context, *fiber.Ctx) (interface{}, int, error)
 
 func HandleFunc(ctx *Context, fn Handler) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		c.Accepts("application/json")
-		data, meta, statusCode, err := fn(ctx, c)
+		data, statusCode, err := fn(ctx, c)
 		if err != nil {
-			return c.Status(statusCode).JSON(&Response{
+			return c.Status(statusCode).JSON(struct {
+				Error string `json:"error"`
+			}{
 				Error: err.Error(),
 			})
 		}
 
-		return c.Status(statusCode).JSON(&Response{Data: data, Meta: meta})
+		return c.Status(statusCode).JSON(data)
 	}
 }
 

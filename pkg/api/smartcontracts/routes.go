@@ -59,7 +59,7 @@ func Route(app *fiber.App, ctx Context) {
 	// V2 ROUTES
 	// handlers
 	postSmartContractV2Handler := &postSmartContractV2Handler{validate}
-	listSmartContractV2Handler := &listSmartContractV2Handler{}
+	getSmartContractV2Handler := &getSmartContractV2Handler{}
 
 	// routing
 	app.Post(
@@ -67,5 +67,5 @@ func Route(app *fiber.App, ctx Context) {
 		auth.Middleware,
 		api.HandleFunc(apiContext, postSmartContractV2Handler.Invoke),
 	)
-	app.Get("/api/v2/smartcontracts", auth.Middleware, api.HandleFunc(apiContext, listSmartContractV2Handler.Invoke))
+	app.Get("/api/v2/smartcontracts", auth.Middleware, api.HandleFunc(apiContext, getSmartContractV2Handler.Invoke))
 }

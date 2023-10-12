@@ -2,13 +2,16 @@ package query
 
 import (
 	"github.com/Masterminds/squirrel"
+	"github.com/darchlabs/synchronizer-v2/internal/pagination"
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
 	"github.com/pkg/errors"
 )
 
 type SelectEventsQueryFilters struct {
 	SmartContractAddress string
+	EventName            string
 	Status               string
+	Pagination           *pagination.Pagination
 }
 
 func (eq *EventQuerier) SelectEventsQuery(
@@ -24,6 +27,16 @@ func (eq *EventQuerier) SelectEventsQuery(
 
 	if filters.SmartContractAddress != "" {
 		q = q.Where("sc_address = ?", filters.SmartContractAddress)
+	}
+
+	if filters.EventName != "" {
+		q = q.Where("name = ?", filters.EventName)
+	}
+
+	if filters.Pagination != nil {
+		q = q.OrderBy("created_at " + filters.Pagination.Sort)
+		q = q.Limit(uint64(filters.Pagination.Limit))
+		q = q.Offset(uint64(filters.Pagination.Offset))
 	}
 
 	query, args, err := q.PlaceholderFormat(squirrel.Dollar).ToSql()
