@@ -12,7 +12,7 @@ type SmartContractQuerier interface {
 	SelectSmartContractByAddressQuery(storage.Transaction, string) (*storage.SmartContractRecord, error)
 	SelectSmartContractsByAddressesList(tx storage.Transaction, addresses []string) ([]*storage.SmartContractRecord, error)
 	SelectSmartContractsQuery(tx storage.Transaction) ([]*query.SelectSmartContractQueryOutput, error)
-	SelectUserSmartContractsQuery(tx storage.Transaction, userID string, p *pagination.Pagination) ([]*query.UserSmartContractOutput, error)
+	SelectSmartContractUserQuery(tx storage.Transaction, userID string, p *pagination.Pagination) ([]*query.SelectSmartContractUserQueryOutput, error)
 	SelectCountUserSmartContractsQuery(db storage.Database, userID string) (int64, error)
 }
 

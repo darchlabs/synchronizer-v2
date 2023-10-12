@@ -13,13 +13,13 @@ type SelectUserSmartContractsWithEventsInput struct {
 }
 
 type SelectUserSmartContractsWithEventsOutput struct {
-	SmartContracts []*query.UserSmartContractOutput
+	SmartContracts []*query.SelectSmartContractUserQueryOutput
 	TotalElements  int64
 }
 
 func (ng *Engine) SelectUserSmartContractsWithEvents(input *SelectUserSmartContractsWithEventsInput) (*SelectUserSmartContractsWithEventsOutput, error) {
 	// Select user smart contracts
-	smartContracts, err := ng.SmartContractQuerier.SelectUserSmartContractsQuery(ng.database, input.UserID, input.Pagination)
+	smartContracts, err := ng.SmartContractQuerier.SelectSmartContractUserQuery(ng.database, input.UserID, input.Pagination)
 	if err != nil {
 		return nil, errors.Wrap(err, "sync: Engine.SelectUserSmartContractsWithEvents ng.SmartContractQuerier.SelectUserSmartContractsQuery error")
 	}
@@ -27,7 +27,7 @@ func (ng *Engine) SelectUserSmartContractsWithEvents(input *SelectUserSmartContr
 	// Get smart contract addresses
 	addresses := make([]string, 0)
 
-	constractsMap := make(map[string]*query.UserSmartContractOutput)
+	constractsMap := make(map[string]*query.SelectSmartContractUserQueryOutput)
 
 	for _, sc := range smartContracts {
 		constractsMap[sc.Address] = sc
