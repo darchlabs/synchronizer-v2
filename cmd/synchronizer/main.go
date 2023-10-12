@@ -133,6 +133,7 @@ func main() {
 		ContractStorage:    smartContactStorage,
 		TransactionStorage: transactionStorage,
 		IdGen:              uuid.NewString,
+		SyncEngine:         syncEngine,
 		EtherscanUrlMap:    networksEtherscanURL,
 		ApiKeyMap:          networksEtherscanAPIKey,
 		NodesUrlMap:        networksNodeURL,
