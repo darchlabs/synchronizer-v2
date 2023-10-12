@@ -1,6 +1,8 @@
 package smartcontracts
 
 import (
+	"time"
+
 	"github.com/darchlabs/synchronizer-v2/internal/storage"
 )
 
@@ -43,6 +45,12 @@ func TransformInputsJsonToArray(inputs []*storage.InputABI) ([]InputReq, error) 
 	return inputReqs, nil
 }
 
+type EventResponse struct {
+	ID     string              `json:"id"`
+	Status storage.EventStatus `json:"status"`
+	Error  string              `json:"error"`
+}
+
 type SmartContractResponse struct {
 	ID                 string  `json:"id"`
 	Network            string  `json:"network"`
@@ -54,4 +62,9 @@ type SmartContractResponse struct {
 	LastTxBlockSynced  int64   `json:"lastTxBlockSynced"`
 	InitialBlockNumber int64   `json:"initialBlockNumber"`
 	Error              *string `json:"error"`
+
+	Events []*EventResponse `json:"events,omitempty"`
+
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
 }

@@ -13,6 +13,7 @@ import (
 type SyncEngine interface {
 	InsertAtomicSmartContract(input *InsertAtomicSmartContractInput) (*InsertAtomicSmartContractOutput, error)
 	SelectEventsAndABI(input *SelectEventsAndABIInput) (*SelectEventsAndABIOutput, error)
+	SelectUserSmartContractsWithEvents(input *SelectUserSmartContractsWithEventsInput) (*SelectUserSmartContractsWithEventsOutput, error)
 }
 
 type Engine struct {

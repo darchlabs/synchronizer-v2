@@ -34,7 +34,7 @@ linux: rm
 
 dev:
 	@echo "[dev] Running..."
-	@export $$(cat .env) && go run cmd/synchronizer/main.go
+	@go run cmd/synchronizer/main.go
 
 live:
 	@echo "[live] Running service in debug-hot-reload mode..."
