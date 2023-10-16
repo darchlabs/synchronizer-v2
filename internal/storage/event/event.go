@@ -323,7 +323,7 @@ func (s *Storage) ListEventData(address string, eventName string, sort string, l
 	return eventsData, nil
 }
 
-func (s *Storage) InsertEventData(e *event.Event, data []*event.EventData) error {
+func (s *Storage) InsertEventData(data []*event.EventData) error {
 	// prepare transaction
 	tx, err := s.storage.DB.Beginx()
 	if err != nil {
@@ -331,7 +331,7 @@ func (s *Storage) InsertEventData(e *event.Event, data []*event.EventData) error
 	}
 
 	// insert event data in db
-	eventDataQuery := "INSERT INTO event_data (id, event_id, tx, block_number, data, created_at) VALUES ($1, $2, $3, $4, $5, $6)"
+	eventDataQuery := "INSERT INTO event_data (id, event_id, tx, block_number, data, created_at) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT(tx) DO NOTHING"
 	batch, err := tx.Preparex(eventDataQuery)
 	if err != nil {
 		tx.Rollback()
@@ -342,10 +342,9 @@ func (s *Storage) InsertEventData(e *event.Event, data []*event.EventData) error
 	// iterate over logsData array for inserting on db
 	for _, ed := range data {
 		// execute que batch into the db
-		_, err = batch.Exec(ed.ID, e.ID, ed.Tx, ed.BlockNumber, ed.Data, ed.CreatedAt)
+		_, err := batch.Exec(ed.ID, ed.EventID, ed.Tx, ed.BlockNumber, ed.Data, ed.CreatedAt)
 		if err != nil {
 			tx.Rollback()
-
 			return err
 		}
 	}

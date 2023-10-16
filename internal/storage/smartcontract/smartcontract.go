@@ -62,20 +62,64 @@ func (s *Storage) UpdateSmartContract(sc *smartcontract.SmartContract) (*smartco
 	args := []interface{}{}
 
 	// check if name is changed
-	if sc.Name != "" {
+	if sc.Name != current.Name && sc.Name != "" {
 		query += "name = $" + strconv.Itoa(len(args)+1) + ", "
 		args = append(args, sc.Name)
 	}
 
 	// check if nodeurl is changed
-	if sc.NodeURL != "" {
+	if sc.NodeURL != current.NodeURL && sc.NodeURL != "" {
 		query += "node_url = $" + strconv.Itoa(len(args)+1) + ", "
 		args = append(args, sc.NodeURL)
 	}
 
+	// check if last_tx_block_synced is changed
+	if sc.LastTxBlockSynced != current.LastTxBlockSynced && sc.LastTxBlockSynced != 0 {
+		query += "last_tx_block_synced = $" + strconv.Itoa(len(args)+1) + ", "
+		args = append(args, sc.LastTxBlockSynced)
+	}
+
+	// check if last_tx_block_synced is changed
+	if sc.EngineLastTxBlockSynced != current.EngineLastTxBlockSynced && sc.EngineLastTxBlockSynced != 0 {
+		query += "engine_last_tx_block_synced = $" + strconv.Itoa(len(args)+1) + ", "
+		args = append(args, sc.EngineLastTxBlockSynced)
+	}
+
+	// check if status is changed
+	if sc.Status != current.Status && sc.Status != "" {
+		query += "status = $" + strconv.Itoa(len(args)+1) + ", "
+		args = append(args, sc.Status)
+	}
+
+	// check if error is changed
+	if sc.Error != nil {
+		query += "error = $" + strconv.Itoa(len(args)+1) + ", "
+		args = append(args, sc.Error)
+	}
+
+	// check if engine error is changed
+	if sc.EngineError != nil {
+		query += "engine_error = $" + strconv.Itoa(len(args)+1) + ", "
+		args = append(args, sc.EngineError)
+	}
+
+	// check if initial block number is changed
+	if sc.InitialBlockNumber != current.InitialBlockNumber && sc.InitialBlockNumber != 0 {
+		query += "initial_block_number = $" + strconv.Itoa(len(args)+1) + ", "
+		args = append(args, sc.InitialBlockNumber)
+	}
+
+	// check if engine status is changed
+	if sc.EngineStatus != current.EngineStatus && sc.EngineStatus != "" {
+		query += "engine_status = $" + strconv.Itoa(len(args)+1) + ", "
+		args = append(args, sc.EngineStatus)
+	}
+
 	// check if webhook is changed
-	query += "webhook = $" + strconv.Itoa(len(args)+1) + ", "
-	args = append(args, sc.Webhook)
+	if sc.Webhook != current.Webhook && sc.Webhook != "" {
+		query += "webhook = $" + strconv.Itoa(len(args)+1) + ", "
+		args = append(args, sc.Webhook)
+	}
 
 	// add where sql condition
 	query = strings.TrimSuffix(query, ", ")
@@ -217,6 +261,7 @@ func (s *Storage) ListSmartContracts(sort string, limit int64, offset int64) ([]
 
 	// get smartcontracts from db
 	scQuery := fmt.Sprintf("SELECT * FROM smartcontracts ORDER BY created_at %s LIMIT $1 OFFSET $2", sort)
+
 	err := s.storage.DB.Select(&smartcontracts, scQuery, limit, offset)
 	if err != nil {
 		return nil, err
@@ -235,7 +280,7 @@ func (s *Storage) ListUniqueSmartContractsByNetwork() ([]*smartcontract.SmartCon
 	 * and network. Then from that partition we only get the first row, ensuring that we are not
 	 * getting any smart contract with this repeated info using the row number counter.
 	 */
-	scQuery := `SELECT id, name, network, node_url, address, last_tx_block_synced, status, error, created_at, updated_At FROM (
+	scQuery := `SELECT id, name, network, node_url, address, engine_last_tx_block_synced, engine_status, engine_error, created_at, updated_at FROM (
 					SELECT *, ROW_NUMBER() OVER (PARTITION BY address, network) AS rn
 					FROM smartcontracts
 				) AS sq
