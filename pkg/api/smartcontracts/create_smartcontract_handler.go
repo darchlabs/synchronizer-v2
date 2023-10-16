@@ -177,8 +177,10 @@ func insertSmartContractHandler(ctx Context) func(c *fiber.Ctx) error {
 		body.SmartContract.CreatedAt = ctx.DateGen()
 		body.SmartContract.UpdatedAt = ctx.DateGen()
 		body.SmartContract.Events = events
-		body.SmartContract.Status = smartcontract.StatusIdle
+		body.SmartContract.Status = smartcontract.StatusRunning
 		body.SmartContract.LastTxBlockSynced = int64(0)
+		body.SmartContract.EngineLastTxBlockSynced = int64(0)
+		body.SmartContract.EngineStatus = smartcontract.StatusRunning
 		for _, input := range body.SmartContract.Abi {
 			input.ID = ctx.IDGen()
 		}
