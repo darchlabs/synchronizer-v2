@@ -17,7 +17,7 @@ type EventStorage interface {
 	UpdateEvent(e *event.Event) error
 	DeleteEvent(address string, eventName string) error
 	ListEventData(address string, eventName string, sort string, limit int64, offset int64) ([]*event.EventData, error)
-	InsertEventData(e *event.Event, data []*event.EventData) error
+	InsertEventData(data []*event.EventData) error
 	GetEventsCount() (int64, error)
 	GetEventCountByAddress(address string) (int64, error)
 	GetEventDataCount(address string, eventName string) (int64, error)
@@ -39,11 +39,11 @@ type SmartContractStorage interface {
 	ListSmartContracts(sort string, limit int64, offset int64) ([]*smartcontract.SmartContract, error)
 	ListUniqueSmartContractsByNetwork() ([]*smartcontract.SmartContract, error)
 	InsertSmartContract(s *smartcontract.SmartContract) (*smartcontract.SmartContract, error)
-	UpdateLastBlockNumber(id string, blockNumber int64) error
 	DeleteSmartContractByAddress(address string) error
 	GetSmartContractById(id string) (*smartcontract.SmartContract, error)
 	GetSmartContractByAddress(address string) (*smartcontract.SmartContract, error)
 	GetSmartContractsCount() (int64, error)
+	UpdateLastBlockNumber(id string, blockNumber int64) error
 	UpdateStatusAndError(id string, status smartcontract.SmartContractStatus, err error) error
 	UpdateSmartContract(sc *smartcontract.SmartContract) (*smartcontract.SmartContract, error)
 	Stop() error
