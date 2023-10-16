@@ -105,7 +105,16 @@ func main() {
 	clients := make(map[string]*ethclient.Client)
 
 	// initialize the cronjob
-	cronjobSvc = cronjob.New(env.CronjobIntervalSeconds, eventStorage, smartContactStorage, &clients, env.Debug, uuid.NewString, time.Now, webhookSender)
+	cronjobSvc = cronjob.New(
+		env.CronjobIntervalSeconds,
+		eventStorage,
+		smartContactStorage,
+		&clients,
+		env.Debug,
+		uuid.NewString,
+		time.Now,
+		webhookSender,
+	)
 
 	// initialize http client with rate limiter
 	client := httpclient.NewClient(&httpclient.Options{
@@ -162,7 +171,7 @@ func main() {
 	}()
 
 	// Run txs engine process
-	txsEngine.Start(env.CronjobIntervalSeconds + 1)
+	txsEngine.Start(env.CronjobIntervalSeconds)
 
 	// listen interrupt
 	quit := make(chan struct{})
