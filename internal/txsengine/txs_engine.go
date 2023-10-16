@@ -1,17 +1,20 @@
 package txsengine
 
 import (
-	"context"
-	"log"
+	"fmt"
 	"math"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/darchlabs/synchronizer-v2"
+	customlogger "github.com/darchlabs/synchronizer-v2/internal/custom-logger"
 	ethclientrate "github.com/darchlabs/synchronizer-v2/internal/ethclient_rate"
 	"github.com/darchlabs/synchronizer-v2/pkg/smartcontract"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
+
+var EMPTY_ERROR_MESSAGE = ""
 
 type idGenerator func() string
 
@@ -35,6 +38,8 @@ type T struct {
 	maxTransactions         int
 
 	client HTTPClient
+
+	log *customlogger.CustomLogger
 }
 
 // Define the enigne status
@@ -62,9 +67,16 @@ type Config struct {
 	NodesUrlMap        map[string]string
 	Client             HTTPClient
 	MaxTransactions    int
+	Log                *customlogger.CustomLogger
 }
 
 func New(c Config) *T {
+	// initialize custom logger
+	customLogger, err := customlogger.NewCustomLogger("purple", os.Stdout)
+	if err != nil {
+		panic(err)
+	}
+
 	return &T{
 		smartContractStorage:    c.ContractStorage,
 		transactionStorage:      c.TransactionStorage,
@@ -76,22 +88,20 @@ func New(c Config) *T {
 		maxTransactions:         c.MaxTransactions,
 
 		status: StatusIdle,
+		log:    customLogger,
 	}
 }
 
 func (t *T) Start(seconds int64) {
+	t.log.Printf("transactions - running ticker each %d seconds", seconds)
 	go func() {
 		for t.GetStatus() == StatusIdle || t.GetStatus() == StatusRunning {
-			// log.Print("starting ...")
 			err := t.Run()
 			if err != nil {
 				t.SetStatus(StatusError)
 			}
-			// log.Print("finished!")
 
-			// log.Print("sleeping ...")
 			time.Sleep(time.Duration(time.Duration(seconds) * time.Second))
-			// log.Print("sleept!")
 		}
 	}()
 }
@@ -114,7 +124,7 @@ func (t *T) Run() error {
 	// Iterate over contracts for getting their tx's
 	for _, contract := range scArr {
 		// If it is stopped, return err with the other contracts
-		if contract.Status != smartcontract.StatusIdle && contract.Status != smartcontract.StatusRunning {
+		if contract.EngineStatus != smartcontract.StatusIdle && contract.EngineStatus != smartcontract.StatusRunning {
 			continue
 		}
 
@@ -127,7 +137,7 @@ func (t *T) Run() error {
 
 		err = t.GetContractTransactions(contract.ID, etherscanApiUrl, etherscanApiKey)
 		if err != nil {
-			log.Printf("\nerr: %v on contract: %s", err, contract.Address)
+			t.log.Printf("transactions - error getting transactions for contract %s", contract.ID)
 			continue
 		}
 	}
@@ -151,26 +161,43 @@ func (t *T) Halt() {
 }
 
 func (t *T) GetContractTransactions(contractId string, apiUrl string, apiKey string) error {
-	log.Println("contract started at: ", contractId)
+	var err error
 
 	// get smartcontract with latest data
 	contract, err := t.smartContractStorage.GetSmartContractById(contractId)
 	if err != nil {
-		_ = t.smartContractStorage.UpdateStatusAndError(contractId, smartcontract.StatusError, err)
+		t.log.Printf("transactions - error getting smartcontract %s", err.Error())
 		return err
 	}
+
+	// defer update status and error
+	defer func() {
+		if err != nil {
+			t.log.Printf("transactions - defer error: %s", err.Error())
+
+			errStr := err.Error()
+			_, err = t.smartContractStorage.UpdateSmartContract(&smartcontract.SmartContract{
+				ID:           contract.ID,
+				Address:      contract.Address,
+				EngineError:  &errStr,
+				EngineStatus: smartcontract.StatusError,
+			})
+			if err != nil {
+				t.log.Printf("transactions - defer updating smartcontract error: %s", err.Error())
+			}
+		}
+	}()
 
 	// get current transaction quota for calculate quota
 	currentCount, err := t.transactionStorage.GetTxsCountById(contract.ID)
 	if err != nil {
-		_ = t.smartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 		return err
 	}
 
 	// check if smartcontract has limit and set Status
 	if currentCount >= int64(t.maxTransactions) {
-		if contract.Status != smartcontract.StatusQuotaExceeded {
-			_ = t.smartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusQuotaExceeded, nil)
+		if contract.EngineStatus != smartcontract.StatusQuotaExceeded {
+			return fmt.Errorf("transactions - quota exceeded for contract %s", contract.ID)
 		}
 
 		return nil
@@ -181,7 +208,6 @@ func (t *T) GetContractTransactions(contractId string, apiUrl string, apiKey str
 	if contract.NodeURL == "" {
 		nodeURL, err = checkAndGetNodeURL(contract, t.networksNodesURL)
 		if err != nil {
-			_ = t.smartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 			return err
 		}
 	}
@@ -189,32 +215,53 @@ func (t *T) GetContractTransactions(contractId string, apiUrl string, apiKey str
 	// create instance client with the node url
 	client, err := ethclient.Dial(nodeURL)
 	if err != nil {
-		_ = t.smartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 		return err
 	}
 
-	// get last block number
-	lastBlock, err := client.BlockNumber(context.Background())
+	// get last block number from etherscan
+	// note: Before, the current block number of
+	// the node was used, but we realized that the
+	// etherscan will always be out of date
+	lastBlock, err := t.GetCurrentBlockNumberFromEtherscan(apiUrl, apiKey)
 	if err != nil {
-		_ = t.smartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 		return err
 	}
 
 	// Update contract status to synching
-	_ = t.smartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusSynching, nil)
-
-	// get transaction from etherscan
-	startBlock := contract.LastTxBlockSynced + 1
-	transactions, err := t.getTransactionsFromEtherscan(apiUrl, apiKey, contract.Address, startBlock, int64(lastBlock))
-	if err != nil && !strings.Contains(err.Error(), "No transactions found") {
-		_ = t.smartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
+	_, err = t.smartContractStorage.UpdateSmartContract(&smartcontract.SmartContract{
+		ID:           contract.ID,
+		Address:      contract.Address,
+		EngineError:  &EMPTY_ERROR_MESSAGE,
+		EngineStatus: smartcontract.StatusSynching,
+	})
+	if err != nil {
 		return err
 	}
 
-	// when the response from the scan does not have any transactions
+	// BORRE EL + 1 POR CASO BORDE SI QUEDAN TXS RESTANTES EN UN BLOQUE POR LIMITE
+	// get transaction from etherscan
+	startBlock := contract.EngineLastTxBlockSynced
+	transactions, err := t.getTransactionsFromEtherscan(apiUrl, apiKey, contract.Address, startBlock, int64(lastBlock))
+	if err != nil && !strings.Contains(err.Error(), "No transactions found") {
+		return err
+	}
+
+	t.log.Printf("transactions - address: %s from: %d to: %d txs: %d", contract.Address[:6]+"..."+contract.Address[len(contract.Address)-5:], startBlock, lastBlock, len(transactions))
+
+	// SI ANDA CON TX, EVENTOS CAGA, SE DUPLICA TRIPLICA
+	// HAY QUE IGNORAR LAS QUE YA ESTAN EN LA BASE DE DATOS
+	// - event datas salen duplicados
+	// - similar en webhooks
+
+	// check if there are no transactions and update smartcontract
 	if len(transactions) == 0 {
-		_ = t.smartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusRunning, nil)
-		t.smartContractStorage.UpdateLastBlockNumber(contract.ID, int64(lastBlock))
+		contract.EngineError = nil
+		contract.EngineStatus = smartcontract.StatusRunning
+		contract.EngineLastTxBlockSynced = int64(lastBlock)
+		_, err = t.smartContractStorage.UpdateSmartContract(contract)
+		if err != nil {
+			return err
+		}
 
 		return nil
 	}
@@ -235,25 +282,33 @@ func (t *T) GetContractTransactions(contractId string, apiUrl string, apiKey str
 	}
 	to = int(math.Min(float64(t.maxTransactions), float64(to)))
 
-	for {
+	for i := 0; ; i++ {
 		// TODO(ca): never enter here bc inside of "completeContractTxsData" only uses continue when have some error
 		completedTransactions, err := completeContractTxsData(clientWithRateLimiter, contract, transactions[from:to], t.idGen)
 		if err != nil {
-			_ = t.smartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 			return err
 		}
 
 		// insert them in the storage
 		err = t.transactionStorage.InsertTxs(completedTransactions)
 		if err != nil {
-			_ = t.smartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusError, err)
 			return err
 		}
 
 		// check if count plus transactions in the range exceeds the maximum limit
 		count = count + len(transactions[from:to])
 		if int(currentCount)+count >= t.maxTransactions {
-			_ = t.smartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusQuotaExceeded, nil)
+
+			_, err = t.smartContractStorage.UpdateSmartContract(&smartcontract.SmartContract{
+				ID:           contract.ID,
+				Address:      contract.Address,
+				EngineError:  &EMPTY_ERROR_MESSAGE,
+				EngineStatus: smartcontract.StatusQuotaExceeded,
+			})
+			if err != nil {
+				return err
+			}
+
 			break
 		}
 
@@ -263,24 +318,31 @@ func (t *T) GetContractTransactions(contractId string, apiUrl string, apiKey str
 		}
 
 		// update from value for iterator
-		if from+BATCH_TRANSACTIONS > len(transactions) {
+		if from+BATCH_TRANSACTIONS >= len(transactions) {
 			from = len(transactions)
 		} else {
 			from = from + BATCH_TRANSACTIONS
 		}
-		from = int(math.Min(float64(t.maxTransactions), float64(from)))
+		from = int(math.Min(float64(t.maxTransactions-count), float64(from)))
 
 		// update to value for iterator
-		if to+BATCH_TRANSACTIONS > len(transactions) {
+		if to+BATCH_TRANSACTIONS >= len(transactions) {
 			to = len(transactions)
 		} else {
 			to = to + BATCH_TRANSACTIONS
 		}
-		to = int(math.Min(float64(t.maxTransactions), float64(to)))
+		to = int(math.Min(float64(t.maxTransactions-count), float64(to)))
 	}
 
-	_ = t.smartContractStorage.UpdateStatusAndError(contract.ID, smartcontract.StatusRunning, nil)
+	// update smartcontract when finished successfully
 
-	log.Println("contract finished at: ", contract.Name)
+	_, err = t.smartContractStorage.UpdateSmartContract(&smartcontract.SmartContract{
+		ID:                      contract.ID,
+		Address:                 contract.Address,
+		EngineError:             &EMPTY_ERROR_MESSAGE,
+		EngineStatus:            smartcontract.StatusRunning,
+		EngineLastTxBlockSynced: int64(lastBlock),
+	})
+
 	return nil
 }
