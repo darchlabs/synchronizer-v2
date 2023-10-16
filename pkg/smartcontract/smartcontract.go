@@ -7,16 +7,19 @@ import (
 )
 
 type SmartContract struct {
-	ID                 string              `json:"id" db:"id"`
-	Name               string              `json:"name" db:"name" validate:"required"`
-	Network            event.EventNetwork  `json:"network" db:"network" validate:"required"`
-	NodeURL            string              `json:"nodeURL" db:"node_url"`
-	Address            string              `json:"address" db:"address" validate:"required"`
-	LastTxBlockSynced  int64               `json:"lastTxBlockSynced" db:"last_tx_block_synced"`
-	Status             SmartContractStatus `json:"status" db:"status"`
-	Error              *string             `json:"error" db:"error"`
-	Webhook            string              `json:"webhook" db:"webhook" validate:"omitempty,url"`
-	InitialBlockNumber int64               `json:"initialBlockNumber" db:"initial_block_number"`
+	ID                      string              `json:"id" db:"id"`
+	Name                    string              `json:"name" db:"name" validate:"required"`
+	Network                 event.EventNetwork  `json:"network" db:"network" validate:"required"`
+	NodeURL                 string              `json:"nodeURL" db:"node_url"`
+	Address                 string              `json:"address" db:"address" validate:"required"`
+	LastTxBlockSynced       int64               `json:"lastTxBlockSynced" db:"last_tx_block_synced"`
+	EngineLastTxBlockSynced int64               `json:"engineLastTxBlockSynced" db:"engine_last_tx_block_synced"`
+	Status                  SmartContractStatus `json:"status" db:"status"`
+	EngineStatus            SmartContractStatus `json:"engineStatus" db:"engine_status"`
+	Error                   *string             `json:"error" db:"error"`
+	EngineError             *string             `json:"engineError" db:"engine_error"`
+	Webhook                 string              `json:"webhook" db:"webhook" validate:"omitempty,url"`
+	InitialBlockNumber      int64               `json:"initialBlockNumber" db:"initial_block_number"`
 
 	Abi    []*event.Abi   `json:"abi,omitempty" validate:"required,gt=0,dive"`
 	Events []*event.Event `json:"events"`

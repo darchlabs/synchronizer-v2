@@ -369,7 +369,7 @@ func (s *Storage) InsertTxs(transactions []*transaction.Transaction) error {
 	latestBlockNumber := transactions[len(transactions)-1].BlockNumber
 
 	// Update the smart contract with the latest block number, status and error
-	smartContractQuery := `UPDATE smartcontracts SET last_tx_block_synced = $1, status = $2, error = $3 WHERE id = $4`
+	smartContractQuery := `UPDATE smartcontracts SET engine_last_tx_block_synced = $1, engine_status = $2, engine_error = $3 WHERE id = $4`
 	_, err = tx.Exec(smartContractQuery, latestBlockNumber, smartcontract.StatusRunning, "", contractID)
 	if err != nil {
 		tx.Rollback()

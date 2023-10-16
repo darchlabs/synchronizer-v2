@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/darchlabs/synchronizer-v2/internal/blockchain"
+	customlogger "github.com/darchlabs/synchronizer-v2/internal/custom-logger"
 	"github.com/darchlabs/synchronizer-v2/internal/webhooksender"
 	"github.com/darchlabs/synchronizer-v2/pkg/event"
 	"github.com/darchlabs/synchronizer-v2/pkg/smartcontract"
@@ -20,14 +21,18 @@ import (
 type idGenerator func() string
 type dateGenerator func() time.Time
 
-type EventDataStorage interface {
-	ListAllEvents() ([]*event.Event, error)
-	InsertEventData(e *event.Event, data []*event.EventData) error
+type EventStorage interface {
+	ListEventsByAddress(address string, sort string, limit int64, offset int64) ([]*event.Event, error)
+	InsertEventData(data []*event.EventData) error
 	UpdateEvent(e *event.Event) error
+	GetEvent(address string, eventName string) (*event.Event, error)
 }
 
 type SmartContractStorage interface {
 	GetSmartContractByAddress(address string) (*smartcontract.SmartContract, error)
+	ListAllSmartContracts() ([]*smartcontract.SmartContract, error)
+	UpdateStatusAndError(id string, status smartcontract.SmartContractStatus, err error) error
+	UpdateSmartContract(sc *smartcontract.SmartContract) (*smartcontract.SmartContract, error)
 }
 
 type WebhookSender interface {
@@ -51,7 +56,7 @@ type cronjob struct {
 
 	seconds       int64
 	clients       *map[string]*ethclient.Client
-	storage       EventDataStorage
+	storage       EventStorage
 	scStorage     SmartContractStorage
 	debug         bool
 	status        CronjobStatus
@@ -59,9 +64,17 @@ type cronjob struct {
 
 	idGen   idGenerator
 	dateGen dateGenerator
+
+	log *customlogger.CustomLogger
 }
 
-func New(seconds int64, storage EventDataStorage, scStorage SmartContractStorage, clients *map[string]*ethclient.Client, debug bool, idGen idGenerator, dateGen dateGenerator, webhookSender *webhooksender.WebhookSender) *cronjob {
+func New(seconds int64, storage EventStorage, scStorage SmartContractStorage, clients *map[string]*ethclient.Client, debug bool, idGen idGenerator, dateGen dateGenerator, webhookSender *webhooksender.WebhookSender) *cronjob {
+	// initialize custom logger
+	customLogger, err := customlogger.NewCustomLogger("cyan", os.Stdout)
+	if err != nil {
+		panic(err)
+	}
+
 	return &cronjob{
 		seconds: seconds,
 		status:  StatusIdle,
@@ -73,19 +86,20 @@ func New(seconds int64, storage EventDataStorage, scStorage SmartContractStorage
 		idGen:         idGen,
 		dateGen:       dateGen,
 		webhookSender: webhookSender,
+		log:           customLogger,
 	}
 }
 
 func (c *cronjob) Start() error {
 	if c.status == StatusRunning {
-		return errors.New("cronjob its already running")
+		return errors.New("cronjob - its already running")
 	}
 
 	if c.status == StatusStopping {
-		return errors.New("cronjob is stopping now, wait few seconds")
+		return errors.New("cronjob - is stopping now, wait few seconds")
 	}
 
-	log.Printf("Running ticker each %d seconds \n", c.seconds)
+	c.log.Printf("cronjob - running ticker each %d seconds", c.seconds)
 
 	// initialize ticker
 	c.ticker = time.NewTicker(time.Duration(time.Duration(c.seconds) * time.Second))
@@ -96,9 +110,6 @@ func (c *cronjob) Start() error {
 	// run gourutine associated to the ticker
 	go func() {
 		for {
-			log.Printf("===== \n")
-			log.Printf("Here inside for ticker \n")
-
 			select {
 			case <-c.ticker.C:
 				// call job method to run de ticker process
@@ -107,7 +118,7 @@ func (c *cronjob) Start() error {
 					c.status = StatusError
 					c.error = err
 
-					log.Printf("Cronjob has error: %s", err.Error())
+					c.log.Printf("cronjob - error executing job: %v", err.Error())
 					return
 				}
 
@@ -124,14 +135,14 @@ func (c *cronjob) Start() error {
 }
 
 func (c *cronjob) Restart() error {
-	log.Println("Restarting ticker")
+	c.log.Println("cronjob - restarting ticker")
 
 	if c.status == StatusIdle {
-		return errors.New("cronjob isn't ready yet, wait few seconds")
+		return errors.New("cronjob - isn't ready yet, wait few seconds")
 	}
 
 	if c.status == StatusStopping {
-		return errors.New("cronjob is stopping now, wait few seconds")
+		return errors.New("cronjob - is stopping now, wait few seconds")
 	}
 
 	if c.status == StatusRunning {
@@ -156,15 +167,15 @@ func (c *cronjob) Restart() error {
 
 func (c *cronjob) Stop() error {
 	if c.status == StatusIdle {
-		return errors.New("cronjob isn't ready yet, wait few seconds")
+		return errors.New("cronjob - isn't ready yet, wait few seconds")
 	}
 
 	if c.status == StatusStopping {
-		return errors.New("cronjob is stopping now, wait few seconds")
+		return errors.New("cronjob - is stopping now, wait few seconds")
 	}
 
 	if c.status == StatusStopped {
-		return errors.New("cronjob is already stopped")
+		return errors.New("cronjob - is already stopped")
 	}
 
 	c.status = StatusStopping
@@ -174,66 +185,108 @@ func (c *cronjob) Stop() error {
 }
 
 func (c *cronjob) job() error {
-	// get all events from storage
-	events, err := c.storage.ListAllEvents()
+	// get all smartcontracts
+	smartContracts, err := c.scStorage.ListAllSmartContracts()
 	if err != nil {
 		return err
 	}
 
-	// filter by only for running events
-	runningEvents := make([]*event.Event, 0)
-	for _, e := range events {
-		if e.Status == event.StatusRunning {
-			runningEvents = append(runningEvents, e)
-		}
-	}
-
 	// define waitgroup for proccessing the events logs
 	var wg sync.WaitGroup
-	wg.Add(len(runningEvents))
+	wg.Add(len(smartContracts))
 
 	// iterate over events
-	for _, e := range runningEvents {
-		go func(ev *event.Event) {
+	for _, contract := range smartContracts {
+		go func(contract *smartcontract.SmartContract) {
 			defer wg.Done()
 
+			// get all events from storage
+			events, err := c.storage.ListEventsByAddress(contract.Address, "ASC", 100, 0)
+			if err != nil {
+				updateSmartContractError(contract, err, c.scStorage)
+				return
+			}
+
+			// generate map of smartcontract events
+			eventsNameMap := make(map[string]*event.Event)
+			eventsIdMap := make(map[string]*event.Event)
+			for _, ev := range events {
+				eventsNameMap[ev.Abi.Name] = ev
+				eventsIdMap[ev.ID] = ev
+			}
+
 			// get client from map or create and save
-			client, ok := (*c.clients)[ev.NodeURL]
+			client, ok := (*c.clients)[contract.NodeURL]
 			if !ok {
 				// validate client works
-				client, err = ethclient.Dial(ev.NodeURL)
+				client, err = ethclient.Dial(contract.NodeURL)
 				if err != nil {
-					updateEventError(ev, err, c.dateGen(), c.storage)
+					updateSmartContractError(contract, err, c.scStorage)
 					return
 				}
 
 				// validate client is working correctly
 				_, err = client.ChainID(context.Background())
 				if err != nil {
-					updateEventError(ev, err, c.dateGen(), c.storage)
+					updateSmartContractError(contract, err, c.scStorage)
 					return
 				}
 
 				// save client in map
-				(*c.clients)[ev.NodeURL] = client
+				(*c.clients)[contract.NodeURL] = client
 			}
 
-			// parse abi to string
-			b, err := json.Marshal(ev.Abi)
+			// get current block number
+			blockNumber, err := client.BlockNumber(context.Background())
 			if err != nil {
-				updateEventError(ev, err, c.dateGen(), c.storage)
+				updateSmartContractError(contract, err, c.scStorage)
 				return
 			}
+
+			c.log.Printf("cronjob - address: %s last_synced_block_number: %d current_block_number: %d", contract.Address[:6]+"..."+contract.Address[len(contract.Address)-5:], contract.LastTxBlockSynced, blockNumber)
+
+			// get abi from events
+			abi := make([]*event.Abi, 0)
+			for _, ev := range events {
+				abi = append(abi, ev.Abi)
+			}
+
+			// marshal abi to json
+			abiB, err := json.Marshal(abi)
+			if err != nil {
+				updateSmartContractError(contract, err, c.scStorage)
+				return
+			}
+
+			// define final block number
+			finalBlockNumber := int64(blockNumber)
 
 			// define and read channel with log data in go routine
 			logsChannel := make(chan []blockchain.LogData)
 			go func() {
+				defer func() {
+					// update block number in smartcontract
+					contract.LastTxBlockSynced = int64(finalBlockNumber)
+					_, err := c.scStorage.UpdateSmartContract(contract)
+					if err != nil {
+						updateSmartContractError(contract, err, c.scStorage)
+						return
+					}
+				}()
+
 				for logs := range logsChannel {
 					// parse each log to EventData
 					eventDatas := make([]*event.EventData, 0)
-					for _, log := range logs {
+					for _, l := range logs {
+						// get event from map
+						ev, ok := eventsNameMap[l.EventName]
+						if !ok {
+							c.log.Printf("cronjob - warning event_name=%s not found in eventsNameMap", l.EventName)
+							continue
+						}
+
 						ed := &event.EventData{}
-						err := ed.FromLogData(log, c.idGen(), ev.ID, c.dateGen())
+						err := ed.FromLogData(l, c.idGen(), ev.ID, c.dateGen())
 						if err != nil {
 							updateEventError(ev, err, c.dateGen(), c.storage)
 							return
@@ -243,48 +296,34 @@ func (c *cronjob) job() error {
 					}
 
 					// insert logs data to event
-					err := c.storage.InsertEventData(ev, eventDatas)
+					err := c.storage.InsertEventData(eventDatas)
 					if err != nil {
-						updateEventError(ev, err, c.dateGen(), c.storage)
+						updateSmartContractError(contract, err, c.scStorage)
 						return
 					}
 
-					// update latest block number using last dataLog
-					if len(logs) > 0 {
-						logBlockNumber := int64(logs[len(logs)-1].BlockNumber)
+					// send webhook for any event data if contract is synced and has webhook
+					if contract.Webhook != "" && contract.IsSynced() {
+						c.log.Println("cronjob - sending webhooks")
+						for _, evData := range eventDatas {
+							// get event from map
+							ev, ok := eventsIdMap[evData.EventID]
+							if !ok {
+								c.log.Printf("cronjob - warning event_id=%s not found in eventsIdMap", evData.EventID)
+								continue
+							}
 
-						// update only when log_block_number is greater than event block number
-						if logBlockNumber > ev.LatestBlockNumber {
-							ev.LatestBlockNumber = logBlockNumber
-							ev.UpdatedAt = c.dateGen()
-							err = c.storage.UpdateEvent(ev)
+							// check if sc is synced and has available webhook
+							wh, err := evData.ToWebhookEvent(c.idGen(), ev, contract.Webhook, c.dateGen())
 							if err != nil {
 								updateEventError(ev, err, c.dateGen(), c.storage)
 								return
 							}
-						}
 
-						// get sc for previous checks
-						sc, err := c.scStorage.GetSmartContractByAddress(ev.Address)
-						if err != nil {
-							updateEventError(ev, err, c.dateGen(), c.storage)
-							return
-						}
-
-						// check if sc is synced and has available webhook
-						if sc.Webhook != "" && sc.IsSynced() {
-							for _, evData := range eventDatas {
-								wh, err := evData.ToWebhookEvent(c.idGen(), ev, sc.Webhook, c.dateGen())
-								if err != nil {
-									updateEventError(ev, err, c.dateGen(), c.storage)
-									return
-								}
-
-								err = c.webhookSender.CreateAndSendWebhook(wh)
-								if err != nil {
-									updateEventError(ev, err, c.dateGen(), c.storage)
-									return
-								}
+							err = c.webhookSender.CreateAndSendWebhook(wh)
+							if err != nil {
+								updateEventError(ev, err, c.dateGen(), c.storage)
+								return
 							}
 						}
 					}
@@ -299,37 +338,30 @@ func (c *cronjob) job() error {
 			// get event logs from contract
 			count, latestBlockNumber, err := blockchain.GetLogs(ctx, blockchain.Config{
 				Client:          client,
-				ABI:             fmt.Sprintf("[%s]", string(b)),
-				EventName:       ev.Abi.Name,
-				Address:         ev.Address,
-				FromBlockNumber: &ev.LatestBlockNumber,
+				ABI:             string(abiB),
+				Address:         contract.Address,
+				FromBlockNumber: &contract.LastTxBlockSynced,
+				ToBlockNumber:   &blockNumber,
 				LogsChannel:     logsChannel,
 				Logger:          c.debug,
 			})
 			if err == context.Canceled || err == context.DeadlineExceeded {
-				log.Println("Warning: context was cancelled/deadline_exceeded")
+				c.log.Println("cronjob - warning context was cancelled/deadline_exceeded")
 			} else if err != nil {
-				updateEventError(ev, err, c.dateGen(), c.storage)
+				updateSmartContractError(contract, err, c.scStorage)
 				return
 			}
 
 			// show count log
 			if count > 0 {
-				log.Printf("%d new events have been inserted into the database with %d latest block number \n", count, latestBlockNumber)
+				c.log.Printf("cronjob - %d new events have been inserted into the database with %d latest block number", count, latestBlockNumber)
 			}
 
-			// update latest block number
-			ev.LatestBlockNumber = latestBlockNumber
-			ev.UpdatedAt = c.dateGen()
-
-			err = c.storage.UpdateEvent(ev)
-			if err != nil {
-				updateEventError(ev, err, c.dateGen(), c.storage)
-				return
+			// replace final block number if latestBlockNumber is less than finalBlockNumber
+			if latestBlockNumber < finalBlockNumber {
+				finalBlockNumber = latestBlockNumber + 1 // add 1 to avoid duplicate logs
 			}
-
-			return
-		}(e)
+		}(contract)
 	}
 
 	wg.Wait()
@@ -359,10 +391,18 @@ func (c *cronjob) GetError() string {
 	return ""
 }
 
-func updateEventError(ev *event.Event, err error, date time.Time, storage EventDataStorage) {
+func updateEventError(ev *event.Event, err error, date time.Time, storage EventStorage) {
 	// update event error
 	ev.Status = event.StatusError
 	ev.Error = err.Error()
 	ev.UpdatedAt = date
 	_ = storage.UpdateEvent(ev)
+}
+
+func updateSmartContractError(sc *smartcontract.SmartContract, err error, storage SmartContractStorage) {
+	// update sc error
+	err = storage.UpdateStatusAndError(sc.ID, smartcontract.StatusError, err)
+	if err != nil {
+		fmt.Println("🔥 cronjob - error updating smartcontract", err.Error())
+	}
 }

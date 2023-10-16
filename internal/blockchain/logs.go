@@ -4,13 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"math/big"
+	"os"
 	"strings"
 	"time"
 
-	// "time"
-
+	customlogger "github.com/darchlabs/synchronizer-v2/internal/custom-logger"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -20,10 +19,9 @@ import (
 type Config struct {
 	Client          *ethclient.Client
 	ABI             string
-	EventName       string
 	Address         string
 	FromBlockNumber *int64
-	ToBlockNumber   *int64
+	ToBlockNumber   *uint64
 	MaxRetry        int64
 	LogsChannel     chan []LogData
 	Logger          bool
@@ -33,6 +31,8 @@ type LogData struct {
 	Tx          common.Hash            `json:"tx"`
 	BlockNumber uint64                 `json:"blockNumber"`
 	Data        map[string]interface{} `json:"data"`
+
+	EventName string
 }
 
 func GetLogs(ctx context.Context, c Config) (int64, int64, error) {
@@ -43,20 +43,22 @@ func GetLogs(ctx context.Context, c Config) (int64, int64, error) {
 	if c.ABI == "" {
 		return 0, 0, errors.New("invalid ABI config param")
 	}
-	if c.EventName == "" {
-		return 0, 0, errors.New("invalid EventName config param")
-	}
 	if c.Address == "" {
 		return 0, 0, errors.New("invalid Address config param")
 	}
 	if c.FromBlockNumber == nil {
 		return 0, 0, errors.New("invalid FromBlock config param")
 	}
-	if c.ToBlockNumber != nil && *c.FromBlockNumber > *c.ToBlockNumber {
+	if c.ToBlockNumber != nil && *c.FromBlockNumber > int64(*c.ToBlockNumber) {
 		return 0, 0, errors.New("invalid ToBlockNumber number because is lower than FromBlockNumber")
 	}
 	if c.LogsChannel == nil {
 		return 0, 0, errors.New("invalid LogsChannel config param")
+	}
+
+	log, err := customlogger.NewCustomLogger("green", os.Stdout)
+	if err != nil {
+		panic(err)
 	}
 
 	// prepare contract instance using ABI definition
@@ -65,10 +67,12 @@ func GetLogs(ctx context.Context, c Config) (int64, int64, error) {
 		return 0, 0, err
 	}
 
-	// get event definition for getting event id
-	event, ok := contractWithAbi.Events[c.EventName]
-	if !ok {
-		return 0, 0, fmt.Errorf("event_name=%s is not defined in abi", c.EventName)
+	// iterate over contractWithAbi events
+	eventsIDs := make([]common.Hash, 0)
+	eventsIdToName := make(map[string]string)
+	for _, event := range contractWithAbi.Events {
+		eventsIDs = append(eventsIDs, event.ID)
+		eventsIdToName[event.ID.String()] = event.Name
 	}
 
 	// define from block and interval numbers
@@ -87,14 +91,9 @@ func GetLogs(ctx context.Context, c Config) (int64, int64, error) {
 		}
 		toBlock = int64(blockNumber)
 	} else {
-		toBlock = *c.ToBlockNumber
+		toBlock = int64(*c.ToBlockNumber)
 	}
 	temporalToBlock := toBlock
-
-	// we need to request log by batches using interval block number
-	if c.Logger {
-		log.Printf("\nmaking batches requests for event_name%s", c.EventName)
-	}
 
 	// define values to manage the ticker
 	// TODO(ca): should to implement rate limit approach
@@ -105,15 +104,11 @@ loop:
 	for count := 0; ; count++ {
 		select {
 		case <-ctx.Done():
-			fmt.Println("case when `<-ctx.Done()` with ctx:", ctx.Err())
 			// close log channel and finish
+			log.Println("indexer - context Done() signal received")
 			close(c.LogsChannel)
 			return logsCount, int64(temporalToBlock - interval), ctx.Err()
 		case <-ticker.C:
-			if c.Logger {
-				log.Printf("\naddress=%s event_name=%s iteration=%d from=%d to=%d interval=%d ", c.Address, c.EventName, count, fromBlock, temporalToBlock, interval)
-			}
-
 			// prepare query params
 			query := ethereum.FilterQuery{
 				FromBlock: big.NewInt(fromBlock),
@@ -121,7 +116,7 @@ loop:
 				Addresses: []common.Address{
 					common.HexToAddress(c.Address),
 				},
-				Topics: [][]common.Hash{{event.ID}},
+				Topics: [][]common.Hash{eventsIDs},
 			}
 
 			// get logs from contract
@@ -152,9 +147,9 @@ loop:
 				// retry process
 				retry++
 				if retry > c.MaxRetry {
-					return 0, 0, fmt.Errorf("max_retry, error=%s", err.Error())
+					return 0, 0, fmt.Errorf("indexer - error retrying to get logs from contract, retry: %d, error: %s", retry, err.Error())
 				} else {
-					log.Printf("Error: c.Client.FilterLogs(context.Background(), query), err%s \n", err.Error())
+					log.Printf("indexer - c.Client.FilterLogs(context.Background(), query), err%s", err.Error())
 				}
 
 				continue
@@ -165,7 +160,7 @@ loop:
 			data := make([]LogData, 0)
 
 			if c.Logger {
-				log.Printf("logs=%d\n", len(logs))
+				log.Printf("indexer - address: %s iteration: %d from: %d to: %d interval: %d logs: %d", c.Address[:6]+"..."+c.Address[len(c.Address)-5:], count, fromBlock, temporalToBlock, interval, len(logs))
 			}
 
 			// iterate over logs
@@ -175,16 +170,24 @@ loop:
 					continue
 				}
 
+				// get event name
+				eventName, ok := eventsIdToName[vLog.Topics[0].String()]
+				if !ok {
+					// show warning message and continue
+					log.Printf("indexer - warning event_name: %s not found in eventsIdToName", vLog.Topics[0].String())
+					continue
+				}
+
 				// get event from contract log
 				eventData := make(map[string]interface{})
-				err := contractWithAbi.UnpackIntoMap(eventData, c.EventName, vLog.Data)
+				err := contractWithAbi.UnpackIntoMap(eventData, eventName, vLog.Data)
 				if err != nil {
 					return 0, 0, err
 				}
 
 				// filter only indexed elements from events inputs
 				indexedInputs := make([]abi.Argument, 0)
-				for _, e := range contractWithAbi.Events[c.EventName].Inputs {
+				for _, e := range contractWithAbi.Events[eventName].Inputs {
 					if e.Indexed {
 						indexedInputs = append(indexedInputs, e)
 					}
@@ -207,6 +210,7 @@ loop:
 					Tx:          vLog.TxHash,
 					BlockNumber: vLog.BlockNumber,
 					Data:        eventData,
+					EventName:   eventName,
 				}
 
 				// append log in data log slice and increase the counter
@@ -214,8 +218,10 @@ loop:
 				logsCount++
 			}
 
-			// send log data to channel
-			c.LogsChannel <- data
+			// continue if data log slice is empty
+			if len(data) > 0 {
+				c.LogsChannel <- data
+			}
 
 			// condition for finish the bucle
 			if temporalToBlock == int64(toBlock) {
