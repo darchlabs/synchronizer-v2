@@ -14,6 +14,9 @@ func upAddColumnInitialBlockNumberToSmartcontractTable(tx *sql.Tx) error {
 	_, err := tx.Exec(`
 		ALTER TABLE smartcontracts ADD COLUMN initial_block_number BIGINT NOT NULL DEFAULT 0;
 	`)
+	if err != nil {
+		return err
+	}
 
 	// add the same value of 'last_tx_block_synced' to created column
 	_, err = tx.Exec(`
