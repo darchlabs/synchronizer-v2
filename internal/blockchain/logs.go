@@ -164,17 +164,10 @@ loop:
 			}
 
 			// iterate over logs
-			mapa := make(map[string]int64)
 			for _, vLog := range logs {
 				// continue if event data are empty
 				if len(vLog.Data) == 0 {
 					continue
-				}
-
-				if _, ok := mapa[vLog.Topics[0].String()]; ok {
-					mapa[vLog.Topics[0].String()]++
-				} else {
-					mapa[vLog.Topics[0].String()] = 1
 				}
 
 				// get event name
